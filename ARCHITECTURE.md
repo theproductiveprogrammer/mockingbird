@@ -1,25 +1,74 @@
 # 🐦 Architecture
 
+## System Overview
+
 ```
-                 +----------------+
-                 |   Clients      |
-                 +----------------+
-                       |
-                       |  (HTTP requests to proxy)
-                       v
-                +----------------------+
-                |   Proxy Server (Go)  |  <-- main runtime
-                |  - Matcher / Router  |
-                |  - DSL Renderer      |
-                |  - Reverse Proxy     |
-                |  - Admin API & SSE   |  (on admin port)
-                +----------------------+
-                     |           |
-             (forward to)    (admin/dashboard)
-                     |           v
-            +----------------+  +-------------------+
-            | Upstream APIs  |  | Dashboard (React) |
-            +----------------+  +-------------------+
+         +------------------+    +------------------+    +------------------+
+         |  Microservice A  |    |  Microservice B  |    |  Developer Tool  |
+         +------------------+    +------------------+    +------------------+
+                |                         |                       |
+                | /servicex/users         | /openai/chat         | /stripe/payments
+                +-------------------------+-----------------------+
+                                          |
+                         http://localhost:8769 (Proxy Server)
+                                          |
+                         +----------------v-----------------+
+                         |       MOCKINGBIRD PROXY          |
+                         |                                  |
+                         |  1. Extract service from path    |
+                         |  2. Match against rules          |
+                         |  3. Proxy OR Mock OR Timeout     |
+                         |  4. Record traffic               |
+                         |  5. Publish to SSE stream        |
+                         +----------------+-----------------+
+                                /         |         \
+                               /          |          \
+                      (matched)      (no match)   (admin:9090)
+                         /              |              \
+                        v               v               v
+            +------------------+   +---------+   +---------------+
+            |  External APIs   |   |   504   |   |   REST API    |
+            |                  |   | Timeout |   |   + SSE       |
+            | api.servicex.com |   +---------+   +---------------+
+            | api.openai.com   |
+            | api.stripe.com   |
+            +------------------+
+```
+
+## Request Flow
+
+### Path-Based Service Routing
+
+```
+Request: GET http://localhost:8769/servicex/users/123?filter=active
+                                      ^^^^^^^
+                                      service name
+
+1. Extract "servicex" from path
+2. Load rules from ~/.config/mockingbird/servicex.yaml
+3. Match request against rules (first-match-wins)
+```
+
+### Matching Decision Tree
+
+```
+For each rule in servicex.yaml (top to bottom):
+  ├─ Does method match? (if specified)
+  │   └─ NO → Try next rule
+  ├─ Does path match? (exact or wildcard)
+  │   └─ NO → Try next rule
+  ├─ Do headers match? (if specified)
+  │   └─ NO → Try next rule
+  ├─ Does body match regex? (if specified)
+  │   └─ NO → Try next rule
+  └─ YES → MATCHED!
+      ├─ Rule has "proxyto"?
+      │   └─ Forward to upstream with header injection
+      └─ Rule has "response"?
+          └─ Parse .mock template and render
+
+No match found?
+  └─ Return 504 Gateway Timeout
 ```
 
 ## 🧱 Project Structure
@@ -82,16 +131,16 @@ template: >
   # allow comments
   header:
     Content-Type: application/json
-    X-API-Key: "{{ config serviceApiKey }}"
+    X-API-Key: "{{ config `serviceApiKey` }}"
 
-  body:json
+  body
   {
     "id": "{{ uuid }}",
-    "user": "{{ reqPathParam id }}",
-    "generate": "{{ reqQueryParam generate }}",
-    "total": "{{ reqBody data.summary[0].total }}",
+    "user": "{{ reqPathParam 1 }}",
+    "generate": "{{ reqQueryParam `generate` }}",
+    "total": "{{ reqBody `data.summary[0].total` }}",
     "confirmationCode": "ORD-{{ random 100000 999999 }}",
-    "numResults": "{{ reqHeader "x-limit-rows" }}"
+    "numResults": "{{ reqHeader `x-limit-rows` }}"
   }
 ```
 

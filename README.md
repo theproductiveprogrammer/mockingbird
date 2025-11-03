@@ -1,22 +1,53 @@
 # 🐦 Mockingbird
 
-> **Fast, modern, lightweight API proxy and mock server.**
+> **Fast, modern, lightweight API gateway for development and testing.**
 
-Mockingbird is a modern API mocking and proxy tool that lets you **simulate, inspect, and shape your API traffic in real-time**.
+Mockingbird is a **centralized API gateway** that routes all external service calls through one endpoint, giving you complete control to **mock, proxy, inspect, and debug** your API traffic in real-time.
 
-Whether you’re mocking endpoints for frontend work, recording live traffic for testing, or debugging integrations, Mockingbird makes it effortless — with **simple text-driven templates**, **live request dashboards**, and **Docker-ready deployment**.
+Stop hardcoding API keys, stop hitting live APIs during development, and get full visibility into every external call your services make — all from one simple, fast Go service.
 
 ---
 
-## 🚀 Why Mockingbird?
+## 🚀 Quick Start
 
-| Problem                                            | Mockingbird’s Take                                                       |
-| -------------------------------------------------- | ------------------------------------------------------------------------ |
-| Tired of clunky mock servers or YAML DSLs?         | Use clean, human-readable `.mock` files that look like natural text.     |
-| Need to match by URL, headers, or request body?    | Flexible matchers that support regex, wildcards, and JSON body contains. |
-| Want to proxy to live APIs *and* mock selectively? | Built-in HTTP reverse proxy with per-route overrides.                    |
-| Need a dashboard to see what’s happening?          | React-powered Admin UI with real-time traffic stream and config editing. |
-| Deploy anywhere?                                   | Single binary or Docker container — no external DB needed.               |
+**1. Configure your services to use Mockingbird:**
+
+Instead of calling external APIs directly, route through Mockingbird:
+
+```bash
+# Before
+curl https://api.servicex.com/users
+
+# After
+curl http://localhost:8769/servicex/users
+```
+
+**2. Start Mockingbird:**
+
+```bash
+mockingbird
+# Proxy: http://localhost:8769
+# Admin API: http://localhost:9090
+```
+
+**3. Create rules via API:**
+
+```bash
+# Proxy to real API with injected auth
+curl -X POST http://localhost:9090/api/rules/servicex \
+  -H "Content-Type: application/json" \
+  -d '{
+    "match": {"method": ["GET"], "path": "/servicex/**"},
+    "proxyto": "https://api.servicex.com",
+    "headers": {"X-API-Key": "{{ config SERVICEX_API_KEY }}"}
+  }'
+```
+
+**4. Watch live traffic:**
+
+```bash
+curl -N http://localhost:9090/api/traffic/stream
+```
 
 ---
 
