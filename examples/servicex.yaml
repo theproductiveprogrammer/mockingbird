@@ -1,0 +1,46 @@
+rules:
+  # Mock specific endpoint for testing errors (must come before wildcard)
+  - match:
+      method: [GET]
+      path: /servicex/users/error
+    response: |
+      +500ms
+      [500]
+      headers:
+        Content-Type: application/json
+      body
+      {
+        "error": "Internal server error",
+        "code": "SERVER_ERROR",
+        "timestamp": "{{ now }}"
+      }
+
+  # Mock POST requests containing "charles" in the body
+  - match:
+      method: [POST]
+      path: /servicex/users/**
+      body:
+        matches: ".*charles.*"
+    response: |
+      +200ms
+      [201]
+      headers:
+        Content-Type: application/json
+        X-Request-ID: "{{ uuid }}"
+      body
+      {
+        "id": "{{ uuid }}",
+        "username": "{{ reqBody `username` }}",
+        "email": "{{ reqBody `email` }}",
+        "created_at": "{{ now }}",
+        "confirmation_code": "USR-{{ random 100000 999999 }}"
+      }
+
+  # Proxy all GET requests to real ServiceX API with injected auth (last, as catch-all)
+  - match:
+      method: [GET]
+      path: /servicex/**
+    proxyto: https://api.servicex.com
+    headers:
+      X-API-Key: "{{ config `SERVICEX_API_KEY` }}"
+      User-Agent: Mockingbird/1.0
