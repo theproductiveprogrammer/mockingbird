@@ -35,11 +35,60 @@ export function formatResponseSummary(entry: TrafficEntry): string {
   let bodySummary = '';
   try {
     const parsed = JSON.parse(body);
-    const keys = Object.keys(parsed).slice(0, 3);
-    bodySummary = keys.map((k) => `${k}: ${JSON.stringify(parsed[k])}`).join(', ');
+
+    if (Array.isArray(parsed)) {
+      // Handle arrays
+      if (parsed.length === 0) {
+        bodySummary = '[]';
+      } else if (typeof parsed[0] === 'object' && parsed[0] !== null && !Array.isArray(parsed[0])) {
+        // Array of objects - show first object's keys then count
+        const arrayCount = `[${parsed.length} items]`;
+        const maxPreviewLength = 60 - arrayCount.length - 4; // Reserve space for "... " and count
+        const keys = Object.keys(parsed[0]).slice(0, 3);
+        let preview = keys.map((k) => {
+          const value = parsed[0][k];
+          // Simplify arrays in nested properties
+          if (Array.isArray(value)) {
+            return `${k}: [${value.length} items]`;
+          }
+          return `${k}: ${JSON.stringify(value)}`;
+        }).join(', ');
+        if (preview.length > maxPreviewLength) {
+          preview = preview.substring(0, maxPreviewLength);
+        }
+        bodySummary = `${preview}... ${arrayCount}`;
+      } else {
+        // Array of primitives - show first few items then count
+        const arrayCount = `[${parsed.length} items]`;
+        const maxPreviewLength = 60 - arrayCount.length - 4; // Reserve space for "... " and count
+        let preview = parsed.slice(0, 3).map(v => JSON.stringify(v)).join(', ');
+        if (preview.length > maxPreviewLength) {
+          preview = preview.substring(0, maxPreviewLength);
+        }
+        bodySummary = `${preview}${parsed.length > 3 || preview.length > maxPreviewLength ? '...' : ''} ${arrayCount}`;
+      }
+    } else if (typeof parsed === 'object' && parsed !== null) {
+      // Regular object
+      const keys = Object.keys(parsed).slice(0, 3);
+      bodySummary = keys.map((k) => {
+        const value = parsed[k];
+        // Simplify arrays in properties
+        if (Array.isArray(value)) {
+          return `${k}: [${value.length} items]`;
+        }
+        return `${k}: ${JSON.stringify(value)}`;
+      }).join(', ');
+    } else {
+      // Primitive
+      bodySummary = String(parsed);
+    }
   } catch {
-    bodySummary = body.length > 40 ? body.substring(0, 40) + '...' : body;
+    // Not JSON - use as string
+    bodySummary = body;
   }
+
+  // Truncate to 60 chars as failsafe for all cases
+  bodySummary = bodySummary.length > 60 ? bodySummary.substring(0, 60) + '...' : bodySummary;
 
   // Handle undefined/null/0 delay_ms
   const delayStr = delay_ms !== undefined && delay_ms !== null ? `[${delay_ms}ms] ` : '';
