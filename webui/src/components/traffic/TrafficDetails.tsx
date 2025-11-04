@@ -9,6 +9,7 @@ import { RuleEditor } from '../rules/RuleEditor';
 import { Rule } from '../../types/api';
 import { api } from '../../utils/api';
 import toast from 'react-hot-toast';
+import { JsonViewer } from '../ui/JsonViewer';
 
 export function TrafficDetails() {
   const { id } = useParams<{ id: string }>();
@@ -42,6 +43,32 @@ export function TrafficDetails() {
     if (!body) return '(none)';
     if (typeof body === 'string') return body;
     return JSON.stringify(body, null, 2);
+  };
+
+  const isJsonBody = (body: any): boolean => {
+    if (!body) return false;
+    if (typeof body === 'object') return true;
+    if (typeof body === 'string') {
+      try {
+        JSON.parse(body);
+        return true;
+      } catch {
+        return false;
+      }
+    }
+    return false;
+  };
+
+  const parseJsonBody = (body: any): any => {
+    if (typeof body === 'object') return body;
+    if (typeof body === 'string') {
+      try {
+        return JSON.parse(body);
+      } catch {
+        return body;
+      }
+    }
+    return body;
   };
 
   const handleCreateRule = () => {
@@ -85,12 +112,18 @@ export function TrafficDetails() {
           .join('\n')
       : 'Content-Type: application/json';
 
-    // Format response body
-    const responseBodyStr = entry.response?.body
-      ? typeof entry.response.body === 'string'
-        ? entry.response.body
-        : JSON.stringify(JSON.parse(entry.response.body), null, 2)
-      : '{}';
+    // Format response body - ensure proper JSON formatting
+    let responseBodyStr = '{}';
+    if (entry.response?.body) {
+      if (isJsonBody(entry.response.body)) {
+        const parsedBody = parseJsonBody(entry.response.body);
+        responseBodyStr = JSON.stringify(parsedBody, null, 2);
+      } else {
+        responseBodyStr = typeof entry.response.body === 'string'
+          ? entry.response.body
+          : JSON.stringify(entry.response.body, null, 2);
+      }
+    }
 
     // Build template
     const template = `${entry.response?.delay_ms ? `+${entry.response.delay_ms}ms\n` : ''}[${entry.response?.status_code || 200}]
@@ -191,18 +224,24 @@ ${responseBodyStr}`;
           <div className="mb-3">
             <p className="text-xs font-normal text-gray-600 mb-1">body:</p>
             <div className="ml-4">
-              <SyntaxHighlighter
-                language="json"
-                style={oneLight}
-                customStyle={{
-                  margin: 0,
-                  padding: '0.75rem',
-                  fontSize: '0.75rem',
-                  borderRadius: '0.25rem',
-                }}
-              >
-                {formatBody(entry.body)}
-              </SyntaxHighlighter>
+              {isJsonBody(entry.body) ? (
+                <div className="bg-gray-50 p-3 rounded">
+                  <JsonViewer data={parseJsonBody(entry.body)} defaultExpanded={true} />
+                </div>
+              ) : (
+                <SyntaxHighlighter
+                  language="json"
+                  style={oneLight}
+                  customStyle={{
+                    margin: 0,
+                    padding: '0.75rem',
+                    fontSize: '0.75rem',
+                    borderRadius: '0.25rem',
+                  }}
+                >
+                  {formatBody(entry.body)}
+                </SyntaxHighlighter>
+              )}
             </div>
           </div>
         </div>
@@ -243,18 +282,31 @@ ${responseBodyStr}`;
               <div className="mb-3">
                 <p className="text-xs font-normal text-gray-600 mb-1">body:</p>
                 <div className="ml-4">
-                  <SyntaxHighlighter
-                    language="json"
-                    style={oneLight}
-                    customStyle={{
-                      margin: 0,
-                      padding: '0.75rem',
-                      fontSize: '0.75rem',
-                      borderRadius: '0.25rem',
-                    }}
-                  >
-                    {entry.response.body}
-                  </SyntaxHighlighter>
+                  {entry.response.headers?.['Content-Encoding'] === 'gzip' ? (
+                    <div className="bg-yellow-50 border border-yellow-200 p-3 rounded text-xs text-gray-700">
+                      <span className="text-yellow-700 font-medium">⚠️ Compressed (gzip)</span>
+                      <p className="mt-1 text-gray-600">
+                        Response body is gzip compressed. Length: {entry.response.headers?.['Content-Length'] || 'unknown'} bytes
+                      </p>
+                    </div>
+                  ) : isJsonBody(entry.response.body) ? (
+                    <div className="bg-gray-50 p-3 rounded">
+                      <JsonViewer data={parseJsonBody(entry.response.body)} defaultExpanded={true} />
+                    </div>
+                  ) : (
+                    <SyntaxHighlighter
+                      language="json"
+                      style={oneLight}
+                      customStyle={{
+                        margin: 0,
+                        padding: '0.75rem',
+                        fontSize: '0.75rem',
+                        borderRadius: '0.25rem',
+                      }}
+                    >
+                      {entry.response.body || '(empty)'}
+                    </SyntaxHighlighter>
+                  )}
                 </div>
               </div>
             </div>
