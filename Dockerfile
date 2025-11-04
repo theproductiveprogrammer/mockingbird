@@ -27,7 +27,7 @@ COPY --from=builder /build/mockingbird .
 RUN mkdir -p /app/config
 
 # Expose ports
-EXPOSE 8769 9090
+EXPOSE 8769 8768
 
 # Set environment variables
 ENV MOCKINGBIRD_CONFIG_DIR=/app/config

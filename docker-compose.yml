@@ -1,11 +1,11 @@
-version: '3.8'
+version: "3.8"
 
 services:
   mockingbird:
     build: .
     ports:
-      - "8769:8769"  # Proxy port
-      - "9090:9090"  # Admin API port
+      - "8769:8769" # Proxy port
+      - "8768:8768" # Admin API port
     volumes:
       # Mount config directory
       - ./examples:/app/config:ro
@@ -13,7 +13,7 @@ services:
       # - ~/.config/mockingbird:/app/config
     environment:
       - MOCKINGBIRD_PROXY_PORT=8769
-      - MOCKINGBIRD_ADMIN_PORT=9090
+      - MOCKINGBIRD_ADMIN_PORT=8768
       - MOCKINGBIRD_CONFIG_DIR=/app/config
     restart: unless-stopped
     container_name: mockingbird

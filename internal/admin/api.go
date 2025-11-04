@@ -172,7 +172,9 @@ func (a *API) handleGetAllRules(w http.ResponseWriter, r *http.Request) {
 		}
 
 		services[service] = map[string]interface{}{
-			"rules": indexed,
+			"service": service,
+			"file":    service + ".yaml",
+			"rules":   indexed,
 		}
 	}
 

@@ -4,6 +4,7 @@
 
 **Inspiration**: SalesBox runner UI - clean, modern, sophisticated
 **Key Principles**:
+
 - Light theme by default (similar to SalesBox)
 - Clean modern feel (not terminal/log style)
 - Simple, intuitive interactions
@@ -39,6 +40,7 @@
 ```
 
 **3-Line Format**:
+
 - Line 1: `[timestamp] METHOD /path query=params`
 - Line 2: `      -> request summary`
 - Line 3: `      <- [status] [time] {type} response summary`
@@ -48,19 +50,22 @@
 ## Core Views
 
 ### 1. Traffic Stream (Default View)
+
 **Purpose**: Live monitoring of all API traffic
 
 **Features**:
+
 - Real-time SSE stream from `/api/traffic/stream`
 - Auto-scroll to bottom (with pause button)
 - Compact log-style entries
 - Color-coded by status:
-  - 🟢 2xx (green)
-  - 🟡 3xx/4xx (yellow)
-  - 🔴 5xx (red)
+    - 🟢 2xx (green)
+    - 🟡 3xx/4xx (yellow)
+    - 🔴 5xx (red)
 - Click entry → expand details panel
 
 **Entry Format**:
+
 ```
 [HH:MM:SS] METHOD /path [STATUS] [delay] {type}
   key: value pairs from request
@@ -68,9 +73,11 @@
 ```
 
 ### 2. Traffic Details (Expanded View)
+
 **Triggered by**: Click on any traffic entry (replaces stream view)
 
 **Layout**:
+
 ```
 ┌─ 🐦 Mockingbird ────────────────────────────── [⚙️] [📊] [🔄] ─┐
 │                                                                │
@@ -113,9 +120,11 @@
 ```
 
 ### 3. Rules View
+
 **Access**: Gear icon in header
 
 **Layout**:
+
 ```
 ┌─ Rules by Service ───────────────────────────┐
 │                                              │
@@ -135,6 +144,7 @@
 **Click rule** → Rule editor modal
 
 ### 4. Rule Editor (Modal)
+
 Simple, clean form-based editor.
 
 ```
@@ -188,6 +198,7 @@ Simple, clean form-based editor.
 ```
 
 **Key Points**:
+
 - Simple dropdowns/checkboxes for method
 - Text input for path
 - Simple textareas for headers and body
@@ -195,6 +206,7 @@ Simple, clean form-based editor.
 - Backend handles YAML formatting
 
 ### 5. Config View
+
 **Access**: Settings icon in header
 
 ```
@@ -202,7 +214,7 @@ Simple, clean form-based editor.
 │                                              │
 │ Server:                                      │
 │   Proxy Port:  8769                          │
-│   Admin Port:  9090                          │
+│   Admin Port:  8768                          │
 │   Config Dir:  ~/.config/mockingbird         │
 │                                              │
 │ API Keys & Values:                           │
@@ -217,6 +229,7 @@ Simple, clean form-based editor.
 ```
 
 ### 6. Stats View
+
 **Access**: Stats icon in header
 
 ```
@@ -247,17 +260,20 @@ Simple, clean form-based editor.
 ## Technology Stack
 
 ### Frontend Framework
+
 - **React** (with hooks)
 - **Vite** for fast dev/build
 - **TypeScript** for type safety
 
 ### Styling
+
 - **TailwindCSS** for utility classes
 - **Light theme by default** (clean, modern)
 - **Sans-serif font** for UI (Inter, SF Pro, or system fonts)
 - **Monospace** for code/JSON only (SF Mono, Consolas)
 
 ### Libraries
+
 - **EventSource** for SSE (native browser API)
 - **react-syntax-highlighter** for JSON display
 - **date-fns** for timestamp formatting
@@ -265,15 +281,16 @@ Simple, clean form-based editor.
 - **react-hot-toast** for notifications
 
 ### UI Components
+
 - **shadcn/ui** or similar component library
 - Simple, clean components:
-  - Buttons
-  - Dropdowns/Select
-  - Checkboxes
-  - Text inputs
-  - Textareas
-  - Modals
-  - Tags for filters
+    - Buttons
+    - Dropdowns/Select
+    - Checkboxes
+    - Text inputs
+    - Textareas
+    - Modals
+    - Tags for filters
 
 ---
 
@@ -283,22 +300,15 @@ Simple, clean form-based editor.
 
 ```css
 /* Light Theme (Primary) */
---bg-primary:    #ffffff  /* White background */
---bg-secondary:  #f6f8fa  /* Light gray */
---bg-tertiary:   #f0f2f5  /* Slightly darker gray */
-
---text-primary:  #1f2937  /* Dark gray - main text */
---text-secondary:#6b7280  /* Medium gray - muted */
---text-tertiary: #9ca3af  /* Light gray - very muted */
-
---accent-blue:   #3b82f6  /* Links, info */
---accent-green:  #10b981  /* Success, 2xx */
---accent-yellow: #f59e0b  /* Warning, 4xx */
---accent-red:    #ef4444  /* Error, 5xx */
---accent-purple: #8b5cf6  /* Special */
-
---border:        #e5e7eb  /* Subtle borders */
---border-focus:  #3b82f6  /* Focused elements */
+--bg-primary: #ffffff /* White background */ --bg-secondary: #f6f8fa
+    /* Light gray */ --bg-tertiary: #f0f2f5 /* Slightly darker gray */
+    --text-primary: #1f2937 /* Dark gray - main text */
+    --text-secondary: #6b7280 /* Medium gray - muted */ --text-tertiary: #9ca3af
+    /* Light gray - very muted */ --accent-blue: #3b82f6 /* Links, info */
+    --accent-green: #10b981 /* Success, 2xx */ --accent-yellow: #f59e0b
+    /* Warning, 4xx */ --accent-red: #ef4444 /* Error, 5xx */
+    --accent-purple: #8b5cf6 /* Special */ --border: #e5e7eb
+    /* Subtle borders */ --border-focus: #3b82f6 /* Focused elements */;
 ```
 
 ---
@@ -350,23 +360,26 @@ src/
 ## Key Features
 
 ### 1. Real-Time Updates
+
 - SSE connection to `/api/traffic/stream`
 - Auto-reconnect on disconnect
 - Visual indicator of connection status
 - Pause/resume stream
 
 ### 2. Smart Filtering
+
 - Click tags to add/remove filters
 - Combine multiple filters (AND logic)
 - Filter by:
-  - Service name
-  - HTTP method
-  - Status code
-  - Response type (mock/proxy/timeout)
-  - Time range
+    - Service name
+    - HTTP method
+    - Status code
+    - Response type (mock/proxy/timeout)
+    - Time range
 - Save filter presets
 
 ### 3. Keyboard Shortcuts
+
 ```
 /          Focus filter input
 Esc        Clear filters / close modals
@@ -378,6 +391,7 @@ r          Create rule from selected
 ```
 
 ### 4. Rule Creation Workflow
+
 1. Click traffic entry
 2. Click "Create Rule from This"
 3. Pre-filled rule editor opens
@@ -388,6 +402,7 @@ r          Create rule from selected
 8. Save
 
 ### 5. Simple Form Inputs
+
 - Dropdowns for method selection (multi-select)
 - Text inputs for paths
 - Textareas for headers (simple, with basic indent support)
@@ -400,6 +415,7 @@ r          Create rule from selected
 ## Implementation Phases
 
 ### Phase 1: Core Infrastructure (Week 1)
+
 - [ ] Project setup (Vite + React + TypeScript)
 - [ ] Layout components (Header, FilterBar, StatusBar)
 - [ ] Dark theme with terminal styling
@@ -407,6 +423,7 @@ r          Create rule from selected
 - [ ] State management (zustand)
 
 ### Phase 2: Traffic View (Week 1)
+
 - [ ] SSE hook for live traffic
 - [ ] Traffic stream component
 - [ ] Entry formatting
@@ -414,6 +431,7 @@ r          Create rule from selected
 - [ ] Basic filtering
 
 ### Phase 3: Details & Rules (Week 2)
+
 - [ ] Traffic details side panel
 - [ ] JSON/YAML syntax highlighting
 - [ ] Rules list view
@@ -421,6 +439,7 @@ r          Create rule from selected
 - [ ] Template syntax highlighting
 
 ### Phase 4: Polish & Features (Week 2)
+
 - [ ] Config management
 - [ ] Stats view
 - [ ] Keyboard shortcuts
@@ -430,6 +449,7 @@ r          Create rule from selected
 - [ ] Error handling
 
 ### Phase 5: Testing & Docs (Week 3)
+
 - [ ] Component tests
 - [ ] E2E tests
 - [ ] User documentation
@@ -442,49 +462,51 @@ r          Create rule from selected
 
 ```tsx
 interface TrafficEntryProps {
-  entry: TrafficEntry;
-  onClick: () => void;
-  selected: boolean;
+    entry: TrafficEntry;
+    onClick: () => void;
+    selected: boolean;
 }
 
 export function TrafficEntry({ entry, onClick, selected }: TrafficEntryProps) {
-  const statusColor = getStatusColor(entry.response?.status_code);
-  const typeIcon = getTypeIcon(entry.rule_type);
+    const statusColor = getStatusColor(entry.response?.status_code);
+    const typeIcon = getTypeIcon(entry.rule_type);
 
-  return (
-    <div
-      className={cn(
-        "font-mono text-sm px-4 py-2 border-l-2 cursor-pointer",
-        "hover:bg-tertiary transition-colors",
-        selected && "bg-tertiary",
-        statusColor
-      )}
-      onClick={onClick}
-    >
-      <div className="flex items-center gap-2">
-        <span className="text-secondary">
-          [{formatTime(entry.timestamp)}]
-        </span>
-        <Tag variant="method">{entry.method}</Tag>
-        <span className="text-primary">{entry.path}</span>
-        <Tag variant="status">{entry.response?.status_code}</Tag>
-        <span className="text-secondary">
-          [{entry.response?.delay_ms}ms]
-        </span>
-        <Tag variant="type">{typeIcon} {entry.rule_type}</Tag>
-      </div>
+    return (
+        <div
+            className={cn(
+                "font-mono text-sm px-4 py-2 border-l-2 cursor-pointer",
+                "hover:bg-tertiary transition-colors",
+                selected && "bg-tertiary",
+                statusColor
+            )}
+            onClick={onClick}
+        >
+            <div className="flex items-center gap-2">
+                <span className="text-secondary">
+                    [{formatTime(entry.timestamp)}]
+                </span>
+                <Tag variant="method">{entry.method}</Tag>
+                <span className="text-primary">{entry.path}</span>
+                <Tag variant="status">{entry.response?.status_code}</Tag>
+                <span className="text-secondary">
+                    [{entry.response?.delay_ms}ms]
+                </span>
+                <Tag variant="type">
+                    {typeIcon} {entry.rule_type}
+                </Tag>
+            </div>
 
-      {entry.body && (
-        <div className="ml-28 text-secondary text-xs mt-1">
-          {formatBodySummary(entry.body)}
+            {entry.body && (
+                <div className="ml-28 text-secondary text-xs mt-1">
+                    {formatBodySummary(entry.body)}
+                </div>
+            )}
+
+            <div className="ml-28 text-tertiary text-xs mt-1">
+                → {getOutcomeDescription(entry)}
+            </div>
         </div>
-      )}
-
-      <div className="ml-28 text-tertiary text-xs mt-1">
-        → {getOutcomeDescription(entry)}
-      </div>
-    </div>
-  );
+    );
 }
 ```
 
@@ -493,6 +515,7 @@ export function TrafficEntry({ entry, onClick, selected }: TrafficEntryProps) {
 ## Integration with Backend
 
 ### API Endpoints Used
+
 - `GET /api/traffic/stream` - SSE for live traffic
 - `GET /api/traffic?limit=100` - Initial load
 - `GET /api/rules` - List all rules
@@ -504,9 +527,10 @@ export function TrafficEntry({ entry, onClick, selected }: TrafficEntryProps) {
 - `GET /api/stats` - Get statistics
 
 ### Deployment
+
 - Built files served from `internal/admin/static/`
 - Embedded in Go binary using `embed.FS`
-- Accessible at `http://localhost:9090/`
+- Accessible at `http://localhost:8768/`
 
 ---
 

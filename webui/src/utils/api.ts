@@ -1,6 +1,6 @@
 import { TrafficEntry, Rule, ServiceRules, Config, Stats } from '../types/api';
 
-const API_BASE = 'http://localhost:9090/api';
+const API_BASE = 'http://localhost:8768/api';
 
 class ApiClient {
   async getTraffic(limit = 100, service?: string): Promise<TrafficEntry[]> {

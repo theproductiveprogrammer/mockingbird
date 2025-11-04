@@ -24,7 +24,7 @@ func Load() (*Config, error) {
 
 	cfg := &Config{
 		ProxyPort: 8769,
-		AdminPort: 9090,
+		AdminPort: 8768,
 		ConfigDir: configDir,
 		Values:    make(map[string]string),
 	}

@@ -56,7 +56,7 @@ function App() {
 
       {currentView === 'traffic' && <FilterBar />}
 
-      <div className="flex-1 overflow-hidden flex flex-col">
+      <div className="flex-1 overflow-hidden flex flex-col bg-white">
         <Routes>
           <Route path="/" element={<TrafficStream />} />
           <Route path="/traffic/:id" element={<TrafficDetails />} />

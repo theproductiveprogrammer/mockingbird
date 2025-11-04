@@ -27,14 +27,14 @@ curl http://localhost:8769/servicex/users
 ```bash
 mockingbird
 # Proxy: http://localhost:8769
-# Admin API: http://localhost:9090
+# Admin API: http://localhost:8768
 ```
 
 **3. Create rules via API:**
 
 ```bash
 # Proxy to real API with injected auth
-curl -X POST http://localhost:9090/api/rules/servicex \
+curl -X POST http://localhost:8768/api/rules/servicex \
   -H "Content-Type: application/json" \
   -d '{
     "match": {"method": ["GET"], "path": "/servicex/**"},
@@ -46,7 +46,7 @@ curl -X POST http://localhost:9090/api/rules/servicex \
 **4. Watch live traffic:**
 
 ```bash
-curl -N http://localhost:9090/api/traffic/stream
+curl -N http://localhost:8768/api/traffic/stream
 ```
 
 ---
@@ -55,10 +55,9 @@ curl -N http://localhost:9090/api/traffic/stream
 
 ### ⚙️ Smart Request Matching
 
-* Match by method, path (`/users/{id}` or wildcards `**`), headers, query params, or JSON body fragments
-* Inspect all requests/responses in a beautiful live dashboard
-* Easily switch from real API responses to identical mocking responses
-
+- Match by method, path (`/users/{id}` or wildcards `**`), headers, query params, or JSON body fragments
+- Inspect all requests/responses in a beautiful live dashboard
+- Easily switch from real API responses to identical mocking responses
 
 ### 🗂️ Easy to Use!
 
@@ -77,19 +76,19 @@ body:json
 }
 ```
 
-* Templates support dynamic helpers: `{{now}}`, `{{uuid}}`, `{{random 1 100}}`
-* Access request headers, params, and JSON body fields
-* Reference central config values (like API keys) for better security, control, and privacy
+- Templates support dynamic helpers: `{{now}}`, `{{uuid}}`, `{{random 1 100}}`
+- Access request headers, params, and JSON body fields
+- Reference central config values (like API keys) for better security, control, and privacy
 
 ### 🔄 Transparent Reverse Proxy
 
-* Unmatched requests automatically forward to the real upstream service
-* See live traffic to generate corresponding mock templates
+- Unmatched requests automatically forward to the real upstream service
+- See live traffic to generate corresponding mock templates
 
 ### 🧠 Dashboard
 
-* Manage rules and templates from the browser
-* Watch live incoming requests
+- Manage rules and templates from the browser
+- Watch live incoming requests
 
 ### 🐳 Docker-First Deployment
 
@@ -102,8 +101,8 @@ body:json
 Mockingbird is open to community contributions!
 Help shape a tool that makes API development faster and more fun.
 
-* Fork the repo
-* Submit a PR or feature suggestion
+- Fork the repo
+- Submit a PR or feature suggestion
 
 ---
 
@@ -113,4 +112,3 @@ Help shape a tool that makes API development faster and more fun.
 > wrapped in one lightweight, fast, Go service with a beautiful dashboard.
 
 Build once. Mock forever. 🐦
-

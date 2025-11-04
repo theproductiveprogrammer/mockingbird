@@ -1,6 +1,6 @@
 # 🐦 Mockingbird - REST API Documentation
 
-Base URL: `http://localhost:9090` (Admin API)
+Base URL: `http://localhost:8768` (Admin API)
 
 All endpoints return JSON unless otherwise specified.
 
@@ -15,52 +15,55 @@ Get the last N traffic entries.
 **Endpoint**: `GET /api/traffic`
 
 **Query Parameters**:
+
 - `limit` (optional): Number of entries to return (default: 100, max: 1000)
 - `service` (optional): Filter by service name (e.g., "servicex")
 
 **Example**:
+
 ```bash
 # Get last 50 traffic entries
-curl http://localhost:9090/api/traffic?limit=50
+curl http://localhost:8768/api/traffic?limit=50
 
 # Get traffic for servicex only
-curl http://localhost:9090/api/traffic?service=servicex
+curl http://localhost:8768/api/traffic?service=servicex
 ```
 
 **Response**:
+
 ```json
 {
-  "entries": [
-    {
-      "id": "req-123e4567-e89b-12d3-a456-426614174000",
-      "timestamp": "2025-11-04T10:30:45Z",
-      "service": "servicex",
-      "method": "POST",
-      "path": "/servicex/users",
-      "query": {
-        "filter": ["active"]
-      },
-      "headers": {
-        "content-type": ["application/json"],
-        "x-user": ["charles"]
-      },
-      "body": {
-        "name": "Charles",
-        "role": "admin"
-      },
-      "response": {
-        "status_code": 200,
-        "headers": {
-          "content-type": "application/json"
-        },
-        "body": "{\"id\":\"123\",\"name\":\"Charles\"}",
-        "delay_ms": 200
-      },
-      "matched_rule": 0,
-      "rule_type": "mock"
-    }
-  ],
-  "total": 1
+    "entries": [
+        {
+            "id": "req-123e4567-e89b-12d3-a456-426614174000",
+            "timestamp": "2025-11-04T10:30:45Z",
+            "service": "servicex",
+            "method": "POST",
+            "path": "/servicex/users",
+            "query": {
+                "filter": ["active"]
+            },
+            "headers": {
+                "content-type": ["application/json"],
+                "x-user": ["charles"]
+            },
+            "body": {
+                "name": "Charles",
+                "role": "admin"
+            },
+            "response": {
+                "status_code": 200,
+                "headers": {
+                    "content-type": "application/json"
+                },
+                "body": "{\"id\":\"123\",\"name\":\"Charles\"}",
+                "delay_ms": 200
+            },
+            "matched_rule": 0,
+            "rule_type": "mock"
+        }
+    ],
+    "total": 1
 }
 ```
 
@@ -73,11 +76,13 @@ Get real-time traffic updates using Server-Sent Events.
 **Endpoint**: `GET /api/traffic/stream`
 
 **Example**:
+
 ```bash
-curl -N http://localhost:9090/api/traffic/stream
+curl -N http://localhost:8768/api/traffic/stream
 ```
 
 **Response** (SSE format):
+
 ```
 data: {"id":"req-...","timestamp":"...","method":"POST","path":"/servicex/users",...}
 
@@ -85,11 +90,12 @@ data: {"id":"req-...","timestamp":"...","method":"GET","path":"/openai/chat",...
 ```
 
 **Usage in Code**:
+
 ```javascript
-const eventSource = new EventSource('http://localhost:9090/api/traffic/stream');
+const eventSource = new EventSource("http://localhost:8768/api/traffic/stream");
 eventSource.onmessage = (event) => {
-  const traffic = JSON.parse(event.data);
-  console.log('New request:', traffic);
+    const traffic = JSON.parse(event.data);
+    console.log("New request:", traffic);
 };
 ```
 
@@ -102,11 +108,13 @@ Get full details for a specific traffic entry.
 **Endpoint**: `GET /api/traffic/:id`
 
 **Example**:
+
 ```bash
-curl http://localhost:9090/api/traffic/req-123e4567-e89b-12d3-a456-426614174000
+curl http://localhost:8768/api/traffic/req-123e4567-e89b-12d3-a456-426614174000
 ```
 
 **Response**:
+
 ```json
 {
   "id": "req-123e4567-e89b-12d3-a456-426614174000",
@@ -130,15 +138,17 @@ Generate a rule template from a traffic entry.
 **Endpoint**: `POST /api/traffic/:id/generate-rule`
 
 **Example**:
+
 ```bash
-curl -X POST http://localhost:9090/api/traffic/req-123e4567.../generate-rule
+curl -X POST http://localhost:8768/api/traffic/req-123e4567.../generate-rule
 ```
 
 **Response**:
+
 ```json
 {
-  "service": "servicex",
-  "rule_yaml": "match:\n  method: [POST]\n  path: /servicex/users\nresponse: |\n  [200]\n  headers:\n    Content-Type: application/json\n  body\n  {\n    \"id\": \"{{ uuid }}\",\n    \"name\": \"{{ reqBody name }}\"\n  }\n"
+    "service": "servicex",
+    "rule_yaml": "match:\n  method: [POST]\n  path: /servicex/users\nresponse: |\n  [200]\n  headers:\n    Content-Type: application/json\n  body\n  {\n    \"id\": \"{{ uuid }}\",\n    \"name\": \"{{ reqBody name }}\"\n  }\n"
 }
 ```
 
@@ -153,11 +163,13 @@ Get all rules grouped by service.
 **Endpoint**: `GET /api/rules`
 
 **Example**:
+
 ```bash
-curl http://localhost:9090/api/rules
+curl http://localhost:8768/api/rules
 ```
 
 **Response**:
+
 ```json
 {
   "services": {
@@ -205,28 +217,30 @@ Get all rules for a specific service.
 **Endpoint**: `GET /api/rules/:service`
 
 **Example**:
+
 ```bash
-curl http://localhost:9090/api/rules/servicex
+curl http://localhost:8768/api/rules/servicex
 ```
 
 **Response**:
+
 ```json
 {
-  "service": "servicex",
-  "file": "/Users/user/.config/mockingbird/servicex.yaml",
-  "rules": [
-    {
-      "index": 0,
-      "match": {
-        "method": ["GET", "POST"],
-        "path": "/servicex/**"
-      },
-      "proxyto": "https://api.servicex.com/api/do",
-      "headers": {
-        "X-API-Key": "{{ config SERVICEX_API_KEY }}"
-      }
-    }
-  ]
+    "service": "servicex",
+    "file": "/Users/user/.config/mockingbird/servicex.yaml",
+    "rules": [
+        {
+            "index": 0,
+            "match": {
+                "method": ["GET", "POST"],
+                "path": "/servicex/**"
+            },
+            "proxyto": "https://api.servicex.com/api/do",
+            "headers": {
+                "X-API-Key": "{{ config SERVICEX_API_KEY }}"
+            }
+        }
+    ]
 }
 ```
 
@@ -239,19 +253,21 @@ Add a new rule to a service.
 **Endpoint**: `POST /api/rules/:service`
 
 **Request Body**:
+
 ```json
 {
-  "match": {
-    "method": ["POST"],
-    "path": "/servicex/orders"
-  },
-  "response": "[201]\nheaders:\n  Content-Type: application/json\nbody\n{\n  \"order_id\": \"{{ uuid }}\"\n}\n"
+    "match": {
+        "method": ["POST"],
+        "path": "/servicex/orders"
+    },
+    "response": "[201]\nheaders:\n  Content-Type: application/json\nbody\n{\n  \"order_id\": \"{{ uuid }}\"\n}\n"
 }
 ```
 
 **Example**:
+
 ```bash
-curl -X POST http://localhost:9090/api/rules/servicex \
+curl -X POST http://localhost:8768/api/rules/servicex \
   -H "Content-Type: application/json" \
   -d '{
     "match": {
@@ -263,12 +279,13 @@ curl -X POST http://localhost:9090/api/rules/servicex \
 ```
 
 **Response**:
+
 ```json
 {
-  "success": true,
-  "service": "servicex",
-  "index": 2,
-  "message": "Rule created successfully"
+    "success": true,
+    "service": "servicex",
+    "index": 2,
+    "message": "Rule created successfully"
 }
 ```
 
@@ -281,19 +298,21 @@ Update a rule at a specific index.
 **Endpoint**: `PUT /api/rules/:service/:index`
 
 **Request Body**:
+
 ```json
 {
-  "match": {
-    "method": ["POST", "PUT"],
-    "path": "/servicex/orders/**"
-  },
-  "response": "[200]\nbody\n{\"updated\": true}\n"
+    "match": {
+        "method": ["POST", "PUT"],
+        "path": "/servicex/orders/**"
+    },
+    "response": "[200]\nbody\n{\"updated\": true}\n"
 }
 ```
 
 **Example**:
+
 ```bash
-curl -X PUT http://localhost:9090/api/rules/servicex/1 \
+curl -X PUT http://localhost:8768/api/rules/servicex/1 \
   -H "Content-Type: application/json" \
   -d '{
     "match": {
@@ -305,12 +324,13 @@ curl -X PUT http://localhost:9090/api/rules/servicex/1 \
 ```
 
 **Response**:
+
 ```json
 {
-  "success": true,
-  "service": "servicex",
-  "index": 1,
-  "message": "Rule updated successfully"
+    "success": true,
+    "service": "servicex",
+    "index": 1,
+    "message": "Rule updated successfully"
 }
 ```
 
@@ -323,17 +343,19 @@ Delete a rule at a specific index.
 **Endpoint**: `DELETE /api/rules/:service/:index`
 
 **Example**:
+
 ```bash
-curl -X DELETE http://localhost:9090/api/rules/servicex/1
+curl -X DELETE http://localhost:8768/api/rules/servicex/1
 ```
 
 **Response**:
+
 ```json
 {
-  "success": true,
-  "service": "servicex",
-  "index": 1,
-  "message": "Rule deleted successfully"
+    "success": true,
+    "service": "servicex",
+    "index": 1,
+    "message": "Rule deleted successfully"
 }
 ```
 
@@ -346,19 +368,21 @@ Download the raw YAML file for a service.
 **Endpoint**: `GET /api/rules/:service/raw`
 
 **Example**:
+
 ```bash
-curl http://localhost:9090/api/rules/servicex/raw
+curl http://localhost:8768/api/rules/servicex/raw
 ```
 
 **Response** (YAML):
+
 ```yaml
 rules:
-  - match:
-      method: [GET, POST]
-      path: /servicex/**
-    proxyto: https://api.servicex.com/api/do
-    headers:
-      X-API-Key: "{{ config SERVICEX_API_KEY }}"
+    - match:
+          method: [GET, POST]
+          path: /servicex/**
+      proxyto: https://api.servicex.com/api/do
+      headers:
+          X-API-Key: "{{ config SERVICEX_API_KEY }}"
 ```
 
 ---
@@ -372,20 +396,22 @@ Get current configuration (API key values are masked).
 **Endpoint**: `GET /api/config`
 
 **Example**:
+
 ```bash
-curl http://localhost:9090/api/config
+curl http://localhost:8768/api/config
 ```
 
 **Response**:
+
 ```json
 {
-  "proxy_port": 8769,
-  "admin_port": 9090,
-  "config_dir": "/Users/user/.config/mockingbird",
-  "values": {
-    "SERVICEX_API_KEY": "sk-***",
-    "OPENAI_API_KEY": "sk-***"
-  }
+    "proxy_port": 8769,
+    "admin_port": 8768,
+    "config_dir": "/Users/user/.config/mockingbird",
+    "values": {
+        "SERVICEX_API_KEY": "sk-***",
+        "OPENAI_API_KEY": "sk-***"
+    }
 }
 ```
 
@@ -398,15 +424,17 @@ Get a specific config value (unmasked).
 **Endpoint**: `GET /api/config/:key`
 
 **Example**:
+
 ```bash
-curl http://localhost:9090/api/config/SERVICEX_API_KEY
+curl http://localhost:8768/api/config/SERVICEX_API_KEY
 ```
 
 **Response**:
+
 ```json
 {
-  "key": "SERVICEX_API_KEY",
-  "value": "sk-actual-key-here"
+    "key": "SERVICEX_API_KEY",
+    "value": "sk-actual-key-here"
 }
 ```
 
@@ -419,25 +447,28 @@ Set or update a config value.
 **Endpoint**: `PUT /api/config/:key`
 
 **Request Body**:
+
 ```json
 {
-  "value": "sk-new-key-value"
+    "value": "sk-new-key-value"
 }
 ```
 
 **Example**:
+
 ```bash
-curl -X PUT http://localhost:9090/api/config/SERVICEX_API_KEY \
+curl -X PUT http://localhost:8768/api/config/SERVICEX_API_KEY \
   -H "Content-Type: application/json" \
   -d '{"value": "sk-new-key-value"}'
 ```
 
 **Response**:
+
 ```json
 {
-  "success": true,
-  "key": "SERVICEX_API_KEY",
-  "message": "Config value updated successfully"
+    "success": true,
+    "key": "SERVICEX_API_KEY",
+    "message": "Config value updated successfully"
 }
 ```
 
@@ -450,16 +481,18 @@ Delete a config value.
 **Endpoint**: `DELETE /api/config/:key`
 
 **Example**:
+
 ```bash
-curl -X DELETE http://localhost:9090/api/config/OLD_KEY
+curl -X DELETE http://localhost:8768/api/config/OLD_KEY
 ```
 
 **Response**:
+
 ```json
 {
-  "success": true,
-  "key": "OLD_KEY",
-  "message": "Config value deleted successfully"
+    "success": true,
+    "key": "OLD_KEY",
+    "message": "Config value deleted successfully"
 }
 ```
 
@@ -474,16 +507,18 @@ Check if Mockingbird is running.
 **Endpoint**: `GET /health`
 
 **Example**:
+
 ```bash
-curl http://localhost:9090/health
+curl http://localhost:8768/health
 ```
 
 **Response**:
+
 ```json
 {
-  "status": "ok",
-  "version": "1.0.0",
-  "uptime_seconds": 3600
+    "status": "ok",
+    "version": "1.0.0",
+    "uptime_seconds": 3600
 }
 ```
 
@@ -496,26 +531,28 @@ Get system statistics.
 **Endpoint**: `GET /api/stats`
 
 **Example**:
+
 ```bash
-curl http://localhost:9090/api/stats
+curl http://localhost:8768/api/stats
 ```
 
 **Response**:
+
 ```json
 {
-  "total_requests": 1523,
-  "total_rules": 12,
-  "services": {
-    "servicex": {
-      "requests": 850,
-      "rules": 5
+    "total_requests": 1523,
+    "total_rules": 12,
+    "services": {
+        "servicex": {
+            "requests": 850,
+            "rules": 5
+        },
+        "openai": {
+            "requests": 673,
+            "rules": 7
+        }
     },
-    "openai": {
-      "requests": 673,
-      "rules": 7
-    }
-  },
-  "uptime_seconds": 3600
+    "uptime_seconds": 3600
 }
 ```
 
@@ -527,26 +564,28 @@ All endpoints return errors in this format:
 
 ```json
 {
-  "error": "Error message here",
-  "code": "ERROR_CODE",
-  "details": {}
+    "error": "Error message here",
+    "code": "ERROR_CODE",
+    "details": {}
 }
 ```
 
 **Common Error Codes**:
+
 - `400` - Bad Request (invalid JSON, missing fields)
 - `404` - Not Found (service, rule, or traffic entry not found)
 - `500` - Internal Server Error
 
 **Example Error**:
+
 ```json
 {
-  "error": "Rule not found",
-  "code": "RULE_NOT_FOUND",
-  "details": {
-    "service": "servicex",
-    "index": 99
-  }
+    "error": "Rule not found",
+    "code": "RULE_NOT_FOUND",
+    "details": {
+        "service": "servicex",
+        "index": 99
+    }
 }
 ```
 
@@ -566,6 +605,7 @@ curl http://localhost:8769/servicex/api/do?param=value
 ```
 
 The request will:
+
 1. Be matched against rules for the "servicex" service
 2. If matched and rule has `proxyto`, forward to real API with injected headers
 3. If matched and rule has `response`, return mocked response
@@ -577,27 +617,31 @@ The request will:
 ## Complete Workflow Example
 
 ### 1. Start Mockingbird
+
 ```bash
 mockingbird
 # Listening on :8769 (proxy)
-# Listening on :9090 (admin)
+# Listening on :8768 (admin)
 ```
 
 ### 2. Make a request (no rules yet)
+
 ```bash
 curl http://localhost:8769/servicex/users
 # Returns: 504 Gateway Timeout
 ```
 
 ### 3. Check traffic
+
 ```bash
-curl http://localhost:9090/api/traffic?service=servicex
+curl http://localhost:8768/api/traffic?service=servicex
 # Shows the failed request
 ```
 
 ### 4. Create a proxy rule
+
 ```bash
-curl -X POST http://localhost:9090/api/rules/servicex \
+curl -X POST http://localhost:8768/api/rules/servicex \
   -H "Content-Type: application/json" \
   -d '{
     "match": {
@@ -612,14 +656,16 @@ curl -X POST http://localhost:9090/api/rules/servicex \
 ```
 
 ### 5. Make request again
+
 ```bash
 curl http://localhost:8769/servicex/users
 # Now forwards to https://api.servicex.com/users with API key
 ```
 
 ### 6. Create a mock rule (more specific, wins first)
+
 ```bash
-curl -X POST http://localhost:9090/api/rules/servicex \
+curl -X POST http://localhost:8768/api/rules/servicex \
   -H "Content-Type: application/json" \
   -d '{
     "match": {
@@ -631,6 +677,7 @@ curl -X POST http://localhost:9090/api/rules/servicex \
 ```
 
 ### 7. Test specific vs wildcard
+
 ```bash
 # Hits mock rule
 curl http://localhost:8769/servicex/users/123
@@ -640,8 +687,9 @@ curl http://localhost:8769/servicex/users/456
 ```
 
 ### 8. Stream live traffic
+
 ```bash
-curl -N http://localhost:9090/api/traffic/stream
+curl -N http://localhost:8768/api/traffic/stream
 # Watch requests come in real-time
 ```
 
@@ -650,6 +698,7 @@ curl -N http://localhost:9090/api/traffic/stream
 ## Template Examples in Responses
 
 ### Using request data
+
 ```
 [200]
 headers:
@@ -664,6 +713,7 @@ body
 ```
 
 ### Using config and helpers
+
 ```
 [200]
 body
@@ -676,6 +726,7 @@ body
 ```
 
 ### With delay
+
 ```
 +2s
 [503]

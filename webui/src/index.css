@@ -2,27 +2,156 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    background-color: #ffffff;
+    color: #2d3748;
+    font-family: 'SF Mono', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', monospace;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  code, pre {
+    font-family: 'SF Mono', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', monospace;
+  }
 }
 
-code {
-  font-family: 'SF Mono', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New',
-    monospace;
+/* Minimal scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-body {
-  margin: 0;
-  padding: 0;
-  min-height: 100vh;
-  background-color: #ffffff;
-  color: #1f2937;
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-* {
-  box-sizing: border-box;
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Refined typography */
+.text-gray-900 {
+  color: #1a202c !important;
+}
+
+.text-gray-700 {
+  color: #4a5568 !important;
+}
+
+.text-gray-600 {
+  color: #718096 !important;
+}
+
+.text-gray-500 {
+  color: #a0aec0 !important;
+}
+
+.text-gray-400 {
+  color: #cbd5e0 !important;
+}
+
+/* Minimal backgrounds */
+.bg-white {
+  background-color: #ffffff !important;
+}
+
+.bg-gray-50 {
+  background-color: #f7f9fa !important;
+}
+
+.bg-gray-100 {
+  background-color: #f0f2f4 !important;
+}
+
+/* Subtle borders */
+.border-gray-100 {
+  border-color: #e8eaed !important;
+}
+
+.border-gray-200 {
+  border-color: #e0e3e7 !important;
+}
+
+.border-gray-300 {
+  border-color: #d5d9dd !important;
+}
+
+/* Refined hover states */
+.hover\:bg-gray-50:hover {
+  background-color: #f7f9fa !important;
+}
+
+.hover\:bg-gray-100:hover {
+  background-color: #f0f2f4 !important;
+}
+
+.hover\:border-gray-300:hover {
+  border-color: #d5d9dd !important;
+}
+
+/* Muted status colors */
+.text-green-600 {
+  color: #059669 !important;
+}
+
+.text-yellow-600 {
+  color: #d97706 !important;
+}
+
+.text-red-600 {
+  color: #dc2626 !important;
+}
+
+.text-blue-600 {
+  color: #2563eb !important;
+}
+
+.bg-blue-600 {
+  background-color: #2563eb !important;
+}
+
+.bg-blue-50 {
+  background-color: #eff6ff !important;
+}
+
+.border-blue-200 {
+  border-color: #bfdbfe !important;
+}
+
+.text-blue-900 {
+  color: #1e3a8a !important;
+}
+
+/* Compact spacing overrides */
+h1, h2, h3 {
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+/* Input refinements */
+input, textarea {
+  font-size: 12px;
+}
+
+/* Subtle focus states */
+input:focus,
+textarea:focus,
+button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
 }

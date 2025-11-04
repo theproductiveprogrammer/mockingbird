@@ -23,7 +23,7 @@
                          +----------------+-----------------+
                                 /         |         \
                                /          |          \
-                      (matched)      (no match)   (admin:9090)
+                      (matched)      (no match)   (admin:8768)
                          /              |              \
                         v               v               v
             +------------------+   +---------+   +---------------+
@@ -94,10 +94,10 @@ mockingbird/
 
 ## 💡 Example Use Cases
 
-* **Frontend development** — Build and test against realistic APIs without waiting on backend availability.
-* **Integration testing** — Simulate third-party APIs or flaky services deterministically.
-* **Traffic debugging** — Capture live requests and replay them safely.
-* **API sandboxing** — Give customers a safe mock API environment.
+- **Frontend development** — Build and test against realistic APIs without waiting on backend availability.
+- **Integration testing** — Simulate third-party APIs or flaky services deterministically.
+- **Traffic debugging** — Capture live requests and replay them safely.
+- **API sandboxing** — Give customers a safe mock API environment.
 
 ---
 
@@ -119,29 +119,29 @@ mockingbird/
 method: [GET]
 path: /api/v1/users/{id}
 body:
-  contains:
-    role: admin
+    contains:
+        role: admin
 template: >
-  # delay the response by 30 seconds
-  +30s
+    # delay the response by 30 seconds
+    +30s
 
-  # HTTP status code
-  [201]
+    # HTTP status code
+    [201]
 
-  # allow comments
-  header:
-    Content-Type: application/json
-    X-API-Key: "{{ config `serviceApiKey` }}"
+    # allow comments
+    header:
+      Content-Type: application/json
+      X-API-Key: "{{ config `serviceApiKey` }}"
 
-  body
-  {
-    "id": "{{ uuid }}",
-    "user": "{{ reqPathParam 1 }}",
-    "generate": "{{ reqQueryParam `generate` }}",
-    "total": "{{ reqBody `data.summary[0].total` }}",
-    "confirmationCode": "ORD-{{ random 100000 999999 }}",
-    "numResults": "{{ reqHeader `x-limit-rows` }}"
-  }
+    body
+    {
+      "id": "{{ uuid }}",
+      "user": "{{ reqPathParam 1 }}",
+      "generate": "{{ reqQueryParam `generate` }}",
+      "total": "{{ reqBody `data.summary[0].total` }}",
+      "confirmationCode": "ORD-{{ random 100000 999999 }}",
+      "numResults": "{{ reqHeader `x-limit-rows` }}"
+    }
 ```
 
 | Section         | Purpose                     | Notes                                                  |
@@ -152,15 +152,13 @@ template: >
 | `body:json`     | Response body               | Supports templating                                    |
 | Template syntax | `{{ ... }}`                 | Simple interpolation; references request, config, etc. |
 
-
-| Variable          | Description             |
-| ----------------- | ----------------------- |
-| `reqPathParam`    | Path params             |
-| `reqQueryParam`   | Query parameters        |
-| `reqHeader`       | Headers                 |
-| `reqBody`         | Parsed JSON body        |
-| `config`          | Values from config file |
-| `now`             | Current timestamp       |
-| `uuid`            | Generates a UUID        |
-| `random from to`  | Generates random number |
-
+| Variable         | Description             |
+| ---------------- | ----------------------- |
+| `reqPathParam`   | Path params             |
+| `reqQueryParam`  | Query parameters        |
+| `reqHeader`      | Headers                 |
+| `reqBody`        | Parsed JSON body        |
+| `config`         | Values from config file |
+| `now`            | Current timestamp       |
+| `uuid`           | Generates a UUID        |
+| `random from to` | Generates random number |

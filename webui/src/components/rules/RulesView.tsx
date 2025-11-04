@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 
 export function RulesView() {
   const { serviceRules, setServiceRules } = useAppStore();
+  const [expandedServices, setExpandedServices] = useState<Set<string>>(new Set());
   const [editingRule, setEditingRule] = useState<{
     service: string;
     rule: RuleWithIndex;
@@ -35,14 +36,26 @@ export function RulesView() {
     }
   };
 
+  const toggleService = (service: string) => {
+    setExpandedServices((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(service)) {
+        newSet.delete(service);
+      } else {
+        newSet.add(service);
+      }
+      return newSet;
+    });
+  };
+
   const services = Object.values(serviceRules);
 
   if (services.length === 0) {
     return (
       <div className="flex items-center justify-center h-full text-gray-500">
         <div className="text-center">
-          <p className="text-lg">No rules configured</p>
-          <p className="text-sm mt-2">Add a .yaml file to ~/.config/mockingbird/</p>
+          <p className="text-sm font-normal">No rules configured</p>
+          <p className="text-xs mt-1 text-gray-400">Add a .yaml file to ~/.config/mockingbird/</p>
         </div>
       </div>
     );
@@ -51,117 +64,92 @@ export function RulesView() {
   return (
     <div className="h-full overflow-y-auto">
       <div className="p-6">
-        <h1 className="text-2xl font-semibold mb-6">Rules</h1>
+        <h1 className="text-xs font-medium mb-2 text-gray-600 uppercase tracking-wider">Rules</h1>
 
-        {services.map((service, idx) => (
-          <div key={`${service.service}-${idx}`} className="mb-8">
-            {/* Service Header */}
-            <div className="flex items-center gap-3 mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">
-                /{service.service}
-              </h2>
-              <Tag variant="service">{service.rules.length} rules</Tag>
-              {service.file && (
-                <span className="text-sm text-gray-500 font-mono">
-                  {service.file}
-                </span>
-              )}
-            </div>
+        <div className="space-y-1 font-mono text-xs">
+          {services.map((service, idx) => {
+            const serviceName = service.service || (service.file ? service.file.replace('.yaml', '') : 'unknown');
+            const isExpanded = expandedServices.has(serviceName);
 
-            {/* Rules List */}
-            <div className="space-y-4">
-              {service.rules.map((rule) => (
+            return (
+              <div key={`${serviceName}-${idx}`}>
+                {/* Service Line */}
                 <div
-                  key={`${service.service}-${rule.index}`}
-                  className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors"
+                  className="flex items-center gap-2 py-1 px-2 hover:bg-gray-50 cursor-pointer"
+                  onClick={() => toggleService(serviceName)}
                 >
-                  {/* Rule Header */}
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-sm font-medium text-gray-500">
-                      Rule #{rule.index}
-                    </span>
-                    {rule.match.method && rule.match.method.length > 0 && (
-                      <div className="flex gap-1">
-                        {rule.match.method.map((method, idx) => (
-                          <Tag key={`${method}-${idx}`} variant="method">
-                            {method}
-                          </Tag>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Match Conditions */}
-                  <div className="space-y-2 mb-3">
-                    {rule.match.path && (
-                      <div className="text-sm">
-                        <span className="text-gray-600 font-medium">Path: </span>
-                        <span className="font-mono text-gray-900">
-                          {rule.match.path}
-                        </span>
-                      </div>
-                    )}
-
-                    {rule.match.headers && Object.keys(rule.match.headers).length > 0 && (
-                      <div className="text-sm">
-                        <span className="text-gray-600 font-medium">Headers: </span>
-                        <span className="font-mono text-gray-700">
-                          {Object.entries(rule.match.headers)
-                            .map(([k, v]) => `${k}: ${v}`)
-                            .join(', ')}
-                        </span>
-                      </div>
-                    )}
-
-                    {rule.match.body?.matches && (
-                      <div className="text-sm">
-                        <span className="text-gray-600 font-medium">Body matches: </span>
-                        <span className="font-mono text-gray-700">
-                          {rule.match.body.matches}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Response Type */}
-                  <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
-                    <div>
-                      {rule.response ? (
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-gray-600">→ Returns</span>
-                          <Tag variant="service">mock response</Tag>
-                        </div>
-                      ) : rule.proxyto ? (
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-gray-600">→ Proxies to</span>
-                          <span className="text-sm font-mono text-blue-600">
-                            {rule.proxyto}
-                          </span>
-                          {rule.headers && Object.keys(rule.headers).length > 0 && (
-                            <Tag variant="service">
-                              +{Object.keys(rule.headers).length} headers
-                            </Tag>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-sm text-gray-500 italic">
-                          No action defined
-                        </span>
-                      )}
-                    </div>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => setEditingRule({ service: service.service, rule })}
-                    >
-                      Edit
-                    </Button>
-                  </div>
+                  <span className="text-gray-400">{isExpanded ? '▼' : '▶'}</span>
+                  <span className="text-gray-700 font-medium">{serviceName}.yaml</span>
+                  <span className="text-gray-400">·</span>
+                  <span className="text-gray-500">{service.rules.length} rules</span>
                 </div>
-              ))}
-            </div>
-          </div>
-        ))}
+
+                {/* Rules (when expanded) */}
+                {isExpanded && (
+                  <div className="ml-4 space-y-0">
+                    {service.rules.map((rule) => {
+                      const isMock = !!rule.response;
+                      const isProxy = !!rule.proxyto;
+                      const arrow = isMock ? '←' : isProxy ? '⇄' : '?';
+                      const actionType = isMock ? 'mock' : isProxy ? 'proxy' : 'none';
+                      const actionColor = isMock ? 'text-blue-600' : isProxy ? 'text-green-600' : 'text-gray-400';
+
+                      return (
+                        <div
+                          key={`${serviceName}-${rule.index}`}
+                          className="flex items-center gap-2 py-1 px-2 hover:bg-gray-50 cursor-pointer group"
+                          onClick={() => setEditingRule({ service: serviceName, rule })}
+                        >
+                          {/* Rule # and Path */}
+                          <span className="text-gray-400">Rule #{rule.index + 1}</span>
+                          <span className="text-gray-700">{rule.match.path || '/**'}</span>
+
+                          {/* Body Match (if exists) */}
+                          {rule.match.body?.matches && (
+                            <span className="text-gray-500 text-xs">
+                              [{rule.match.body.matches}]
+                            </span>
+                          )}
+
+                          {/* Arrow and Type */}
+                          <span className={`${actionColor} mx-1`}>{arrow}</span>
+                          <span className={`${actionColor} text-xs`}>[{actionType}]</span>
+
+                          {/* Spacer */}
+                          <div className="flex-1"></div>
+
+                          {/* Methods */}
+                          {rule.match.method && rule.match.method.length > 0 && (
+                            <div className="flex gap-1">
+                              {rule.match.method.map((method, idx) => (
+                                <Tag key={`${method}-${idx}`} variant="method">
+                                  {method}
+                                </Tag>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Edit button (visible on hover) */}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity text-xs px-2 py-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingRule({ service: serviceName, rule });
+                            }}
+                          >
+                            edit
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {editingRule && (
