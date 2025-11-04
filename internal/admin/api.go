@@ -63,6 +63,7 @@ func (a *API) setupRoutes() {
 		r.Put("/rules/{service}/{index}", a.handleUpdateRule)
 		r.Delete("/rules/{service}/{index}", a.handleDeleteRule)
 		r.Post("/rules/{service}/{index}/move", a.handleMoveRule)
+		r.Delete("/rules/{service}", a.handleDeleteService)
 
 		// Config
 		r.Get("/config", a.handleGetConfig)
@@ -170,6 +171,9 @@ func (a *API) handleGetAllRules(w http.ResponseWriter, r *http.Request) {
 			if rule.Response != "" {
 				indexed[i]["response"] = rule.Response
 			}
+			if rule.Enabled != nil {
+				indexed[i]["enabled"] = *rule.Enabled
+			}
 		}
 
 		services[service] = map[string]interface{}{
@@ -201,6 +205,9 @@ func (a *API) handleGetServiceRules(w http.ResponseWriter, r *http.Request) {
 		}
 		if rule.Response != "" {
 			indexed[i]["response"] = rule.Response
+		}
+		if rule.Enabled != nil {
+			indexed[i]["enabled"] = *rule.Enabled
 		}
 	}
 
@@ -299,6 +306,22 @@ func (a *API) handleDeleteRule(w http.ResponseWriter, r *http.Request) {
 		"service": service,
 		"index":   index,
 		"message": "Rule deleted successfully",
+	})
+}
+
+// handleDeleteService deletes an entire service
+func (a *API) handleDeleteService(w http.ResponseWriter, r *http.Request) {
+	service := chi.URLParam(r, "service")
+
+	if err := a.store.DisableService(service); err != nil {
+		respondError(w, http.StatusNotFound, err.Error(), "SERVICE_NOT_FOUND")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"success": true,
+		"service": service,
+		"message": "Service deleted successfully",
 	})
 }
 

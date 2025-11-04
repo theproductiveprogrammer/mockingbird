@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"gopkg.in/yaml.v3"
 
@@ -210,6 +211,39 @@ func (s *Store) MoveRule(service string, index int, direction string) error {
 	s.rules[service] = rules
 
 	return s.saveRulesToFile(service, rules)
+}
+
+// DisableService disables a service by renaming its YAML file with a .disabled-timestamp extension
+func (s *Store) DisableService(service string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// Check if service exists
+	if _, ok := s.rules[service]; !ok {
+		return fmt.Errorf("service not found: %s", service)
+	}
+
+	// Get the file path
+	filePath := filepath.Join(s.configDir, service+".yaml")
+
+	// Check if file exists
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		return fmt.Errorf("service file not found: %s", filePath)
+	}
+
+	// Create new filename with timestamp
+	timestamp := time.Now().Format("20060102-150405")
+	newFilePath := filepath.Join(s.configDir, fmt.Sprintf("%s.yaml.disabled-%s", service, timestamp))
+
+	// Rename the file
+	if err := os.Rename(filePath, newFilePath); err != nil {
+		return fmt.Errorf("failed to disable service: %w", err)
+	}
+
+	// Remove from in-memory store
+	delete(s.rules, service)
+
+	return nil
 }
 
 // saveRulesToFile saves rules to a YAML file

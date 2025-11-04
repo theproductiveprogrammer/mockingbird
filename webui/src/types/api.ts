@@ -25,6 +25,7 @@ export interface Rule {
   proxyto?: string;
   headers?: Record<string, string>;
   response?: string;
+  enabled?: boolean;
 }
 
 export interface MatchCondition {

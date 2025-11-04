@@ -13,6 +13,11 @@ import (
 // Returns the matched rule and its index, or (nil, -1) if no match
 func Match(rules []models.Rule, ctx *models.RequestContext) (*models.Rule, int) {
 	for i, rule := range rules {
+		// Skip disabled rules (enabled defaults to true if not specified)
+		if rule.Enabled != nil && !*rule.Enabled {
+			continue
+		}
+
 		if matchRule(&rule, ctx) {
 			return &rule, i
 		}

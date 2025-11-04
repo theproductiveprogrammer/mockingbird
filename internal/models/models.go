@@ -33,6 +33,7 @@ type Rule struct {
 	ProxyTo  string            `json:"proxyto,omitempty" yaml:"proxyto,omitempty"`   // Upstream URL
 	Headers  map[string]string `json:"headers,omitempty" yaml:"headers,omitempty"`   // Headers to inject
 	Response string            `json:"response,omitempty" yaml:"response,omitempty"` // .mock template
+	Enabled  *bool             `json:"enabled,omitempty" yaml:"enabled,omitempty"`   // Whether rule is enabled (defaults to true)
 }
 
 // MatchCondition defines criteria for matching requests

@@ -62,6 +62,16 @@ class ApiClient {
     }
   }
 
+  async deleteService(service: string): Promise<void> {
+    const response = await fetch(`${API_BASE}/rules/${service}`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to delete service');
+    }
+  }
+
   async moveRule(service: string, index: number, direction: 'up' | 'down'): Promise<void> {
     const response = await fetch(`${API_BASE}/rules/${service}/${index}/move`, {
       method: 'POST',

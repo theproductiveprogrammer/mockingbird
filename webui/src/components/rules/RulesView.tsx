@@ -4,6 +4,7 @@ import { api } from '../../utils/api';
 import { Tag } from '../ui/Tag';
 import { Button } from '../ui/Button';
 import { RuleEditor } from './RuleEditor';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { Rule, RuleWithIndex } from '../../types/api';
 import { getRuleTypeBadgeClasses } from '../../utils/formatters';
 import toast from 'react-hot-toast';
@@ -15,6 +16,11 @@ export function RulesView() {
     service: string;
     rule: RuleWithIndex;
   } | null>(null);
+  const [deletingRule, setDeletingRule] = useState<{
+    service: string;
+    rule: RuleWithIndex;
+  } | null>(null);
+  const [deletingService, setDeletingService] = useState<string | null>(null);
   const [creatingRuleForService, setCreatingRuleForService] = useState<string | null>(null);
   const [creatingNewService, setCreatingNewService] = useState(false);
   const [newServiceName, setNewServiceName] = useState('');
@@ -94,6 +100,62 @@ export function RulesView() {
       setServiceRules(newRules);
     } catch (error) {
       toast.error('Failed to move rule');
+      console.error(error);
+    }
+  };
+
+  const handleConfirmDeleteRule = async () => {
+    if (!deletingRule) return;
+
+    try {
+      await api.deleteRule(deletingRule.service, deletingRule.rule.index);
+      toast.success('Rule deleted successfully');
+
+      // Refresh rules
+      const newRules = await api.getAllRules();
+      setServiceRules(newRules);
+      setDeletingRule(null);
+    } catch (error) {
+      toast.error('Failed to delete rule');
+      console.error(error);
+    }
+  };
+
+  const handleConfirmDeleteService = async () => {
+    if (!deletingService) return;
+
+    try {
+      await api.deleteService(deletingService);
+      toast.success('Service deleted successfully');
+
+      // Refresh rules
+      const newRules = await api.getAllRules();
+      setServiceRules(newRules);
+      setDeletingService(null);
+    } catch (error) {
+      toast.error('Failed to delete service');
+      console.error(error);
+    }
+  };
+
+  const handleToggleRule = async (service: string, rule: RuleWithIndex) => {
+    try {
+      // Toggle the enabled state (defaults to true if undefined)
+      const currentEnabled = rule.enabled !== false; // true if undefined or true
+      const newEnabled = !currentEnabled;
+
+      // Create updated rule without the index property
+      const { index, ...ruleWithoutIndex } = rule;
+      const updatedRule = { ...ruleWithoutIndex, enabled: newEnabled };
+
+      await api.updateRule(service, rule.index, updatedRule);
+      toast.success(newEnabled ? 'Rule enabled' : 'Rule disabled');
+
+      // Refresh rules
+      const newRules = await api.getAllRules();
+      setServiceRules(newRules);
+    } catch (error) {
+      toast.error('Failed to toggle rule');
       console.error(error);
     }
   };
@@ -196,7 +258,7 @@ export function RulesView() {
             return (
               <div key={`${serviceName}-${idx}`}>
                 {/* Service Line */}
-                <div className="flex items-center gap-2 py-1 px-2 hover:bg-gray-50">
+                <div className="flex items-center gap-2 py-1 px-2 hover:bg-gray-50 group">
                   <button
                     onClick={() => toggleService(serviceName)}
                     className="flex items-center gap-2 flex-1 cursor-pointer"
@@ -206,17 +268,30 @@ export function RulesView() {
                     <span className="text-gray-500">·</span>
                     <span className="text-gray-600">{service.rules.length} rules</span>
                   </button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs px-2 py-0"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setCreatingRuleForService(serviceName);
-                    }}
-                  >
-                    + Add Rule
-                  </Button>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs px-2 py-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCreatingRuleForService(serviceName);
+                      }}
+                    >
+                      + Add Rule
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs px-2 py-0 text-red-600 hover:text-red-800 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeletingService(serviceName);
+                      }}
+                    >
+                      delete
+                    </Button>
+                  </div>
                 </div>
 
                 {/* Rules (when expanded) */}
@@ -228,6 +303,7 @@ export function RulesView() {
                       const actionType = isMock ? 'mock' : isProxy ? 'proxy' : 'none';
                       const badgeClasses = getRuleTypeBadgeClasses(actionType);
                       const isHighlighted = highlightedRule?.service === serviceName && highlightedRule?.index === rule.index;
+                      const isEnabled = rule.enabled !== false; // Defaults to true if undefined
 
                       return (
                         <div
@@ -261,9 +337,24 @@ export function RulesView() {
                             </button>
                           </div>
 
+                          {/* Enable/Disable Checkbox */}
+                          <div
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleRule(serviceName, rule);
+                            }}
+                            className="text-base leading-none cursor-pointer hover:opacity-70 transition-opacity select-none"
+                            style={{ color: isEnabled ? '#00C202' : '#9CA3AF' }}
+                            title={isEnabled ? 'Click to disable' : 'Click to enable'}
+                          >
+                            {isEnabled ? '◼' : '◻'}
+                          </div>
+
                           {/* Rule content - clickable */}
                           <div
-                            className="flex items-center gap-2 flex-1 cursor-pointer"
+                            className={`flex items-center gap-2 flex-1 cursor-pointer ${
+                              !isEnabled ? 'opacity-50 line-through' : ''
+                            }`}
                             onClick={() => setEditingRule({ service: serviceName, rule })}
                           >
                             {/* Rule # and Path */}
@@ -297,18 +388,31 @@ export function RulesView() {
                             )}
                           </div>
 
-                          {/* Edit button (visible on hover) */}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="opacity-0 group-hover:opacity-100 transition-opacity text-xs px-2 py-0"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditingRule({ service: serviceName, rule });
-                            }}
-                          >
-                            edit
-                          </Button>
+                          {/* Edit and Delete buttons (visible on hover) */}
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-xs px-2 py-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingRule({ service: serviceName, rule });
+                              }}
+                            >
+                              edit
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-xs px-2 py-0 text-red-600 hover:text-red-800"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeletingRule({ service: serviceName, rule });
+                              }}
+                            >
+                              delete
+                            </Button>
+                          </div>
                         </div>
                       );
                     })}
@@ -349,6 +453,30 @@ body:
           index={-1}
           onSave={handleCreateRule}
           onCancel={() => setCreatingRuleForService(null)}
+        />
+      )}
+
+      {deletingRule && (
+        <ConfirmDialog
+          title="Delete Rule?"
+          message="Are you sure you want to delete this rule?"
+          details={`Rule #${deletingRule.rule.index + 1}: ${deletingRule.rule.match.path || '/**'}\nMethods: ${deletingRule.rule.match.method?.join(', ') || 'Any'}\nType: ${deletingRule.rule.response ? 'mock' : 'proxy'}`}
+          confirmLabel="Delete Rule"
+          onConfirm={handleConfirmDeleteRule}
+          onCancel={() => setDeletingRule(null)}
+          variant="danger"
+        />
+      )}
+
+      {deletingService && (
+        <ConfirmDialog
+          title="Delete Service?"
+          message={`Are you sure you want to delete the entire "${deletingService}" service?`}
+          details={`This will rename ${deletingService}.yaml to ${deletingService}.yaml.disabled-[timestamp]\nThe file will be preserved but will no longer be loaded.\nYou can manually rename it back to re-enable it.`}
+          confirmLabel="Delete Service"
+          onConfirm={handleConfirmDeleteService}
+          onCancel={() => setDeletingService(null)}
+          variant="danger"
         />
       )}
     </div>
