@@ -13,6 +13,7 @@ type Watcher struct {
 	watcher  *fsnotify.Watcher
 	callback func(string)
 	done     chan bool
+	closed   bool
 }
 
 // NewWatcher creates a new file watcher
@@ -72,6 +73,10 @@ func (w *Watcher) watch() {
 
 // Close stops the watcher
 func (w *Watcher) Close() error {
+	if w.closed {
+		return nil
+	}
+	w.closed = true
 	close(w.done)
 	return w.watcher.Close()
 }

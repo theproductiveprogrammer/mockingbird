@@ -35,7 +35,6 @@ func main() {
 		fmt.Printf("Error initializing store: %v\n", err)
 		os.Exit(1)
 	}
-	defer st.Close()
 
 	// Create proxy handler
 	proxyHandler := proxy.NewHandler(cfg, st)
@@ -96,8 +95,16 @@ func main() {
 
 	fmt.Println("\n🛑 Shutting down gracefully...")
 
-	// Shutdown servers
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	// Close store first to terminate all SSE connections
+	if err := st.Close(); err != nil {
+		fmt.Printf("Store close error: %v\n", err)
+	}
+
+	// Give SSE connections a moment to close
+	time.Sleep(100 * time.Millisecond)
+
+	// Shutdown servers with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	if err := proxyServer.Shutdown(ctx); err != nil {

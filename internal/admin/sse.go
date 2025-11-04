@@ -29,7 +29,12 @@ func streamTraffic(w http.ResponseWriter, r *http.Request, st *store.Store) {
 	// Stream events
 	for {
 		select {
-		case entry := <-trafficChan:
+		case entry, ok := <-trafficChan:
+			if !ok {
+				// Channel closed, server shutting down
+				return
+			}
+
 			// Marshal entry to JSON
 			data, err := json.Marshal(entry)
 			if err != nil {
@@ -42,7 +47,7 @@ func streamTraffic(w http.ResponseWriter, r *http.Request, st *store.Store) {
 			flusher.Flush()
 
 		case <-r.Context().Done():
-			// Client disconnected
+			// Client disconnected or server shutting down
 			return
 		}
 	}

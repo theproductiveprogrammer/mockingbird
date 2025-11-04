@@ -22,6 +22,7 @@ type Store struct {
 	trafficChan  chan models.TrafficEntry // For SSE broadcasting
 	mu           sync.RWMutex
 	watcher      *Watcher
+	closed       bool
 }
 
 // New creates a new store
@@ -210,10 +211,12 @@ func (s *Store) AddTraffic(entry models.TrafficEntry) {
 	}
 
 	// Broadcast to SSE listeners (non-blocking)
-	select {
-	case s.trafficChan <- entry:
-	default:
-		// Channel full, skip
+	if !s.closed {
+		select {
+		case s.trafficChan <- entry:
+		default:
+			// Channel full, skip
+		}
 	}
 }
 
@@ -257,6 +260,13 @@ func (s *Store) SubscribeTraffic() <-chan models.TrafficEntry {
 
 // Close closes the store and stops the file watcher
 func (s *Store) Close() error {
+	s.mu.Lock()
+	if !s.closed {
+		s.closed = true
+		close(s.trafficChan)
+	}
+	s.mu.Unlock()
+
 	if s.watcher != nil {
 		return s.watcher.Close()
 	}
