@@ -1,14 +1,20 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { useAppStore } from '../../stores/appStore';
 import { Button } from '../ui/Button';
 import { Tag } from '../ui/Tag';
+import { RuleEditor } from '../rules/RuleEditor';
+import { Rule } from '../../types/api';
+import { api } from '../../utils/api';
+import toast from 'react-hot-toast';
 
 export function TrafficDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { traffic } = useAppStore();
+  const { traffic, setServiceRules } = useAppStore();
+  const [showRuleEditor, setShowRuleEditor] = useState(false);
 
   const entry = traffic.find((t) => t.id === id);
 
@@ -38,9 +44,105 @@ export function TrafficDetails() {
     return JSON.stringify(body, null, 2);
   };
 
+  const handleCreateRule = () => {
+    setShowRuleEditor(true);
+  };
+
+  const handleSaveRule = async (newRule: Rule) => {
+    if (!entry) return;
+
+    try {
+      await api.createRule(entry.service, newRule);
+      toast.success('Rule created successfully!');
+
+      // Refresh rules
+      const newRules = await api.getAllRules();
+      setServiceRules(newRules);
+
+      setShowRuleEditor(false);
+    } catch (error) {
+      toast.error('Failed to create rule');
+      console.error(error);
+    }
+  };
+
+  const handleCancelRule = () => {
+    setShowRuleEditor(false);
+  };
+
+  // Create a rule template from the traffic entry
+  const createRuleFromEntry = (): Rule => {
+    if (!entry) {
+      return {
+        match: {},
+      };
+    }
+
+    // Format response headers for template
+    const responseHeadersStr = entry.response?.headers
+      ? Object.entries(entry.response.headers)
+          .map(([key, value]) => `${key}: ${value}`)
+          .join('\n')
+      : 'Content-Type: application/json';
+
+    // Format response body
+    const responseBodyStr = entry.response?.body
+      ? typeof entry.response.body === 'string'
+        ? entry.response.body
+        : JSON.stringify(JSON.parse(entry.response.body), null, 2)
+      : '{}';
+
+    // Build template
+    const template = `${entry.response?.delay_ms ? `+${entry.response.delay_ms}ms\n` : ''}[${entry.response?.status_code || 200}]
+headers:
+  ${responseHeadersStr.split('\n').join('\n  ')}
+body:json
+${responseBodyStr}`;
+
+    return {
+      match: {
+        method: [entry.method],
+        path: entry.path,
+      },
+      response: template,
+    };
+  };
+
+  const handleCopyAsCurl = () => {
+    if (!entry) return;
+
+    // Build curl command
+    let curl = `curl -X ${entry.method}`;
+
+    // Add headers
+    Object.entries(entry.headers).forEach(([key, values]) => {
+      values.forEach(value => {
+        curl += ` -H "${key}: ${value}"`;
+      });
+    });
+
+    // Add body if present
+    if (entry.body) {
+      const bodyStr = typeof entry.body === 'string' ? entry.body : JSON.stringify(entry.body);
+      curl += ` -d '${bodyStr}'`;
+    }
+
+    // Add URL
+    const queryStr = Object.entries(entry.query)
+      .flatMap(([key, values]) => values.map(v => `${key}=${v}`))
+      .join('&');
+    const url = `http://localhost:8769${entry.path}${queryStr ? '?' + queryStr : ''}`;
+    curl += ` "${url}"`;
+
+    // Copy to clipboard
+    navigator.clipboard.writeText(curl);
+    toast.success('Copied cURL command to clipboard!');
+  };
+
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="p-6">
+    <>
+      <div className="h-full overflow-y-auto">
+        <div className="p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
@@ -161,14 +263,25 @@ export function TrafficDetails() {
 
         {/* Actions */}
         <div className="flex gap-2 mt-6 pt-4 border-t border-gray-200">
-          <Button variant="secondary" size="sm">
+          <Button variant="secondary" size="sm" onClick={handleCreateRule}>
             Create Rule
           </Button>
-          <Button variant="secondary" size="sm">
+          <Button variant="secondary" size="sm" onClick={handleCopyAsCurl}>
             Copy as cURL
           </Button>
         </div>
+        </div>
       </div>
-    </div>
+
+      {showRuleEditor && entry && (
+        <RuleEditor
+          service={entry.service}
+          rule={createRuleFromEntry()}
+          index={-1}
+          onSave={handleSaveRule}
+          onCancel={handleCancelRule}
+        />
+      )}
+    </>
   );
 }

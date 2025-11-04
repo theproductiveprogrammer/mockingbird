@@ -4,12 +4,42 @@ import { api } from '../../utils/api';
 import { TrafficEntry } from './TrafficEntry';
 
 export function TrafficStream() {
-  const { traffic, setTraffic, filters } = useAppStore();
+  const { traffic, setTraffic, addTraffic, filters, setIsConnected } = useAppStore();
 
-  // Load initial traffic
+  // Load initial traffic and setup SSE
   useEffect(() => {
+    // Load initial traffic
     api.getTraffic(100).then(setTraffic);
-  }, [setTraffic]);
+
+    // Setup SSE connection for live updates
+    const eventSource = new EventSource(api.getTrafficStreamUrl());
+
+    eventSource.onopen = () => {
+      console.log('SSE connection opened');
+      setIsConnected(true);
+    };
+
+    eventSource.onmessage = (event) => {
+      try {
+        const entry = JSON.parse(event.data);
+        addTraffic(entry);
+      } catch (error) {
+        console.error('Failed to parse traffic entry:', error);
+      }
+    };
+
+    eventSource.onerror = (error) => {
+      console.error('SSE connection error:', error);
+      setIsConnected(false);
+      eventSource.close();
+    };
+
+    // Cleanup on unmount
+    return () => {
+      eventSource.close();
+      setIsConnected(false);
+    };
+  }, [setTraffic, addTraffic, setIsConnected]);
 
   // Filter traffic
   const filteredTraffic = traffic.filter((entry) => {
