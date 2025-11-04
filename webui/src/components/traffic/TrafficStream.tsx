@@ -4,7 +4,7 @@ import { api } from '../../utils/api';
 import { TrafficEntry } from './TrafficEntry';
 
 export function TrafficStream() {
-  const { traffic, setTraffic, filters, setSelectedTrafficId } = useAppStore();
+  const { traffic, setTraffic, filters } = useAppStore();
 
   // Load initial traffic
   useEffect(() => {
@@ -28,7 +28,7 @@ export function TrafficStream() {
   });
 
   return (
-    <div className="flex-1 overflow-y-auto">
+    <div className="h-full overflow-y-auto">
       {filteredTraffic.length === 0 ? (
         <div className="flex items-center justify-center h-full text-gray-500">
           <div className="text-center">
@@ -38,11 +38,7 @@ export function TrafficStream() {
         </div>
       ) : (
         filteredTraffic.map((entry) => (
-          <TrafficEntry
-            key={entry.id}
-            entry={entry}
-            onClick={() => setSelectedTrafficId(entry.id)}
-          />
+          <TrafficEntry key={entry.id} entry={entry} />
         ))
       )}
     </div>

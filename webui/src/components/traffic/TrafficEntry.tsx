@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { TrafficEntry as TrafficEntryType } from '../../types/api';
 import {
   formatTime,
@@ -10,10 +11,10 @@ import { Tag } from '../ui/Tag';
 
 interface TrafficEntryProps {
   entry: TrafficEntryType;
-  onClick: () => void;
 }
 
-export function TrafficEntry({ entry, onClick }: TrafficEntryProps) {
+export function TrafficEntry({ entry }: TrafficEntryProps) {
+  const navigate = useNavigate();
   const queryString = formatQueryParams(entry.query);
   const statusColor = entry.response
     ? getStatusColor(entry.response.status_code)
@@ -21,7 +22,7 @@ export function TrafficEntry({ entry, onClick }: TrafficEntryProps) {
 
   return (
     <div
-      onClick={onClick}
+      onClick={() => navigate(`/traffic/${entry.id}`)}
       className="px-6 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 transition-colors"
     >
       {/* Line 1: Timestamp, Method, Path, Query */}

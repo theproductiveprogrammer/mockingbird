@@ -1,3 +1,4 @@
+import { useParams, useNavigate } from 'react-router-dom';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { useAppStore } from '../../stores/appStore';
@@ -5,9 +6,11 @@ import { Button } from '../ui/Button';
 import { Tag } from '../ui/Tag';
 
 export function TrafficDetails() {
-  const { traffic, selectedTrafficId, setSelectedTrafficId } = useAppStore();
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { traffic } = useAppStore();
 
-  const entry = traffic.find((t) => t.id === selectedTrafficId);
+  const entry = traffic.find((t) => t.id === id);
 
   if (!entry) {
     return (
@@ -36,7 +39,7 @@ export function TrafficDetails() {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto">
+    <div className="h-full overflow-y-auto">
       <div className="p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -49,7 +52,7 @@ export function TrafficDetails() {
               </Tag>
             )}
           </div>
-          <Button variant="ghost" size="sm" onClick={() => setSelectedTrafficId(null)}>
+          <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
             ← Back to Stream
           </Button>
         </div>
@@ -126,7 +129,7 @@ export function TrafficDetails() {
               <div className="mb-4">
                 <p className="text-xs font-medium text-gray-600 mb-1">headers:</p>
                 <pre className="ml-4 text-sm font-mono text-gray-800">
-                  {Object.entries(entry.response.headers).map(([key, value]) => (
+                  {entry.response.headers && Object.entries(entry.response.headers).map(([key, value]) => (
                     <div key={key}>
                       {key}: {value}
                     </div>
