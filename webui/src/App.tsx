@@ -14,41 +14,24 @@ import { useTrafficSSE } from './hooks/useTrafficSSE';
 function App() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { currentView, setCurrentView } = useAppStore();
+  const { setCurrentView } = useAppStore();
 
   // Connect to SSE stream
   useTrafficSSE();
 
-  // Sync currentView with URL
-  useEffect(() => {
+  // Derive currentView from URL (single source of truth)
+  const currentView = (() => {
     const path = location.pathname;
-    if (path.startsWith('/traffic')) {
-      setCurrentView('traffic');
-    } else if (path === '/rules') {
-      setCurrentView('rules');
-    } else if (path === '/config') {
-      setCurrentView('config');
-    } else if (path === '/stats') {
-      setCurrentView('stats');
-    } else if (path === '/') {
-      setCurrentView('traffic');
-    }
-  }, [location.pathname, setCurrentView]);
+    if (path === '/rules') return 'rules';
+    if (path === '/config') return 'config';
+    if (path === '/stats') return 'stats';
+    return 'traffic'; // Default for / and /traffic/:id
+  })();
 
-  // Sync URL with currentView
+  // Sync store with derived view
   useEffect(() => {
-    if (currentView === 'traffic' && location.pathname === '/') {
-      // Already on traffic view
-      return;
-    }
-    if (currentView === 'rules' && location.pathname !== '/rules') {
-      navigate('/rules');
-    } else if (currentView === 'config' && location.pathname !== '/config') {
-      navigate('/config');
-    } else if (currentView === 'stats' && location.pathname !== '/stats') {
-      navigate('/stats');
-    }
-  }, [currentView, location.pathname, navigate]);
+    setCurrentView(currentView);
+  }, [currentView, setCurrentView]);
 
   return (
     <div className="h-screen flex flex-col bg-white">

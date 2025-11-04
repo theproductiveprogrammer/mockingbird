@@ -3,18 +3,13 @@ import { useAppStore } from '../../stores/appStore';
 
 export function Header() {
   const navigate = useNavigate();
-  const { currentView, setCurrentView, isConnected } = useAppStore();
-
-  const handleHomeClick = () => {
-    setCurrentView('traffic');
-    navigate('/');
-  };
+  const { currentView, isConnected } = useAppStore();
 
   return (
     <header className="bg-gray-50 border-b border-gray-200 px-6 py-2.5">
       <div className="flex items-center justify-between">
         <button
-          onClick={handleHomeClick}
+          onClick={() => navigate('/')}
           className="flex items-center gap-2 hover:opacity-70 transition-opacity"
         >
           <img src="/mockingbird.svg" alt="Mockingbird" className="w-5 h-5" />
@@ -23,7 +18,7 @@ export function Header() {
 
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setCurrentView('traffic')}
+            onClick={() => navigate('/')}
             className={`px-2 py-1 text-xs font-normal rounded transition-colors ${
               currentView === 'traffic'
                 ? 'bg-blue-50 text-blue-700 border border-blue-200'
@@ -34,7 +29,7 @@ export function Header() {
           </button>
 
           <button
-            onClick={() => setCurrentView('rules')}
+            onClick={() => navigate('/rules')}
             className={`px-2 py-1 text-xs font-normal rounded transition-colors ${
               currentView === 'rules'
                 ? 'bg-blue-50 text-blue-700 border border-blue-200'
@@ -46,7 +41,7 @@ export function Header() {
           </button>
 
           <button
-            onClick={() => setCurrentView('stats')}
+            onClick={() => navigate('/stats')}
             className={`px-2 py-1 text-xs font-normal rounded transition-colors ${
               currentView === 'stats'
                 ? 'bg-blue-50 text-blue-700 border border-blue-200'
@@ -58,7 +53,7 @@ export function Header() {
           </button>
 
           <button
-            onClick={() => setCurrentView('config')}
+            onClick={() => navigate('/config')}
             className={`px-2 py-1 text-xs font-normal rounded transition-colors ${
               currentView === 'config'
                 ? 'bg-blue-50 text-blue-700 border border-blue-200'

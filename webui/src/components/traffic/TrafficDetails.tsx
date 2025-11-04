@@ -14,7 +14,7 @@ import { JsonViewer } from '../ui/JsonViewer';
 export function TrafficDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { traffic, setServiceRules, setCurrentView, setHighlightedRule } = useAppStore();
+  const { traffic, setServiceRules, setHighlightedRule } = useAppStore();
   const [showRuleEditor, setShowRuleEditor] = useState(false);
 
   const entry = traffic.find((t) => t.id === id);
@@ -182,8 +182,7 @@ ${responseBodyStr}`;
     });
 
     // Navigate to rules view
-    setCurrentView('rules');
-    navigate('/');
+    navigate('/rules');
   };
 
   return (
