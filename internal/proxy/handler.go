@@ -1,6 +1,8 @@
 package proxy
 
 import (
+	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -179,10 +181,21 @@ func (h *Handler) handleProxy(w http.ResponseWriter, r *http.Request, rule *mode
 	proxy.ServeHTTP(rec, r)
 	duration := time.Since(start)
 
+	// Decompress body if gzipped
+	body := rec.body.String()
+	if rec.Header().Get("Content-Encoding") == "gzip" {
+		decompressed, err := decompressGzip([]byte(body))
+		if err != nil {
+			fmt.Printf("Error decompressing gzip response: %v\n", err)
+		} else {
+			body = string(decompressed)
+		}
+	}
+
 	return &models.Response{
 		StatusCode: rec.statusCode,
 		Headers:    flattenHeaders(rec.Header()),
-		Body:       rec.body.String(),
+		Body:       body,
 		DelayMS:    duration.Milliseconds(),
 	}
 }
@@ -273,4 +286,15 @@ func flattenHeaders(headers http.Header) map[string]string {
 		}
 	}
 	return result
+}
+
+// decompressGzip decompresses gzip-encoded data
+func decompressGzip(data []byte) ([]byte, error) {
+	reader, err := gzip.NewReader(bytes.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
+	defer reader.Close()
+
+	return io.ReadAll(reader)
 }
