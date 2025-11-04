@@ -62,6 +62,7 @@ func (a *API) setupRoutes() {
 		r.Post("/rules/{service}", a.handleCreateRule)
 		r.Put("/rules/{service}/{index}", a.handleUpdateRule)
 		r.Delete("/rules/{service}/{index}", a.handleDeleteRule)
+		r.Post("/rules/{service}/{index}/move", a.handleMoveRule)
 
 		// Config
 		r.Get("/config", a.handleGetConfig)
@@ -298,6 +299,37 @@ func (a *API) handleDeleteRule(w http.ResponseWriter, r *http.Request) {
 		"service": service,
 		"index":   index,
 		"message": "Rule deleted successfully",
+	})
+}
+
+// handleMoveRule moves a rule up or down
+func (a *API) handleMoveRule(w http.ResponseWriter, r *http.Request) {
+	service := chi.URLParam(r, "service")
+	indexStr := chi.URLParam(r, "index")
+
+	index, err := strconv.Atoi(indexStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid index", "INVALID_INDEX")
+		return
+	}
+
+	var req struct {
+		Direction string `json:"direction"` // "up" or "down"
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid JSON", "INVALID_JSON")
+		return
+	}
+
+	if err := a.store.MoveRule(service, index, req.Direction); err != nil {
+		respondError(w, http.StatusBadRequest, err.Error(), "MOVE_FAILED")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"success": true,
+		"service": service,
+		"message": "Rule moved successfully",
 	})
 }
 

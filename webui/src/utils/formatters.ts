@@ -41,7 +41,10 @@ export function formatResponseSummary(entry: TrafficEntry): string {
     bodySummary = body.length > 40 ? body.substring(0, 40) + '...' : body;
   }
 
-  return `[${status_code}] [${delay_ms}ms] {${ruleType}} ${bodySummary}`;
+  // Handle undefined/null/0 delay_ms
+  const delayStr = delay_ms !== undefined && delay_ms !== null ? `[${delay_ms}ms] ` : '';
+
+  return `[${status_code}] ${delayStr}{${ruleType}} ${bodySummary}`;
 }
 
 export function getStatusColor(statusCode: number): string {

@@ -180,6 +180,38 @@ func (s *Store) DeleteRule(service string, index int) error {
 	return s.saveRulesToFile(service, rules)
 }
 
+// MoveRule moves a rule up or down
+func (s *Store) MoveRule(service string, index int, direction string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	rules, ok := s.rules[service]
+	if !ok || index < 0 || index >= len(rules) {
+		return fmt.Errorf("rule not found")
+	}
+
+	var newIndex int
+	if direction == "up" {
+		if index == 0 {
+			return fmt.Errorf("rule is already at the top")
+		}
+		newIndex = index - 1
+	} else if direction == "down" {
+		if index == len(rules)-1 {
+			return fmt.Errorf("rule is already at the bottom")
+		}
+		newIndex = index + 1
+	} else {
+		return fmt.Errorf("invalid direction: %s", direction)
+	}
+
+	// Swap rules
+	rules[index], rules[newIndex] = rules[newIndex], rules[index]
+	s.rules[service] = rules
+
+	return s.saveRulesToFile(service, rules)
+}
+
 // saveRulesToFile saves rules to a YAML file
 func (s *Store) saveRulesToFile(service string, rules []models.Rule) error {
 	serviceRules := models.ServiceRules{Rules: rules}

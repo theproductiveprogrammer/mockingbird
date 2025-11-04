@@ -62,6 +62,18 @@ class ApiClient {
     }
   }
 
+  async moveRule(service: string, index: number, direction: 'up' | 'down'): Promise<void> {
+    const response = await fetch(`${API_BASE}/rules/${service}/${index}/move`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ direction }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to move rule');
+    }
+  }
+
   async getConfig(): Promise<Config> {
     const response = await fetch(`${API_BASE}/config`);
     return response.json();

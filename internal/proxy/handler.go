@@ -123,6 +123,10 @@ func (h *Handler) parseRequestBody(r *http.Request) interface{} {
 		return nil
 	}
 
+	// Recreate the body for downstream handlers (important for proxy)
+	r.Body = io.NopCloser(strings.NewReader(string(bodyBytes)))
+	r.ContentLength = int64(len(bodyBytes))
+
 	// Try to parse as JSON
 	var jsonBody interface{}
 	if err := json.Unmarshal(bodyBytes, &jsonBody); err == nil {
