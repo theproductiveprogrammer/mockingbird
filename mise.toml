@@ -1,2 +1,6 @@
 [tools]
 go = "latest"
+
+[tasks]
+setup="mkdir -p ~/.config/mockingbird && cp examples/* ~/.config/mockingbird/"
+build="go build -o mockingbird ./cmd/server"
