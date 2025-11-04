@@ -6,6 +6,7 @@ import {
   formatRequestSummary,
   formatResponseSummary,
   getStatusColor,
+  getRuleTypeBadgeClasses,
 } from '../../utils/formatters';
 import { Tag } from '../ui/Tag';
 
@@ -19,6 +20,16 @@ export function TrafficEntry({ entry }: TrafficEntryProps) {
   const statusColor = entry.response
     ? getStatusColor(entry.response.status_code)
     : 'text-gray-600';
+
+  // Parse response summary to extract and style the rule type badge
+  const responseSummary = formatResponseSummary(entry);
+  const ruleTypeBadgeClasses = entry.rule_type
+    ? getRuleTypeBadgeClasses(entry.rule_type)
+    : '';
+
+  // Split the summary to style the badge separately
+  const badgeRegex = /\[(mock|proxy|timeout)\]/;
+  const parts = responseSummary.split(badgeRegex);
 
   return (
     <div
@@ -39,10 +50,16 @@ export function TrafficEntry({ entry }: TrafficEntryProps) {
         {formatRequestSummary(entry)}
       </div>
 
-      {/* Line 3: Response summary */}
+      {/* Line 3: Response summary with styled badge */}
       <div className={`mt-1 ml-28 text-sm font-mono ${statusColor}`}>
         <span className="text-gray-500">← </span>
-        {formatResponseSummary(entry)}
+        {parts[0]}
+        {parts[1] && (
+          <span className={`${ruleTypeBadgeClasses} px-1 rounded`}>
+            [{parts[1]}]
+          </span>
+        )}
+        {parts[2]}
       </div>
     </div>
   );

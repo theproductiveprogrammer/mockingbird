@@ -5,6 +5,7 @@ import { Tag } from '../ui/Tag';
 import { Button } from '../ui/Button';
 import { RuleEditor } from './RuleEditor';
 import { Rule, RuleWithIndex } from '../../types/api';
+import { getRuleTypeBadgeClasses } from '../../utils/formatters';
 import toast from 'react-hot-toast';
 
 export function RulesView() {
@@ -197,9 +198,8 @@ export function RulesView() {
                     {service.rules.map((rule) => {
                       const isMock = !!rule.response;
                       const isProxy = !!rule.proxyto;
-                      const arrow = isMock ? '←' : isProxy ? '⇄' : '?';
                       const actionType = isMock ? 'mock' : isProxy ? 'proxy' : 'none';
-                      const actionColor = isMock ? 'text-blue-600' : isProxy ? 'text-green-600' : 'text-gray-400';
+                      const badgeClasses = getRuleTypeBadgeClasses(actionType);
 
                       return (
                         <div
@@ -246,9 +246,10 @@ export function RulesView() {
                               </span>
                             )}
 
-                            {/* Arrow and Type */}
-                            <span className={`${actionColor} mx-1`}>{arrow}</span>
-                            <span className={`${actionColor} text-xs`}>[{actionType}]</span>
+                            {/* Colored Badge */}
+                            <span className={`${badgeClasses} px-1 rounded text-xs`}>
+                              [{actionType}]
+                            </span>
 
                             {/* Spacer */}
                             <div className="flex-1"></div>

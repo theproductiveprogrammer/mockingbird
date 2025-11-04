@@ -93,7 +93,7 @@ export function formatResponseSummary(entry: TrafficEntry): string {
   // Handle undefined/null/0 delay_ms
   const delayStr = delay_ms !== undefined && delay_ms !== null ? `[${delay_ms}ms] ` : '';
 
-  return `[${status_code}] ${delayStr}{${ruleType}} ${bodySummary}`;
+  return `[${status_code}] ${delayStr}[${ruleType}] ${bodySummary}`;
 }
 
 export function getStatusColor(statusCode: number): string {
@@ -101,4 +101,17 @@ export function getStatusColor(statusCode: number): string {
   if (statusCode >= 400 && statusCode < 500) return 'text-yellow-600';
   if (statusCode >= 500) return 'text-red-600';
   return 'text-gray-600';
+}
+
+export function getRuleTypeBadgeClasses(ruleType: string): string {
+  switch (ruleType) {
+    case 'mock':
+      return 'bg-blue-50 text-blue-700';
+    case 'proxy':
+      return 'bg-green-50 text-green-700';
+    case 'timeout':
+      return 'bg-red-50 text-red-700';
+    default:
+      return 'bg-gray-50 text-gray-700';
+  }
 }
