@@ -22,7 +22,7 @@ export function FilterBar() {
   return (
     <div className="bg-gray-50 border-b border-gray-200 px-6 py-2">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-xs text-gray-500 font-normal">Filters:</span>
+        <span className="text-xs text-gray-600 font-normal">Filters:</span>
 
         {filters.map((filter) => (
           <Tag key={filter} onRemove={() => removeFilter(filter)}>
@@ -42,7 +42,7 @@ export function FilterBar() {
         {filters.length > 0 && (
           <button
             onClick={clearFilters}
-            className="text-xs text-gray-400 hover:text-gray-600"
+            className="text-xs text-gray-500 hover:text-gray-800"
           >
             Clear all
           </button>

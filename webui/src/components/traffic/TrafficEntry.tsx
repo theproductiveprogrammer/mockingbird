@@ -27,21 +27,21 @@ export function TrafficEntry({ entry }: TrafficEntryProps) {
     >
       {/* Line 1: Timestamp, Method, Path, Query */}
       <div className="flex items-center gap-2 text-sm font-mono">
-        <span className="text-gray-500">[{formatTime(entry.timestamp)}]</span>
+        <span className="text-gray-600">[{formatTime(entry.timestamp)}]</span>
         <Tag variant="method">{entry.method}</Tag>
         <span className="text-gray-900">{entry.path}</span>
-        {queryString && <span className="text-gray-500 text-xs">{queryString}</span>}
+        {queryString && <span className="text-gray-600 text-xs">{queryString}</span>}
       </div>
 
       {/* Line 2: Request summary */}
-      <div className="mt-1 ml-28 text-sm text-gray-600 font-mono">
-        <span className="text-gray-400">→ </span>
+      <div className="mt-1 ml-28 text-sm text-gray-700 font-mono">
+        <span className="text-gray-500">→ </span>
         {formatRequestSummary(entry)}
       </div>
 
       {/* Line 3: Response summary */}
       <div className={`mt-1 ml-28 text-sm font-mono ${statusColor}`}>
-        <span className="text-gray-400">← </span>
+        <span className="text-gray-500">← </span>
         {formatResponseSummary(entry)}
       </div>
     </div>

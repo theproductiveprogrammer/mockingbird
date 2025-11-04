@@ -50,7 +50,7 @@ export function ConfigView() {
             <div className="p-3 flex items-center justify-between">
               <div>
                 <p className="text-xs font-normal text-gray-800">Proxy Port</p>
-                <p className="text-xs text-gray-400 mt-0.5">
+                <p className="text-xs text-gray-500 mt-0.5">
                   Main proxy server for intercepting requests
                 </p>
               </div>
@@ -65,7 +65,7 @@ export function ConfigView() {
             <div className="p-3 flex items-center justify-between">
               <div>
                 <p className="text-xs font-normal text-gray-800">Admin Port</p>
-                <p className="text-xs text-gray-400 mt-0.5">
+                <p className="text-xs text-gray-500 mt-0.5">
                   Admin API and dashboard server
                 </p>
               </div>
@@ -80,7 +80,7 @@ export function ConfigView() {
             <div className="p-3 flex items-center justify-between">
               <div>
                 <p className="text-xs font-normal text-gray-800">Config Directory</p>
-                <p className="text-xs text-gray-400 mt-0.5">
+                <p className="text-xs text-gray-500 mt-0.5">
                   Location for rules and config files
                 </p>
               </div>
@@ -99,9 +99,9 @@ export function ConfigView() {
           </div>
 
           {configValues.length === 0 ? (
-            <div className="border border-gray-200 rounded p-6 text-center text-gray-500">
+            <div className="border border-gray-200 rounded p-6 text-center text-gray-600">
               <p className="text-xs">No config values defined</p>
-              <p className="text-xs mt-1 text-gray-400">
+              <p className="text-xs mt-1 text-gray-500">
                 Add values to config.json to use them in templates
               </p>
             </div>
@@ -111,7 +111,7 @@ export function ConfigView() {
                 <div key={key} className="p-3 flex items-center justify-between">
                   <div className="flex-1">
                     <p className="text-xs font-normal text-gray-800 font-mono">{key}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">
+                    <p className="text-xs text-gray-500 mt-0.5">
                       Use in templates: {`{{ config \`${key}\` }}`}
                     </p>
                   </div>

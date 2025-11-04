@@ -30,10 +30,10 @@ export function TrafficStream() {
   return (
     <div className="h-full overflow-y-auto">
       {filteredTraffic.length === 0 ? (
-        <div className="flex items-center justify-center h-full text-gray-500">
+        <div className="flex items-center justify-center h-full text-gray-600">
           <div className="text-center">
             <p className="text-sm font-normal">No traffic yet</p>
-            <p className="text-xs mt-1 text-gray-400">Make a request to see it here</p>
+            <p className="text-xs mt-1 text-gray-500">Make a request to see it here</p>
           </div>
         </div>
       ) : (

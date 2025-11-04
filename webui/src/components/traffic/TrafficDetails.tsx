@@ -14,7 +14,7 @@ export function TrafficDetails() {
 
   if (!entry) {
     return (
-      <div className="flex items-center justify-center h-full text-gray-500">
+      <div className="flex items-center justify-center h-full text-gray-600">
         No traffic selected
       </div>
     );
@@ -42,14 +42,14 @@ export function TrafficDetails() {
     <div className="h-full overflow-y-auto">
       <div className="p-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <h2 className="text-lg font-semibold">{entry.path}</h2>
+            <h2 className="text-sm font-medium text-gray-800">{entry.path}</h2>
             <Tag variant="method">{entry.method}</Tag>
             {entry.matched_rule !== undefined && (
-              <Tag variant="service">
+              <span className="text-xs text-gray-600">
                 Rule #{entry.matched_rule}: {entry.service}
-              </Tag>
+              </span>
             )}
           </div>
           <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
@@ -59,13 +59,13 @@ export function TrafficDetails() {
 
         {/* Request Section */}
         <div className="mb-6">
-          <h3 className="text-sm font-semibold text-gray-800 mb-2">Request</h3>
+          <h3 className="text-xs font-medium text-gray-600 mb-3 uppercase tracking-wider">Request</h3>
 
           {/* Query */}
           {Object.keys(entry.query).length > 0 && (
-            <div className="mb-4">
-              <p className="text-xs font-medium text-gray-600 mb-1">query:</p>
-              <div className="ml-4 text-sm font-mono text-gray-800">
+            <div className="mb-3">
+              <p className="text-xs font-normal text-gray-600 mb-1">query:</p>
+              <div className="ml-4 text-xs font-mono text-gray-800">
                 {Object.entries(entry.query).map(([key, values]) =>
                   values.map((v, i) => (
                     <div key={`${key}-${i}`}>
@@ -78,24 +78,24 @@ export function TrafficDetails() {
           )}
 
           {/* Headers */}
-          <div className="mb-4">
-            <p className="text-xs font-medium text-gray-600 mb-1">headers:</p>
-            <pre className="ml-4 text-sm font-mono text-gray-800 whitespace-pre-wrap">
+          <div className="mb-3">
+            <p className="text-xs font-normal text-gray-600 mb-1">headers:</p>
+            <pre className="ml-4 text-xs font-mono text-gray-800 whitespace-pre-wrap">
               {formatHeaders(entry.headers)}
             </pre>
           </div>
 
           {/* Body */}
-          <div className="mb-4">
-            <p className="text-xs font-medium text-gray-600 mb-1">body:</p>
+          <div className="mb-3">
+            <p className="text-xs font-normal text-gray-600 mb-1">body:</p>
             <div className="ml-4">
               <SyntaxHighlighter
                 language="json"
                 style={oneLight}
                 customStyle={{
                   margin: 0,
-                  padding: '1rem',
-                  fontSize: '0.875rem',
+                  padding: '0.75rem',
+                  fontSize: '0.75rem',
                   borderRadius: '0.25rem',
                 }}
               >
@@ -111,24 +111,24 @@ export function TrafficDetails() {
             <div className="border-t border-gray-200 my-4"></div>
 
             <div>
-              <h3 className="text-sm font-semibold text-gray-800 mb-2">Response</h3>
+              <h3 className="text-xs font-medium text-gray-600 mb-3 uppercase tracking-wider">Response</h3>
 
               {/* Delay and Status */}
-              <div className="mb-4">
+              <div className="mb-3">
                 {entry.response.delay_ms > 0 && (
-                  <p className="text-sm font-mono text-gray-600">
+                  <p className="text-xs font-mono text-gray-600">
                     +{entry.response.delay_ms}ms
                   </p>
                 )}
-                <p className="text-sm font-mono text-gray-800">
+                <p className="text-xs font-mono text-gray-800">
                   [{entry.response.status_code}]
                 </p>
               </div>
 
               {/* Headers */}
-              <div className="mb-4">
-                <p className="text-xs font-medium text-gray-600 mb-1">headers:</p>
-                <pre className="ml-4 text-sm font-mono text-gray-800">
+              <div className="mb-3">
+                <p className="text-xs font-normal text-gray-600 mb-1">headers:</p>
+                <pre className="ml-4 text-xs font-mono text-gray-800">
                   {entry.response.headers && Object.entries(entry.response.headers).map(([key, value]) => (
                     <div key={key}>
                       {key}: {value}
@@ -138,16 +138,16 @@ export function TrafficDetails() {
               </div>
 
               {/* Body */}
-              <div className="mb-4">
-                <p className="text-xs font-medium text-gray-600 mb-1">body:</p>
+              <div className="mb-3">
+                <p className="text-xs font-normal text-gray-600 mb-1">body:</p>
                 <div className="ml-4">
                   <SyntaxHighlighter
                     language="json"
                     style={oneLight}
                     customStyle={{
                       margin: 0,
-                      padding: '1rem',
-                      fontSize: '0.875rem',
+                      padding: '0.75rem',
+                      fontSize: '0.75rem',
                       borderRadius: '0.25rem',
                     }}
                   >
