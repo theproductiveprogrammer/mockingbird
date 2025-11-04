@@ -1,15 +1,25 @@
+import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../../stores/appStore';
 
 export function Header() {
+  const navigate = useNavigate();
   const { currentView, setCurrentView, isConnected } = useAppStore();
+
+  const handleHomeClick = () => {
+    setCurrentView('traffic');
+    navigate('/');
+  };
 
   return (
     <header className="bg-gray-50 border-b border-gray-200 px-6 py-2.5">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+        <button
+          onClick={handleHomeClick}
+          className="flex items-center gap-2 hover:opacity-70 transition-opacity"
+        >
           <img src="/mockingbird.svg" alt="Mockingbird" className="w-5 h-5" />
           <h1 className="text-sm font-normal text-gray-800">Mockingbird</h1>
-        </div>
+        </button>
 
         <div className="flex items-center gap-3">
           <button
