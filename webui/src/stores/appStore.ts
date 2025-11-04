@@ -24,6 +24,8 @@ interface AppState {
   // Rules
   serviceRules: Record<string, ServiceRules>;
   setServiceRules: (rules: Record<string, ServiceRules>) => void;
+  highlightedRule: { service: string; index: number } | null;
+  setHighlightedRule: (rule: { service: string; index: number } | null) => void;
 
   // Config
   config: Config | null;
@@ -66,6 +68,8 @@ export const useAppStore = create<AppState>((set) => ({
 
   serviceRules: {},
   setServiceRules: (rules) => set({ serviceRules: rules }),
+  highlightedRule: null,
+  setHighlightedRule: (rule) => set({ highlightedRule: rule }),
 
   config: null,
   setConfig: (config) => set({ config }),

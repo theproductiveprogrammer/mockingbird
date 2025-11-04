@@ -9,7 +9,7 @@ import { getRuleTypeBadgeClasses } from '../../utils/formatters';
 import toast from 'react-hot-toast';
 
 export function RulesView() {
-  const { serviceRules, setServiceRules } = useAppStore();
+  const { serviceRules, setServiceRules, highlightedRule, setHighlightedRule } = useAppStore();
   const [expandedServices, setExpandedServices] = useState<Set<string>>(new Set());
   const [editingRule, setEditingRule] = useState<{
     service: string;
@@ -22,6 +22,33 @@ export function RulesView() {
   useEffect(() => {
     api.getAllRules().then(setServiceRules);
   }, [setServiceRules]);
+
+  // Auto-expand service and scroll to highlighted rule
+  useEffect(() => {
+    if (highlightedRule) {
+      // Expand the service
+      setExpandedServices((prev) => {
+        const newSet = new Set(prev);
+        newSet.add(highlightedRule.service);
+        return newSet;
+      });
+
+      // Scroll to the rule after a brief delay to allow expansion
+      setTimeout(() => {
+        const element = document.getElementById(`rule-${highlightedRule.service}-${highlightedRule.index}`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
+
+      // Clear highlight after 3 seconds
+      const timeout = setTimeout(() => {
+        setHighlightedRule(null);
+      }, 3000);
+
+      return () => clearTimeout(timeout);
+    }
+  }, [highlightedRule, setHighlightedRule]);
 
   const handleSaveRule = async (updatedRule: Rule) => {
     if (!editingRule) return;
@@ -200,11 +227,15 @@ export function RulesView() {
                       const isProxy = !!rule.proxyto;
                       const actionType = isMock ? 'mock' : isProxy ? 'proxy' : 'none';
                       const badgeClasses = getRuleTypeBadgeClasses(actionType);
+                      const isHighlighted = highlightedRule?.service === serviceName && highlightedRule?.index === rule.index;
 
                       return (
                         <div
                           key={`${serviceName}-${rule.index}`}
-                          className="flex items-center gap-2 py-1 px-2 hover:bg-gray-50 group"
+                          id={`rule-${serviceName}-${rule.index}`}
+                          className={`flex items-center gap-2 py-1 px-2 hover:bg-gray-50 group transition-colors ${
+                            isHighlighted ? 'bg-blue-50 border-l-2 border-blue-500' : ''
+                          }`}
                         >
                           {/* Up/Down buttons */}
                           <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity">

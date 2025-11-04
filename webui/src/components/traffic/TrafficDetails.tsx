@@ -14,7 +14,7 @@ import { JsonViewer } from '../ui/JsonViewer';
 export function TrafficDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { traffic, setServiceRules } = useAppStore();
+  const { traffic, setServiceRules, setCurrentView, setHighlightedRule } = useAppStore();
   const [showRuleEditor, setShowRuleEditor] = useState(false);
 
   const entry = traffic.find((t) => t.id === id);
@@ -172,6 +172,20 @@ ${responseBodyStr}`;
     toast.success('Copied cURL command to clipboard!');
   };
 
+  const handleGoToRule = () => {
+    if (!entry || entry.matched_rule === undefined) return;
+
+    // Set the highlighted rule
+    setHighlightedRule({
+      service: entry.service,
+      index: entry.matched_rule,
+    });
+
+    // Navigate to rules view
+    setCurrentView('rules');
+    navigate('/');
+  };
+
   return (
     <>
       <div className="h-full overflow-y-auto">
@@ -182,9 +196,13 @@ ${responseBodyStr}`;
             <h2 className="text-sm font-medium text-gray-800">{entry.path}</h2>
             <Tag variant="method">{entry.method}</Tag>
             {entry.matched_rule !== undefined && (
-              <span className="text-xs text-gray-600">
-                Rule #{entry.matched_rule}: {entry.service}
-              </span>
+              <button
+                onClick={handleGoToRule}
+                className="text-xs text-blue-600 hover:text-blue-800 hover:underline cursor-pointer transition-colors"
+                title="Go to rule"
+              >
+                → Rule #{entry.matched_rule + 1}: {entry.service}
+              </button>
             )}
           </div>
           <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
