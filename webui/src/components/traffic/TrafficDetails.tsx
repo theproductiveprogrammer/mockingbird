@@ -129,7 +129,7 @@ export function TrafficDetails() {
     const template = `${entry.response?.delay_ms ? `+${entry.response.delay_ms}ms\n` : ''}[${entry.response?.status_code || 200}]
 headers:
   ${responseHeadersStr.split('\n').join('\n  ')}
-body:json
+body:
 ${responseBodyStr}`;
 
     return {

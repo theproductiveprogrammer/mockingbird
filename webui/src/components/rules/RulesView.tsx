@@ -309,7 +309,7 @@ export function RulesView() {
             response: `[200]
 headers:
   Content-Type: application/json
-body:json
+body:
 {
   "message": "Hello World"
 }`,

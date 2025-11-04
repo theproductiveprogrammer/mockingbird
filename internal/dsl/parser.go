@@ -57,9 +57,9 @@ func Parse(template string) (*models.ParsedTemplate, error) {
 	// Parse body section
 	if lineIdx < len(lines) {
 		line := strings.TrimSpace(lines[lineIdx])
-		if line == "body" {
+		if line == "body:" {
 			lineIdx++
-			// Everything after "body" is the body content
+			// Everything after "body:" is the body content
 			bodyLines := lines[lineIdx:]
 			result.Body = strings.Join(bodyLines, "\n")
 		}
@@ -167,7 +167,7 @@ func Format(pt *models.ParsedTemplate) string {
 
 	// Add body
 	if pt.Body != "" {
-		sb.WriteString("body\n")
+		sb.WriteString("body:\n")
 		sb.WriteString(pt.Body)
 	}
 

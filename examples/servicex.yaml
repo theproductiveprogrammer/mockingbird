@@ -8,7 +8,7 @@ rules:
       [500]
       headers:
         Content-Type: application/json
-      body
+      body:
       {
         "error": "Internal server error",
         "code": "SERVER_ERROR",
@@ -27,7 +27,7 @@ rules:
       headers:
         Content-Type: application/json
         X-Request-ID: "{{ uuid }}"
-      body
+      body:
       {
         "id": "{{ uuid }}",
         "username": "{{ reqBody `username` }}",

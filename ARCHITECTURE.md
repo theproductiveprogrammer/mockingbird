@@ -108,8 +108,8 @@ mockingbird/
 | `+30s`                     | Delay response by 30 seconds               |
 | `[201]`                    | Set response status                        |
 | `headers:`                 | Response headers (YAML-style)              |
-| `body:json` or `body:text` | Response body and format                   |
-| Template syntax            | Go’s `text/template` with helper functions |
+| `body:`                    | Response body                              |
+| Template syntax            | Go's `text/template` with helper functions |
 
 ---
 
@@ -133,7 +133,7 @@ template: >
       Content-Type: application/json
       X-API-Key: "{{ config `serviceApiKey` }}"
 
-    body
+    body:
     {
       "id": "{{ uuid }}",
       "user": "{{ reqPathParam 1 }}",
@@ -149,7 +149,7 @@ template: >
 | `+30s`          | Simulate latency            | Optional; `+500ms`, `+2s`, `+1m`                       |
 | `[200]`         | Status code                 | Optional; defaults to 200                              |
 | `header:`       | Static or templated headers | Supports templating                                    |
-| `body:json`     | Response body               | Supports templating                                    |
+| `body:`         | Response body               | Supports templating                                    |
 | Template syntax | `{{ ... }}`                 | Simple interpolation; references request, config, etc. |
 
 | Variable         | Description             |

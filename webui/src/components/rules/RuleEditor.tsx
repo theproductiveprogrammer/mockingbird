@@ -28,7 +28,7 @@ function parseTemplate(template: string) {
     } else if (line.trim() === 'headers:') {
       inHeaders = true;
       inBody = false;
-    } else if (line.match(/^body/)) {
+    } else if (line.trim() === 'body:') {
       inHeaders = false;
       inBody = true;
     } else if (inHeaders && line.trim()) {
@@ -61,7 +61,7 @@ function buildTemplate(delay: string, status: string, headers: string, body: str
   }
 
   if (body.trim()) {
-    template += 'body:json\n';
+    template += 'body:\n';
     template += body.trim();
   }
 

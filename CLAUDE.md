@@ -43,7 +43,7 @@ Write your responses in a simple format — easy to read, version, and share.
 [200]
 headers:
   Content-Type: application/json
-body
+body:
 {
   "user": "{{ reqHeader `X-User` }}",
   "time": "{{ now }}",
