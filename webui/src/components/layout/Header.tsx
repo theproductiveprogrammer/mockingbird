@@ -6,8 +6,9 @@ export function Header() {
   return (
     <header className="bg-gray-50 border-b border-gray-200 px-6 py-2.5">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <h1 className="text-sm font-normal text-gray-800">🐦 Mockingbird</h1>
+        <div className="flex items-center gap-2">
+          <img src="/mockingbird.svg" alt="Mockingbird" className="w-5 h-5" />
+          <h1 className="text-sm font-normal text-gray-800">Mockingbird</h1>
         </div>
 
         <div className="flex items-center gap-3">
