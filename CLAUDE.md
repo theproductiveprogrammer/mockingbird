@@ -25,72 +25,6 @@ Manage API keys centrally, mock selectively, and see every request in real-time.
 
 ---
 
-## 🧩 Features
-
-### ⚙️ Smart Request Matching
-
-* Match by method, path (`/users/{id}` or wildcards `**`), headers, query params, or JSON body fragments
-* Inspect all requests/responses in a beautiful live dashboard
-* Easily switch from real API responses to identical mocking responses
-
-
-### 🗂️ Easy to Use!
-
-Write your responses in a simple format — easy to read, version, and share.
-
-```text
-+30s
-[200]
-headers:
-  Content-Type: application/json
-body:
-{
-  "user": "{{ reqHeader `X-User` }}",
-  "time": "{{ now }}",
-  "token": "{{ config `api_key` }}"
-}
-```
-
-* Templates support dynamic helpers: `{{now}}`, `{{uuid}}`, `{{random 1 100}}`
-* Access request headers, params, and JSON body fields
-* Reference central config values (like API keys) for better security, control, and privacy
-
-### 🔄 Path-Based Routing
-
-* Route requests by path: `/servicex/**` → ServiceX, `/openai/**` → OpenAI
-* Unmatched requests timeout (504) - immediately know when new APIs are called
-* Selectively proxy to real services or return mocked responses
-
-### 🧠 REST API & Live Monitoring
-
-* RESTful Admin API for all operations (curl-friendly)
-* Real-time traffic stream via Server-Sent Events
-* Create/edit/delete rules programmatically
-* Manage config values securely
-
-### 🐳 Docker-First Deployment
-
----
-
----
-
-## 🤝 Contributing
-
-Mockingbird is open to community contributions!
-Help shape a tool that makes API development faster and more fun.
-
-* Fork the repo
-* Submit a PR or feature suggestion
-
----
-
-## 🪶 TL;DR
-
-> **Mockingbird** = WireMock + Postman Mock Server + Local Reverse Proxy,
-> wrapped in one lightweight, fast, Go service with a beautiful dashboard.
-
-Build once. Mock forever. 🐦
-
 # 🐦 Architecture
 
 ```
@@ -157,7 +91,7 @@ mockingbird/
 | `+30s`          | Delay response by 30 seconds                                      |
 | `[201]`         | Set response status                                               |
 | `headers:`      | Response headers (YAML-style)                                     |
-| `body`          | Response body (template string, auto-parsed as JSON if possible)  |
+| `body:`         | Response body (template string, auto-parsed as JSON if possible)  |
 | Template syntax | Go's `text/template` with helper functions                        |
 
 **Note**: Request bodies are automatically parsed as JSON when valid, otherwise treated as plain text. Response bodies are always templates.

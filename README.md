@@ -8,91 +8,53 @@ Stop hardcoding API keys, stop hitting live APIs during development, and get ful
 
 ---
 
+## 🚀 Why Mockingbird?
+
+| Problem                                            | Mockingbird's Solution                                                    |
+| -------------------------------------------------- | ------------------------------------------------------------------------- |
+| External APIs scattered across services?           | Single gateway for all external calls - one place to manage everything.   |
+| API keys hardcoded everywhere?                     | Centralized config - inject keys via templates, never expose in code.     |
+| Need to work offline or mock flaky services?       | Selectively mock endpoints while proxying everything else.                |
+| Want to see what APIs your app is calling?         | Real-time traffic dashboard with full request/response inspection.        |
+| Need flexible matching and responses?              | Simple `.mock` format with templates - no complex YAML or code.           |
+| Deploy anywhere?                                   | Single binary or Docker container — no external DB needed.                |
+
+
+---
+
 ## 🚀 Quick Start
 
-**1. Configure your services to use Mockingbird:**
+**1. Tell your services to use Mockingbird:**
 
-Instead of calling external APIs directly, route through Mockingbird:
+Instead of:
+  * `https://api.servicex.com`
+  use
+  * `http://localhost:8769/servicex`
 
-```bash
-# Before
-curl https://api.servicex.com/users
+You will immediately see all the requests your system is making on the mocking bird dashboard. Because they are not configured, they will all show as 'failed'.
 
-# After
-curl http://localhost:8769/servicex/users
-```
+**2. Click and proxy:**
 
-**2. Start Mockingbird:**
+For all existing services, simply click on a failed traffic line and add the url of the actual service to proxy to:
 
-```bash
-mockingbird
-# Proxy: http://localhost:8769
-# Admin API: http://localhost:8768
-```
+Click and add: `https://api.servicex.com`
 
-**3. Create rules via API:**
+**3. Mock & Intercept:**
 
-```bash
-# Proxy to real API with injected auth
-curl -X POST http://localhost:8768/api/rules/servicex \
-  -H "Content-Type: application/json" \
-  -d '{
-    "match": {"method": ["GET"], "path": "/servicex/**"},
-    "proxyto": "https://api.servicex.com",
-    "headers": {"X-API-Key": "{{ config SERVICEX_API_KEY }}"}
-  }'
-```
+For new services simply create new rules and mock the response. For existing traffic, click and create a rule and it will intercept and respond with the mocked response!
 
 **4. Watch live traffic:**
 
-```bash
-curl -N http://localhost:8768/api/traffic/stream
-```
+See the requests and responses in real-time, beautifully formatted and JSON-compatible on the dashboard.
+
+**5. Keep API Keys centralized:**
+
+Add API keys in a the mockingbird centralized config and have the proxy insert them in-flight. API keys are now forever safe from being logged and need not be shared with the services.
 
 ---
 
 ## 🧩 Features
 
-### ⚙️ Smart Request Matching
-
-- Match by method, path (`/users/{id}` or wildcards `**`), headers, query params, or JSON body fragments
-- Inspect all requests/responses in a beautiful live dashboard
-- Easily switch from real API responses to identical mocking responses
-
-### 🗂️ Easy to Use!
-
-Write your responses in a simple format — easy to read, version, and share.
-
-```text
-+30s
-[200]
-headers:
-  Content-Type: application/json
-body:
-{
-  "user": "{{ reqHeader "X-User" }}",
-  "time": "{{ now }}",
-  "token": "{{ config "api_key" }}"
-}
-```
-
-- Templates support dynamic helpers: `{{now}}`, `{{uuid}}`, `{{random 1 100}}`
-- Access request headers, params, and JSON body fields
-- Reference central config values (like API keys) for better security, control, and privacy
-
-### 🔄 Transparent Reverse Proxy
-
-- Unmatched requests automatically forward to the real upstream service
-- See live traffic to generate corresponding mock templates
-
-### 🧠 Dashboard
-
-- Manage rules and templates from the browser
-- Watch live incoming requests
-
-### 🐳 Docker-First Deployment
-
----
 
 ---
 
