@@ -59,7 +59,7 @@ export function TrafficDetails() {
 
         {/* Request Section */}
         <div className="mb-6">
-          <h3 className="text-sm font-semibold text-gray-700 mb-2">Request</h3>
+          <h3 className="text-sm font-semibold text-gray-800 mb-2">Request</h3>
 
           {/* Query */}
           {Object.keys(entry.query).length > 0 && (
@@ -111,7 +111,7 @@ export function TrafficDetails() {
             <div className="border-t border-gray-200 my-4"></div>
 
             <div>
-              <h3 className="text-sm font-semibold text-gray-700 mb-2">Response</h3>
+              <h3 className="text-sm font-semibold text-gray-800 mb-2">Response</h3>
 
               {/* Delay and Status */}
               <div className="mb-4">

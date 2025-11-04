@@ -49,13 +49,13 @@ export function ConfigView() {
           <div className="border border-gray-200 rounded divide-y divide-gray-200">
             <div className="p-3 flex items-center justify-between">
               <div>
-                <p className="text-xs font-normal text-gray-700">Proxy Port</p>
+                <p className="text-xs font-normal text-gray-800">Proxy Port</p>
                 <p className="text-xs text-gray-400 mt-0.5">
                   Main proxy server for intercepting requests
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <code className="text-xs font-mono text-gray-700 bg-gray-50 px-2 py-0.5 rounded">
+                <code className="text-xs font-mono text-gray-800 bg-gray-50 px-2 py-0.5 rounded">
                   {config.proxy_port}
                 </code>
                 <span className="text-xs text-gray-500">http://localhost:{config.proxy_port}</span>
@@ -64,13 +64,13 @@ export function ConfigView() {
 
             <div className="p-3 flex items-center justify-between">
               <div>
-                <p className="text-xs font-normal text-gray-700">Admin Port</p>
+                <p className="text-xs font-normal text-gray-800">Admin Port</p>
                 <p className="text-xs text-gray-400 mt-0.5">
                   Admin API and dashboard server
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <code className="text-xs font-mono text-gray-700 bg-gray-50 px-2 py-0.5 rounded">
+                <code className="text-xs font-mono text-gray-800 bg-gray-50 px-2 py-0.5 rounded">
                   {config.admin_port}
                 </code>
                 <span className="text-xs text-gray-500">http://localhost:{config.admin_port}</span>
@@ -79,7 +79,7 @@ export function ConfigView() {
 
             <div className="p-3 flex items-center justify-between">
               <div>
-                <p className="text-xs font-normal text-gray-700">Config Directory</p>
+                <p className="text-xs font-normal text-gray-800">Config Directory</p>
                 <p className="text-xs text-gray-400 mt-0.5">
                   Location for rules and config files
                 </p>
@@ -110,18 +110,18 @@ export function ConfigView() {
               {configValues.map(([key, value]) => (
                 <div key={key} className="p-3 flex items-center justify-between">
                   <div className="flex-1">
-                    <p className="text-xs font-normal text-gray-700 font-mono">{key}</p>
+                    <p className="text-xs font-normal text-gray-800 font-mono">{key}</p>
                     <p className="text-xs text-gray-400 mt-0.5">
                       Use in templates: {`{{ config \`${key}\` }}`}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <code className="text-xs font-mono text-gray-700 bg-gray-50 px-2 py-0.5 rounded">
+                    <code className="text-xs font-mono text-gray-800 bg-gray-50 px-2 py-0.5 rounded">
                       {revealed.has(key) ? value : maskValue(value)}
                     </code>
                     <button
                       onClick={() => toggleReveal(key)}
-                      className="text-xs text-gray-500 hover:text-gray-700"
+                      className="text-xs text-gray-500 hover:text-gray-800"
                     >
                       {revealed.has(key) ? 'Hide' : 'Show'}
                     </button>

@@ -7,7 +7,7 @@ export function Header() {
     <header className="bg-gray-50 border-b border-gray-200 px-6 py-2.5">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h1 className="text-sm font-normal text-gray-700">🐦 Mockingbird</h1>
+          <h1 className="text-sm font-normal text-gray-800">🐦 Mockingbird</h1>
         </div>
 
         <div className="flex items-center gap-3">

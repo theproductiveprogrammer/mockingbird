@@ -16,7 +16,7 @@ export function Button({
   const variantClasses = {
     primary: 'bg-accent-blue text-white hover:bg-blue-600',
     secondary: 'bg-gray-200 text-gray-800 hover:bg-gray-300',
-    ghost: 'text-gray-700 hover:bg-gray-100',
+    ghost: 'text-gray-800 hover:bg-gray-100',
   };
 
   const sizeClasses = {

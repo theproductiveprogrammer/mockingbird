@@ -79,7 +79,7 @@ export function RulesView() {
                   onClick={() => toggleService(serviceName)}
                 >
                   <span className="text-gray-500">{isExpanded ? '▼' : '▶'}</span>
-                  <span className="text-gray-700 font-medium">{serviceName}.yaml</span>
+                  <span className="text-gray-800 font-medium">{serviceName}.yaml</span>
                   <span className="text-gray-500">·</span>
                   <span className="text-gray-600">{service.rules.length} rules</span>
                 </div>
@@ -102,7 +102,7 @@ export function RulesView() {
                         >
                           {/* Rule # and Path */}
                           <span className="text-gray-500">Rule #{rule.index + 1}</span>
-                          <span className="text-gray-700">{rule.match.path || '/**'}</span>
+                          <span className="text-gray-800">{rule.match.path || '/**'}</span>
 
                           {/* Body Match (if exists) */}
                           {rule.match.body?.matches && (

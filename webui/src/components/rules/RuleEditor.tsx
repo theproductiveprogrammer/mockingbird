@@ -181,7 +181,7 @@ export function RuleEditor({ service, rule, index, onSave, onCancel }: RuleEdito
                       onChange={() => toggleMethod(method)}
                       className="w-3.5 h-3.5 text-gray-600 border-gray-300 rounded focus:ring-gray-400"
                     />
-                    <span className="text-xs font-normal text-gray-700">{method}</span>
+                    <span className="text-xs font-normal text-gray-800">{method}</span>
                   </label>
                 ))}
               </div>
@@ -264,7 +264,7 @@ export function RuleEditor({ service, rule, index, onSave, onCancel }: RuleEdito
                   onChange={() => setResponseType('mock')}
                   className="w-3.5 h-3.5 text-gray-600 border-gray-300 focus:ring-gray-400"
                 />
-                <span className="text-xs font-normal text-gray-700">Return Mock Response</span>
+                <span className="text-xs font-normal text-gray-800">Return Mock Response</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -273,7 +273,7 @@ export function RuleEditor({ service, rule, index, onSave, onCancel }: RuleEdito
                   onChange={() => setResponseType('proxy')}
                   className="w-3.5 h-3.5 text-gray-600 border-gray-300 focus:ring-gray-400"
                 />
-                <span className="text-xs font-normal text-gray-700">Proxy to Upstream</span>
+                <span className="text-xs font-normal text-gray-800">Proxy to Upstream</span>
               </label>
             </div>
           </div>

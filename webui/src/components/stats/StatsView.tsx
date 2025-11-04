@@ -80,7 +80,7 @@ export function StatsView() {
               Object.entries(stats.services).map(([service, serviceStats]) => (
                 <div key={service} className="p-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-normal text-gray-700 font-mono">
+                    <span className="text-xs font-normal text-gray-800 font-mono">
                       /{service}
                     </span>
                     <span className="text-xs text-gray-400">{serviceStats.rules} rules</span>
@@ -117,7 +117,7 @@ export function StatsView() {
                           }}
                         />
                       </div>
-                      <span className="text-xs font-normal text-gray-700 w-8 text-right">
+                      <span className="text-xs font-normal text-gray-800 w-8 text-right">
                         {count}
                       </span>
                     </div>
@@ -140,7 +140,7 @@ export function StatsView() {
                 .sort(([, a], [, b]) => b - a)
                 .map(([code, count]) => (
                   <div key={code} className="p-3 flex items-center justify-between">
-                    <span className="text-xs font-mono text-gray-700 bg-gray-50 px-2 py-0.5 rounded border border-gray-300">
+                    <span className="text-xs font-mono text-gray-800 bg-gray-50 px-2 py-0.5 rounded border border-gray-300">
                       {code}
                     </span>
                     <div className="flex items-center gap-3">
@@ -152,7 +152,7 @@ export function StatsView() {
                           }}
                         />
                       </div>
-                      <span className="text-xs font-normal text-gray-700 w-8 text-right">
+                      <span className="text-xs font-normal text-gray-800 w-8 text-right">
                         {count}
                       </span>
                     </div>
@@ -175,7 +175,7 @@ export function StatsView() {
                 .sort(([, a], [, b]) => b - a)
                 .map(([type, count]) => (
                   <div key={type} className="p-3 flex items-center justify-between">
-                    <span className="text-xs font-mono text-gray-700 bg-gray-50 px-2 py-0.5 rounded border border-gray-300">
+                    <span className="text-xs font-mono text-gray-800 bg-gray-50 px-2 py-0.5 rounded border border-gray-300">
                       {type}
                     </span>
                     <div className="flex items-center gap-3">
@@ -187,7 +187,7 @@ export function StatsView() {
                           }}
                         />
                       </div>
-                      <span className="text-xs font-normal text-gray-700 w-8 text-right">
+                      <span className="text-xs font-normal text-gray-800 w-8 text-right">
                         {count}
                       </span>
                     </div>
