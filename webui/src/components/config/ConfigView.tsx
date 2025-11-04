@@ -41,50 +41,50 @@ export function ConfigView() {
   return (
     <div className="h-full overflow-y-auto">
       <div className="p-6">
-        <h1 className="text-2xl font-semibold mb-6">Configuration</h1>
+        <h1 className="text-xs font-medium mb-3 text-gray-600 uppercase tracking-wider">Configuration</h1>
 
         {/* Server Settings */}
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Server Settings</h2>
-          <div className="border border-gray-200 rounded-lg divide-y divide-gray-200">
-            <div className="p-4 flex items-center justify-between">
+        <div className="mb-6">
+          <h2 className="text-xs font-medium text-gray-600 mb-3 uppercase tracking-wider">Server Settings</h2>
+          <div className="border border-gray-200 rounded divide-y divide-gray-200">
+            <div className="p-3 flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-700">Proxy Port</p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs font-normal text-gray-700">Proxy Port</p>
+                <p className="text-xs text-gray-400 mt-0.5">
                   Main proxy server for intercepting requests
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <code className="text-sm font-mono text-gray-900 bg-gray-50 px-3 py-1 rounded">
+                <code className="text-xs font-mono text-gray-700 bg-gray-50 px-2 py-0.5 rounded">
                   {config.proxy_port}
                 </code>
-                <Tag variant="service">http://localhost:{config.proxy_port}</Tag>
+                <span className="text-xs text-gray-500">http://localhost:{config.proxy_port}</span>
               </div>
             </div>
 
-            <div className="p-4 flex items-center justify-between">
+            <div className="p-3 flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-700">Admin Port</p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs font-normal text-gray-700">Admin Port</p>
+                <p className="text-xs text-gray-400 mt-0.5">
                   Admin API and dashboard server
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <code className="text-sm font-mono text-gray-900 bg-gray-50 px-3 py-1 rounded">
+                <code className="text-xs font-mono text-gray-700 bg-gray-50 px-2 py-0.5 rounded">
                   {config.admin_port}
                 </code>
-                <Tag variant="service">http://localhost:{config.admin_port}</Tag>
+                <span className="text-xs text-gray-500">http://localhost:{config.admin_port}</span>
               </div>
             </div>
 
-            <div className="p-4 flex items-center justify-between">
+            <div className="p-3 flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-700">Config Directory</p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs font-normal text-gray-700">Config Directory</p>
+                <p className="text-xs text-gray-400 mt-0.5">
                   Location for rules and config files
                 </p>
               </div>
-              <code className="text-sm font-mono text-gray-700 bg-gray-50 px-3 py-1 rounded">
+              <code className="text-xs font-mono text-gray-600 bg-gray-50 px-2 py-0.5 rounded">
                 {config.config_dir}
               </code>
             </div>
@@ -92,36 +92,36 @@ export function ConfigView() {
         </div>
 
         {/* Config Values */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Config Values</h2>
-            <Tag variant="service">{configValues.length} values</Tag>
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-xs font-medium text-gray-600 uppercase tracking-wider">Config Values</h2>
+            <span className="text-xs text-gray-400">{configValues.length} values</span>
           </div>
 
           {configValues.length === 0 ? (
-            <div className="border border-gray-200 rounded-lg p-8 text-center text-gray-500">
-              <p className="text-sm">No config values defined</p>
-              <p className="text-xs mt-2">
+            <div className="border border-gray-200 rounded p-6 text-center text-gray-500">
+              <p className="text-xs">No config values defined</p>
+              <p className="text-xs mt-1 text-gray-400">
                 Add values to config.json to use them in templates
               </p>
             </div>
           ) : (
-            <div className="border border-gray-200 rounded-lg divide-y divide-gray-200">
+            <div className="border border-gray-200 rounded divide-y divide-gray-200">
               {configValues.map(([key, value]) => (
-                <div key={key} className="p-4 flex items-center justify-between">
+                <div key={key} className="p-3 flex items-center justify-between">
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-700 font-mono">{key}</p>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs font-normal text-gray-700 font-mono">{key}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">
                       Use in templates: {`{{ config \`${key}\` }}`}
                     </p>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <code className="text-sm font-mono text-gray-900 bg-gray-50 px-3 py-1 rounded">
+                  <div className="flex items-center gap-2">
+                    <code className="text-xs font-mono text-gray-700 bg-gray-50 px-2 py-0.5 rounded">
                       {revealed.has(key) ? value : maskValue(value)}
                     </code>
                     <button
                       onClick={() => toggleReveal(key)}
-                      className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                      className="text-xs text-gray-500 hover:text-gray-700"
                     >
                       {revealed.has(key) ? 'Hide' : 'Show'}
                     </button>
@@ -133,10 +133,10 @@ export function ConfigView() {
         </div>
 
         {/* Info Box */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <p className="text-sm text-blue-900">
+        <div className="bg-gray-50 border border-gray-200 rounded p-3">
+          <p className="text-xs text-gray-600">
             <strong>Note:</strong> Config values are loaded from{' '}
-            <code className="bg-blue-100 px-1 rounded">config.json</code> in the config
+            <code className="bg-gray-100 px-1 rounded">config.json</code> in the config
             directory. Restart the server after making changes.
           </p>
         </div>

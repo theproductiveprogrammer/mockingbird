@@ -153,43 +153,43 @@ export function RuleEditor({ service, rule, index, onSave, onCancel }: RuleEdito
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4">
-          <h2 className="text-xl font-semibold">
+    <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+      <div className="bg-white rounded shadow-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-gray-50 border-b border-gray-200 px-6 py-3">
+          <h2 className="text-sm font-medium text-gray-900">
             Edit Rule #{index + 1}
           </h2>
-          <p className="text-sm text-gray-600 mt-1">Service: /{service}</p>
+          <p className="text-xs text-gray-500 mt-0.5">Service: /{service}</p>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-5">
           {/* Match Conditions */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">Match Conditions</h3>
+            <h3 className="text-xs font-medium text-gray-600 mb-3 uppercase tracking-wider">Match Conditions</h3>
 
             {/* Methods */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="mb-3">
+              <label className="block text-xs font-normal text-gray-600 mb-2">
                 Method:
               </label>
               <div className="flex flex-wrap gap-2">
                 {availableMethods.map((method) => (
-                  <label key={method} className="flex items-center gap-2 cursor-pointer">
+                  <label key={method} className="flex items-center gap-1.5 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={methods.includes(method)}
                       onChange={() => toggleMethod(method)}
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      className="w-3.5 h-3.5 text-gray-600 border-gray-300 rounded focus:ring-gray-400"
                     />
-                    <span className="text-sm font-medium text-gray-700">{method}</span>
+                    <span className="text-xs font-normal text-gray-700">{method}</span>
                   </label>
                 ))}
               </div>
             </div>
 
             {/* Path */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="mb-3">
+              <label className="block text-xs font-normal text-gray-600 mb-2">
                 Path:
               </label>
               <input
@@ -197,15 +197,15 @@ export function RuleEditor({ service, rule, index, onSave, onCancel }: RuleEdito
                 value={path}
                 onChange={(e) => setPath(e.target.value)}
                 placeholder="/servicex/users/**"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                className="w-full px-2 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-400 font-mono text-xs"
               />
-              <p className="text-xs text-gray-500 mt-1">(use ** for wildcards)</p>
+              <p className="text-xs text-gray-400 mt-0.5">(use ** for wildcards)</p>
             </div>
 
             {/* Match Headers */}
-            <div className="mb-4">
+            <div className="mb-3">
               <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-xs font-normal text-gray-600">
                   Match Headers (optional):
                 </label>
                 <Button variant="secondary" size="sm" onClick={addMatchHeader}>
@@ -213,20 +213,20 @@ export function RuleEditor({ service, rule, index, onSave, onCancel }: RuleEdito
                 </Button>
               </div>
               {matchHeaders.map((header, idx) => (
-                <div key={idx} className="flex gap-2 mb-2">
+                <div key={idx} className="flex gap-2 mb-1.5">
                   <input
                     type="text"
                     value={header.key}
                     onChange={(e) => updateMatchHeader(idx, 'key', e.target.value)}
                     placeholder="Header-Name"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                    className="flex-1 px-2 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-400 font-mono text-xs"
                   />
                   <input
                     type="text"
                     value={header.value}
                     onChange={(e) => updateMatchHeader(idx, 'value', e.target.value)}
                     placeholder="value or regex"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                    className="flex-1 px-2 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-400 font-mono text-xs"
                   />
                   <Button variant="secondary" size="sm" onClick={() => removeMatchHeader(idx)}>
                     Remove
@@ -236,8 +236,8 @@ export function RuleEditor({ service, rule, index, onSave, onCancel }: RuleEdito
             </div>
 
             {/* Body Match */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="mb-3">
+              <label className="block text-xs font-normal text-gray-600 mb-2">
                 Match Body Regex (optional):
               </label>
               <input
@@ -245,7 +245,7 @@ export function RuleEditor({ service, rule, index, onSave, onCancel }: RuleEdito
                 value={bodyMatch}
                 onChange={(e) => setBodyMatch(e.target.value)}
                 placeholder=".*charles.*"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                className="w-full px-2 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-400 font-mono text-xs"
               />
             </div>
           </div>
@@ -254,55 +254,55 @@ export function RuleEditor({ service, rule, index, onSave, onCancel }: RuleEdito
 
           {/* Action */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">Action</h3>
+            <h3 className="text-xs font-medium text-gray-600 mb-3 uppercase tracking-wider">Action</h3>
 
-            <div className="space-y-2">
-              <label className="flex items-center gap-3 cursor-pointer">
+            <div className="space-y-1.5">
+              <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="radio"
                   checked={responseType === 'mock'}
                   onChange={() => setResponseType('mock')}
-                  className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                  className="w-3.5 h-3.5 text-gray-600 border-gray-300 focus:ring-gray-400"
                 />
-                <span className="text-sm font-medium text-gray-700">Return Mock Response</span>
+                <span className="text-xs font-normal text-gray-700">Return Mock Response</span>
               </label>
-              <label className="flex items-center gap-3 cursor-pointer">
+              <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="radio"
                   checked={responseType === 'proxy'}
                   onChange={() => setResponseType('proxy')}
-                  className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                  className="w-3.5 h-3.5 text-gray-600 border-gray-300 focus:ring-gray-400"
                 />
-                <span className="text-sm font-medium text-gray-700">Proxy to Upstream</span>
+                <span className="text-xs font-normal text-gray-700">Proxy to Upstream</span>
               </label>
             </div>
           </div>
 
           {/* Response */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">Response</h3>
+            <h3 className="text-xs font-medium text-gray-600 mb-3 uppercase tracking-wider">Response</h3>
 
             {responseType === 'mock' ? (
               <>
-                <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="grid grid-cols-2 gap-3 mb-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-xs font-normal text-gray-600 mb-2">
                       Delay: (optional)
                     </label>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
                       <input
                         type="text"
                         value={delay}
                         onChange={(e) => setDelay(e.target.value)}
                         placeholder="200"
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                        className="flex-1 px-2 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-400 font-mono text-xs"
                       />
-                      <span className="text-sm text-gray-600">ms</span>
+                      <span className="text-xs text-gray-500">ms</span>
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-xs font-normal text-gray-600 mb-2">
                       Status:
                     </label>
                     <input
@@ -310,53 +310,53 @@ export function RuleEditor({ service, rule, index, onSave, onCancel }: RuleEdito
                       value={status}
                       onChange={(e) => setStatus(e.target.value)}
                       placeholder="200"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                      className="w-full px-2 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-400 font-mono text-xs"
                     />
                   </div>
                 </div>
 
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                <div className="mb-3">
+                  <label className="block text-xs font-normal text-gray-600 mb-2">
                     Headers:
                   </label>
                   <textarea
                     value={responseHeaders}
                     onChange={(e) => setResponseHeaders(e.target.value)}
                     placeholder="Content-Type: application/json&#10;X-Request-ID: {{ uuid }}"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                    className="w-full px-2 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-400 font-mono text-xs"
                     rows={4}
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-gray-400 mt-0.5">
                     One header per line: Key: Value
                   </p>
                 </div>
 
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                <div className="mb-3">
+                  <label className="block text-xs font-normal text-gray-600 mb-2">
                     Body:
                   </label>
                   <textarea
                     value={responseBody}
                     onChange={(e) => setResponseBody(e.target.value)}
                     placeholder={`{&#10;  "id": "{{ uuid }}",&#10;  "user": "{{ reqBody \`username\` }}",&#10;  "email": "{{ reqBody \`email\` }}"&#10;}`}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                    className="w-full px-2 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-400 font-mono text-xs"
                     rows={10}
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-gray-400 mt-0.5">
                     Use backticks for template variables: {`{{ uuid }}`}, {`{{ reqBody \`field\` }}`}
                   </p>
                 </div>
 
-                <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-                  <p className="text-xs text-blue-900">
+                <div className="bg-gray-50 border border-gray-200 rounded p-2">
+                  <p className="text-xs text-gray-600">
                     We'll format this correctly to YAML when saving
                   </p>
                 </div>
               </>
             ) : (
               <>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                <div className="mb-3">
+                  <label className="block text-xs font-normal text-gray-600 mb-2">
                     Proxy URL:
                   </label>
                   <input
@@ -364,13 +364,13 @@ export function RuleEditor({ service, rule, index, onSave, onCancel }: RuleEdito
                     value={proxyUrl}
                     onChange={(e) => setProxyUrl(e.target.value)}
                     placeholder="https://api.example.com"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                    className="w-full px-2 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-400 font-mono text-xs"
                   />
                 </div>
 
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label className="block text-xs font-normal text-gray-600">
                       Inject Headers (optional):
                     </label>
                     <Button variant="secondary" size="sm" onClick={addProxyHeader}>
@@ -378,20 +378,20 @@ export function RuleEditor({ service, rule, index, onSave, onCancel }: RuleEdito
                     </Button>
                   </div>
                   {proxyHeaders.map((header, idx) => (
-                    <div key={idx} className="flex gap-2 mb-2">
+                    <div key={idx} className="flex gap-2 mb-1.5">
                       <input
                         type="text"
                         value={header.key}
                         onChange={(e) => updateProxyHeader(idx, 'key', e.target.value)}
                         placeholder="Header-Name"
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                        className="flex-1 px-2 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-400 font-mono text-xs"
                       />
                       <input
                         type="text"
                         value={header.value}
                         onChange={(e) => updateProxyHeader(idx, 'value', e.target.value)}
                         placeholder="value"
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                        className="flex-1 px-2 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-400 font-mono text-xs"
                       />
                       <Button
                         variant="secondary"
@@ -409,7 +409,7 @@ export function RuleEditor({ service, rule, index, onSave, onCancel }: RuleEdito
         </div>
 
         {/* Footer */}
-        <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4 flex justify-end gap-3">
+        <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-3 flex justify-end gap-2">
           <Button variant="secondary" onClick={onCancel}>
             Cancel
           </Button>

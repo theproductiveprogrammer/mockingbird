@@ -78,10 +78,10 @@ export function RulesView() {
                   className="flex items-center gap-2 py-1 px-2 hover:bg-gray-50 cursor-pointer"
                   onClick={() => toggleService(serviceName)}
                 >
-                  <span className="text-gray-400">{isExpanded ? '▼' : '▶'}</span>
+                  <span className="text-gray-500">{isExpanded ? '▼' : '▶'}</span>
                   <span className="text-gray-700 font-medium">{serviceName}.yaml</span>
-                  <span className="text-gray-400">·</span>
-                  <span className="text-gray-500">{service.rules.length} rules</span>
+                  <span className="text-gray-500">·</span>
+                  <span className="text-gray-600">{service.rules.length} rules</span>
                 </div>
 
                 {/* Rules (when expanded) */}
@@ -101,12 +101,12 @@ export function RulesView() {
                           onClick={() => setEditingRule({ service: serviceName, rule })}
                         >
                           {/* Rule # and Path */}
-                          <span className="text-gray-400">Rule #{rule.index + 1}</span>
+                          <span className="text-gray-500">Rule #{rule.index + 1}</span>
                           <span className="text-gray-700">{rule.match.path || '/**'}</span>
 
                           {/* Body Match (if exists) */}
                           {rule.match.body?.matches && (
-                            <span className="text-gray-500 text-xs">
+                            <span className="text-gray-600 text-xs">
                               [{rule.match.body.matches}]
                             </span>
                           )}

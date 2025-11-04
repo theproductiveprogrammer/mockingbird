@@ -32,8 +32,8 @@ export function TrafficStream() {
       {filteredTraffic.length === 0 ? (
         <div className="flex items-center justify-center h-full text-gray-500">
           <div className="text-center">
-            <p className="text-lg">No traffic yet</p>
-            <p className="text-sm mt-2">Make a request to see it here</p>
+            <p className="text-sm font-normal">No traffic yet</p>
+            <p className="text-xs mt-1 text-gray-400">Make a request to see it here</p>
           </div>
         </div>
       ) : (

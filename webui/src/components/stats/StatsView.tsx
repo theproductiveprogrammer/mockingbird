@@ -54,38 +54,38 @@ export function StatsView() {
   return (
     <div className="h-full overflow-y-auto">
       <div className="p-6">
-        <h1 className="text-2xl font-semibold mb-6">Statistics</h1>
+        <h1 className="text-xs font-medium mb-3 text-gray-600 uppercase tracking-wider">Statistics</h1>
 
         {/* Overview */}
-        <div className="grid grid-cols-2 gap-4 mb-8">
-          <div className="border border-gray-200 rounded-lg p-6">
-            <p className="text-sm text-gray-600 mb-1">Total Requests</p>
-            <p className="text-3xl font-semibold text-gray-900">{traffic.length}</p>
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          <div className="border border-gray-200 rounded p-4">
+            <p className="text-xs text-gray-500 mb-1">Total Requests</p>
+            <p className="text-2xl font-normal text-gray-900">{traffic.length}</p>
           </div>
-          <div className="border border-gray-200 rounded-lg p-6">
-            <p className="text-sm text-gray-600 mb-1">Total Rules</p>
-            <p className="text-3xl font-semibold text-gray-900">{stats.total_rules}</p>
+          <div className="border border-gray-200 rounded p-4">
+            <p className="text-xs text-gray-500 mb-1">Total Rules</p>
+            <p className="text-2xl font-normal text-gray-900">{stats.total_rules}</p>
           </div>
         </div>
 
         {/* By Service */}
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">By Service</h2>
-          <div className="border border-gray-200 rounded-lg divide-y divide-gray-200">
+        <div className="mb-6">
+          <h2 className="text-xs font-medium text-gray-600 mb-3 uppercase tracking-wider">By Service</h2>
+          <div className="border border-gray-200 rounded divide-y divide-gray-200">
             {Object.entries(stats.services).length === 0 ? (
-              <div className="p-8 text-center text-gray-500">
-                <p className="text-sm">No service statistics available</p>
+              <div className="p-6 text-center text-gray-500">
+                <p className="text-xs">No service statistics available</p>
               </div>
             ) : (
               Object.entries(stats.services).map(([service, serviceStats]) => (
-                <div key={service} className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium text-gray-900 font-mono">
+                <div key={service} className="p-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-normal text-gray-700 font-mono">
                       /{service}
                     </span>
-                    <Tag variant="service">{serviceStats.rules} rules</Tag>
+                    <span className="text-xs text-gray-400">{serviceStats.rules} rules</span>
                   </div>
-                  <div className="text-sm text-gray-600">
+                  <div className="text-xs text-gray-500">
                     {serviceStats.requests} requests
                   </div>
                 </div>
@@ -95,29 +95,29 @@ export function StatsView() {
         </div>
 
         {/* By HTTP Method */}
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">By HTTP Method</h2>
-          <div className="border border-gray-200 rounded-lg divide-y divide-gray-200">
+        <div className="mb-6">
+          <h2 className="text-xs font-medium text-gray-600 mb-3 uppercase tracking-wider">By HTTP Method</h2>
+          <div className="border border-gray-200 rounded divide-y divide-gray-200">
             {Object.keys(methods).length === 0 ? (
-              <div className="p-8 text-center text-gray-500">
-                <p className="text-sm">No requests yet</p>
+              <div className="p-6 text-center text-gray-500">
+                <p className="text-xs">No requests yet</p>
               </div>
             ) : (
               Object.entries(methods)
                 .sort(([, a], [, b]) => b - a)
                 .map(([method, count]) => (
-                  <div key={method} className="p-4 flex items-center justify-between">
+                  <div key={method} className="p-3 flex items-center justify-between">
                     <Tag variant="method">{method}</Tag>
-                    <div className="flex items-center gap-4">
-                      <div className="w-48 bg-gray-200 rounded-full h-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-32 bg-gray-200 rounded-full h-1.5">
                         <div
-                          className="bg-blue-600 h-2 rounded-full"
+                          className="bg-gray-600 h-1.5 rounded-full"
                           style={{
                             width: `${(count / traffic.length) * 100}%`,
                           }}
                         />
                       </div>
-                      <span className="text-sm font-medium text-gray-900 w-12 text-right">
+                      <span className="text-xs font-normal text-gray-700 w-8 text-right">
                         {count}
                       </span>
                     </div>
@@ -128,35 +128,31 @@ export function StatsView() {
         </div>
 
         {/* By Status Code */}
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">By Status Code</h2>
-          <div className="border border-gray-200 rounded-lg divide-y divide-gray-200">
+        <div className="mb-6">
+          <h2 className="text-xs font-medium text-gray-600 mb-3 uppercase tracking-wider">By Status Code</h2>
+          <div className="border border-gray-200 rounded divide-y divide-gray-200">
             {Object.keys(statusCodes).length === 0 ? (
-              <div className="p-8 text-center text-gray-500">
-                <p className="text-sm">No responses yet</p>
+              <div className="p-6 text-center text-gray-500">
+                <p className="text-xs">No responses yet</p>
               </div>
             ) : (
               Object.entries(statusCodes)
                 .sort(([, a], [, b]) => b - a)
                 .map(([code, count]) => (
-                  <div key={code} className="p-4 flex items-center justify-between">
-                    <span
-                      className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(
-                        Number(code)
-                      )}`}
-                    >
+                  <div key={code} className="p-3 flex items-center justify-between">
+                    <span className="text-xs font-mono text-gray-700 bg-gray-50 px-2 py-0.5 rounded border border-gray-300">
                       {code}
                     </span>
-                    <div className="flex items-center gap-4">
-                      <div className="w-48 bg-gray-200 rounded-full h-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-32 bg-gray-200 rounded-full h-1.5">
                         <div
-                          className="bg-blue-600 h-2 rounded-full"
+                          className="bg-gray-600 h-1.5 rounded-full"
                           style={{
                             width: `${(count / traffic.length) * 100}%`,
                           }}
                         />
                       </div>
-                      <span className="text-sm font-medium text-gray-900 w-12 text-right">
+                      <span className="text-xs font-normal text-gray-700 w-8 text-right">
                         {count}
                       </span>
                     </div>
@@ -167,35 +163,31 @@ export function StatsView() {
         </div>
 
         {/* By Rule Type */}
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">By Rule Type</h2>
-          <div className="border border-gray-200 rounded-lg divide-y divide-gray-200">
+        <div className="mb-6">
+          <h2 className="text-xs font-medium text-gray-600 mb-3 uppercase tracking-wider">By Rule Type</h2>
+          <div className="border border-gray-200 rounded divide-y divide-gray-200">
             {Object.keys(ruleTypes).length === 0 ? (
-              <div className="p-8 text-center text-gray-500">
-                <p className="text-sm">No requests yet</p>
+              <div className="p-6 text-center text-gray-500">
+                <p className="text-xs">No requests yet</p>
               </div>
             ) : (
               Object.entries(ruleTypes)
                 .sort(([, a], [, b]) => b - a)
                 .map(([type, count]) => (
-                  <div key={type} className="p-4 flex items-center justify-between">
-                    <span
-                      className={`px-3 py-1 rounded-full text-sm font-medium ${getRuleTypeColor(
-                        type
-                      )}`}
-                    >
+                  <div key={type} className="p-3 flex items-center justify-between">
+                    <span className="text-xs font-mono text-gray-700 bg-gray-50 px-2 py-0.5 rounded border border-gray-300">
                       {type}
                     </span>
-                    <div className="flex items-center gap-4">
-                      <div className="w-48 bg-gray-200 rounded-full h-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-32 bg-gray-200 rounded-full h-1.5">
                         <div
-                          className="bg-blue-600 h-2 rounded-full"
+                          className="bg-gray-600 h-1.5 rounded-full"
                           style={{
                             width: `${(count / traffic.length) * 100}%`,
                           }}
                         />
                       </div>
-                      <span className="text-sm font-medium text-gray-900 w-12 text-right">
+                      <span className="text-xs font-normal text-gray-700 w-8 text-right">
                         {count}
                       </span>
                     </div>

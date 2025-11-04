@@ -20,9 +20,9 @@ export function FilterBar() {
   };
 
   return (
-    <div className="bg-gray-50 border-b border-gray-200 px-6 py-3">
+    <div className="bg-gray-50 border-b border-gray-200 px-6 py-2">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm text-gray-600 font-medium">Filters:</span>
+        <span className="text-xs text-gray-500 font-normal">Filters:</span>
 
         {filters.map((filter) => (
           <Tag key={filter} onRemove={() => removeFilter(filter)}>
@@ -36,13 +36,13 @@ export function FilterBar() {
           onChange={(e) => setInputValue(e.target.value)}
           onKeyPress={handleKeyPress}
           placeholder="Add filter..."
-          className="px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="px-2 py-0.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-transparent"
         />
 
         {filters.length > 0 && (
           <button
             onClick={clearFilters}
-            className="text-xs text-gray-500 hover:text-gray-700"
+            className="text-xs text-gray-400 hover:text-gray-600"
           >
             Clear all
           </button>
