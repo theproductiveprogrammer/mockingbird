@@ -30,7 +30,7 @@ func main() {
 	fmt.Printf("Admin port: %d\n", cfg.AdminPort)
 
 	// Initialize store
-	st, err := store.New(cfg.ConfigDir)
+	st, err := store.New(cfg.ConfigDir, cfg)
 	if err != nil {
 		fmt.Printf("Error initializing store: %v\n", err)
 		os.Exit(1)

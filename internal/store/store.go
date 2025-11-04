@@ -1,6 +1,7 @@
 package store
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -10,29 +11,34 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	"github.com/theproductiveprogrammer/mockingbird.git/internal/config"
 	"github.com/theproductiveprogrammer/mockingbird.git/internal/models"
 )
 
-const maxTrafficEntries = 100
+const maxBodySizeBytes = 1024 // 1KB limit for request/response bodies
 
 // Store manages rules and traffic history
 type Store struct {
 	configDir    string
+	config       *config.Config
 	rules        map[string][]models.Rule // service name -> rules
 	traffic      []models.TrafficEntry
 	trafficChan  chan models.TrafficEntry // For SSE broadcasting
 	mu           sync.RWMutex
 	watcher      *Watcher
 	closed       bool
+	stopSave     chan struct{} // Signal to stop background save
 }
 
 // New creates a new store
-func New(configDir string) (*Store, error) {
+func New(configDir string, cfg *config.Config) (*Store, error) {
 	s := &Store{
 		configDir:   configDir,
+		config:      cfg,
 		rules:       make(map[string][]models.Rule),
-		traffic:     make([]models.TrafficEntry, 0, maxTrafficEntries),
+		traffic:     make([]models.TrafficEntry, 0, cfg.MaxTrafficEntries),
 		trafficChan: make(chan models.TrafficEntry, 10),
+		stopSave:    make(chan struct{}),
 	}
 
 	// Ensure config directory exists
@@ -45,12 +51,20 @@ func New(configDir string) (*Store, error) {
 		return nil, fmt.Errorf("failed to load rules: %w", err)
 	}
 
+	// Load traffic history from file
+	if err := s.loadTrafficFromFile(); err != nil {
+		fmt.Printf("Note: Could not load traffic history: %v\n", err)
+	}
+
 	// Start file watcher
 	watcher, err := NewWatcher(configDir, s.onFileChange)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start file watcher: %w", err)
 	}
 	s.watcher = watcher
+
+	// Start background save goroutine
+	go s.backgroundSave()
 
 	return s, nil
 }
@@ -265,15 +279,24 @@ func (s *Store) saveRulesToFile(service string, rules []models.Rule) error {
 
 // AddTraffic adds a traffic entry
 func (s *Store) AddTraffic(entry models.TrafficEntry) {
+	// Truncate request body
+	entry.Body = truncateBody(entry.Body)
+
+	// Truncate response body if present
+	if entry.Response != nil {
+		entry.Response.Body = truncateBody(entry.Response.Body).(string)
+	}
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	// Add to list
 	s.traffic = append(s.traffic, entry)
 
-	// Keep only last N entries
-	if len(s.traffic) > maxTrafficEntries {
-		s.traffic = s.traffic[len(s.traffic)-maxTrafficEntries:]
+	// Keep only last N entries (use config value)
+	maxEntries := s.config.MaxTrafficEntries
+	if len(s.traffic) > maxEntries {
+		s.traffic = s.traffic[len(s.traffic)-maxEntries:]
 	}
 
 	// Broadcast to SSE listeners (non-blocking)
@@ -330,11 +353,108 @@ func (s *Store) Close() error {
 	if !s.closed {
 		s.closed = true
 		close(s.trafficChan)
+		close(s.stopSave) // Stop background save goroutine
 	}
 	s.mu.Unlock()
+
+	// Save traffic before closing
+	if err := s.saveTrafficToFile(); err != nil {
+		fmt.Printf("Warning: Failed to save traffic on shutdown: %v\n", err)
+	}
 
 	if s.watcher != nil {
 		return s.watcher.Close()
 	}
 	return nil
+}
+
+// truncateBody truncates large body data to maxBodySizeBytes
+func truncateBody(data interface{}) interface{} {
+	if data == nil {
+		return nil
+	}
+
+	var bodyStr string
+	switch v := data.(type) {
+	case string:
+		bodyStr = v
+	case map[string]interface{}, []interface{}:
+		// Convert to JSON string
+		jsonBytes, err := json.Marshal(v)
+		if err != nil {
+			return data // Return as-is if marshaling fails
+		}
+		bodyStr = string(jsonBytes)
+	default:
+		return data // Unknown type, return as-is
+	}
+
+	if len(bodyStr) <= maxBodySizeBytes {
+		return data // No truncation needed
+	}
+
+	// Truncate and add indicator
+	return bodyStr[:maxBodySizeBytes] + "...[truncated]"
+}
+
+// loadTrafficFromFile loads traffic history from traffic.json
+func (s *Store) loadTrafficFromFile() error {
+	trafficPath := filepath.Join(s.configDir, "traffic.json")
+
+	data, err := os.ReadFile(trafficPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil // File doesn't exist yet, start with empty traffic
+		}
+		return err
+	}
+
+	var traffic []models.TrafficEntry
+	if err := json.Unmarshal(data, &traffic); err != nil {
+		return fmt.Errorf("failed to parse traffic.json: %w", err)
+	}
+
+	s.mu.Lock()
+	s.traffic = traffic
+	s.mu.Unlock()
+
+	fmt.Printf("Loaded %d traffic entries from history\n", len(traffic))
+	return nil
+}
+
+// saveTrafficToFile saves traffic history to traffic.json
+func (s *Store) saveTrafficToFile() error {
+	s.mu.RLock()
+	trafficCopy := make([]models.TrafficEntry, len(s.traffic))
+	copy(trafficCopy, s.traffic)
+	s.mu.RUnlock()
+
+	data, err := json.MarshalIndent(trafficCopy, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal traffic: %w", err)
+	}
+
+	trafficPath := filepath.Join(s.configDir, "traffic.json")
+	if err := os.WriteFile(trafficPath, data, 0644); err != nil {
+		return fmt.Errorf("failed to write traffic file: %w", err)
+	}
+
+	return nil
+}
+
+// backgroundSave periodically saves traffic to disk
+func (s *Store) backgroundSave() {
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			if err := s.saveTrafficToFile(); err != nil {
+				fmt.Printf("Warning: Failed to save traffic: %v\n", err)
+			}
+		case <-s.stopSave:
+			return
+		}
+	}
 }

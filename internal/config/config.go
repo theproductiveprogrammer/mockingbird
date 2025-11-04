@@ -11,11 +11,12 @@ import (
 
 // Config holds application configuration
 type Config struct {
-	ProxyPort int               `json:"proxy_port"`
-	AdminPort int               `json:"admin_port"`
-	ConfigDir string            `json:"config_dir,omitempty"` // Where rules are stored
-	Values    map[string]string `json:"values"`               // Custom key-value pairs (API keys, etc.)
-	mu        sync.RWMutex      `json:"-"`
+	ProxyPort         int               `json:"proxy_port"`
+	AdminPort         int               `json:"admin_port"`
+	ConfigDir         string            `json:"config_dir,omitempty"`      // Where rules are stored
+	MaxTrafficEntries int               `json:"max_traffic_entries"`       // Maximum traffic entries to store
+	Values            map[string]string `json:"values"`                    // Custom key-value pairs (API keys, etc.)
+	mu                sync.RWMutex      `json:"-"`
 }
 
 // Load loads configuration from a file or environment variables
@@ -23,10 +24,11 @@ func Load() (*Config, error) {
 	configDir := getConfigDir()
 
 	cfg := &Config{
-		ProxyPort: 8769,
-		AdminPort: 8768,
-		ConfigDir: configDir,
-		Values:    make(map[string]string),
+		ProxyPort:         8769,
+		AdminPort:         8768,
+		ConfigDir:         configDir,
+		MaxTrafficEntries: 10000,
+		Values:            make(map[string]string),
 	}
 
 	// Try to load config file
