@@ -137,8 +137,14 @@ export function formatPathParts(entry: TrafficEntry): PathParts {
     };
 }
 
-export function getStatusColor(statusCode: number): string {
-  if (statusCode >= 200 && statusCode < 300) return "text-green-600";
+export function getStatusColor(entry: TrafficEntry): string {
+  const statusCode = entry.response?.status_code;
+  if (!statusCode) return "text-gray-600";
+
+  if (statusCode >= 200 && statusCode < 300) {
+    if (entry.rule_type === "mock") return "text-violet-600";
+    else return "text-green-600";
+  }
   if (statusCode >= 400 && statusCode < 500) return "text-yellow-600";
   if (statusCode >= 500) return "text-red-600";
   return "text-gray-600";
@@ -147,9 +153,9 @@ export function getStatusColor(statusCode: number): string {
 export function getRuleTypeBadgeClasses(ruleType: string): string {
   switch (ruleType) {
     case "mock":
-      return "bg-blue-50 text-blue-700";
+      return `group-hover:bg-violet-100 group-hover:text-violet-70`;
     case "proxy":
-      return "bg-green-50 text-green-700";
+      return `group-hover:bg-green-50 group-hover:text-green-700`;
     case "timeout":
       return "bg-red-50 text-red-700";
     default:

@@ -17,14 +17,12 @@ interface TrafficEntryProps {
 export function TrafficEntry({ entry }: TrafficEntryProps) {
   const navigate = useNavigate();
   const queryString = formatQueryParams(entry.query);
-  const statusColor = entry.response
-    ? getStatusColor(entry.response.status_code)
-    : "text-gray-600";
+  const statusColor = getStatusColor(entry);
 
   // Parse response summary to extract and style the rule type badge
   const responseSummary = formatResponseSummary(entry);
   const ruleTypeBadgeClasses = entry.rule_type
-    ? getRuleTypeBadgeClasses(entry.rule_type)
+    ? getRuleTypeBadgeClasses(entry.rule_type, true)
     : "";
 
   const pathParts = formatPathParts(entry);
@@ -49,13 +47,13 @@ export function TrafficEntry({ entry }: TrafficEntryProps) {
           )}
         </span>
         {/* Request summary */}
-        <span className="text-xs opacity-70 group-hover:opacity-100 transition-opacity text-blue-600">
+        <span className="text-xs opacity-70 group-hover:opacity-100 transition-opacity group-hover:text-blue-600">
           {" "}
           → {formatRequestSummary(entry)}
         </span>
         {/* Response summary */}
         <span
-          className={`text-xs opacity-70 group-hover:opacity-100 transition-opacity ${statusColor}`}
+          className={`text-xs opacity-60 group-hover:opacity-100 transition-opacity ${statusColor}`}
         >
           {" "}
           ←
