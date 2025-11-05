@@ -4,7 +4,7 @@ import { api } from '../../utils/api';
 import { TrafficEntry } from './TrafficEntry';
 
 export function TrafficStream() {
-  const { traffic, setTraffic, addTraffic, filters, setIsConnected } = useAppStore();
+  const { traffic, setTraffic, addTraffic, filters, selectedServices, setIsConnected } = useAppStore();
 
   // Load initial traffic and setup SSE
   useEffect(() => {
@@ -41,8 +41,14 @@ export function TrafficStream() {
     };
   }, [setTraffic, addTraffic, setIsConnected]);
 
-  // Filter traffic with AND logic and advanced syntax
+  // Filter traffic: first by selected services, then by text filters
   const filteredTraffic = traffic.filter((entry) => {
+    // First check: is the service selected?
+    if (selectedServices.size > 0 && !selectedServices.has(entry.service)) {
+      return false; // Service is deselected, hide this entry
+    }
+
+    // Second check: apply text filters
     if (filters.length === 0) return true;
 
     // Entry must match ALL filters (AND logic)
@@ -127,9 +133,14 @@ export function TrafficStream() {
     });
   });
 
-  // Debug: log when filters change
-  if (filters.length > 0) {
-    console.log('Filters:', filters, '| Total:', traffic.length, '| Filtered:', filteredTraffic.length);
+  // Debug: log when filters or services change
+  if (filters.length > 0 || selectedServices.size < serviceCount()) {
+    const deselected = Array.from(new Set(traffic.map(e => e.service))).filter(s => !selectedServices.has(s));
+    console.log('Filters:', filters, '| Deselected services:', deselected, '| Total:', traffic.length, '| Filtered:', filteredTraffic.length);
+  }
+
+  function serviceCount() {
+    return new Set(traffic.map(e => e.service)).size;
   }
 
   return (

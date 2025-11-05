@@ -1,10 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useAppStore } from '../../stores/appStore';
 import { Tag } from '../ui/Tag';
 import { Button } from '../ui/Button';
 
 export function FilterBar() {
-  const { traffic, filters, addFilter, removeFilter, clearTraffic } = useAppStore();
+  const { traffic, filters, addFilter, removeFilter, clearTraffic, selectedServices, toggleService } = useAppStore();
   const [inputValue, setInputValue] = useState('');
 
   // Extract unique service names from traffic
@@ -12,6 +12,17 @@ export function FilterBar() {
     const services = new Set(traffic.map(entry => entry.service));
     return Array.from(services).sort();
   }, [traffic]);
+
+  // Initialize only NEW services as selected (don't re-initialize existing ones)
+  useEffect(() => {
+    // Find services that are in serviceNames but not yet in selectedServices
+    const newServices = serviceNames.filter(service => !selectedServices.has(service));
+
+    // Only add new services, don't touch existing selections
+    if (newServices.length > 0) {
+      newServices.forEach(service => toggleService(service));
+    }
+  }, [serviceNames.join(',')]);
 
   const handleAddFilter = () => {
     if (inputValue.trim()) {
@@ -37,15 +48,22 @@ export function FilterBar() {
       <div className="flex items-center justify-between gap-4">
         {/* Left side: Service names and active filters */}
         <div className="flex items-center gap-2 flex-wrap">
-          {serviceNames.map((service) => (
-            <Tag
-              key={service}
-              variant="service"
-              onClick={() => addFilter(service)}
-            >
-              {service}
-            </Tag>
-          ))}
+          {serviceNames.map((service) => {
+            const isSelected = selectedServices.has(service);
+            return (
+              <span
+                key={service}
+                onClick={() => toggleService(service)}
+                className={`inline-flex items-center px-1.5 py-0 text-xs font-normal rounded border cursor-pointer transition-all ${
+                  isSelected
+                    ? 'bg-white text-gray-700 border-gray-400 hover:bg-gray-50'
+                    : 'bg-gray-100 text-gray-500 border-gray-300 italic hover:bg-gray-200'
+                }`}
+              >
+                {service}
+              </span>
+            );
+          })}
 
           {filters.map((filter) => (
             <Tag key={filter} onRemove={() => removeFilter(filter)}>

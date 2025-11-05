@@ -22,6 +22,10 @@ interface AppState {
   removeFilter: (filter: string) => void;
   clearFilters: () => void;
 
+  // Service selection (for filtering by service)
+  selectedServices: Set<string>;
+  toggleService: (service: string) => void;
+
   // Rules
   serviceRules: Record<string, ServiceRules>;
   setServiceRules: (rules: Record<string, ServiceRules>) => void;
@@ -74,6 +78,18 @@ export const useAppStore = create<AppState>((set) => ({
       filters: state.filters.filter((f) => f !== filter),
     })),
   clearFilters: () => set({ filters: [] }),
+
+  selectedServices: new Set<string>(),
+  toggleService: (service) =>
+    set((state) => {
+      const newSelected = new Set(state.selectedServices);
+      if (newSelected.has(service)) {
+        newSelected.delete(service);
+      } else {
+        newSelected.add(service);
+      }
+      return { selectedServices: newSelected };
+    }),
 
   serviceRules: {},
   setServiceRules: (rules) => set({ serviceRules: rules }),
