@@ -37,20 +37,6 @@ export function StatsView() {
     );
   }
 
-  const getStatusColor = (code: number): string => {
-    if (code >= 200 && code < 300) return 'bg-green-100 text-green-800';
-    if (code >= 400 && code < 500) return 'bg-yellow-100 text-yellow-800';
-    if (code >= 500) return 'bg-red-100 text-red-800';
-    return 'bg-gray-100 text-gray-800';
-  };
-
-  const getRuleTypeColor = (type: string): string => {
-    if (type === 'mock') return 'bg-blue-100 text-blue-800';
-    if (type === 'proxy') return 'bg-green-100 text-green-800';
-    if (type === 'timeout') return 'bg-red-100 text-red-800';
-    return 'bg-gray-100 text-gray-800';
-  };
-
   return (
     <div className="h-full overflow-y-auto">
       <div className="p-6">

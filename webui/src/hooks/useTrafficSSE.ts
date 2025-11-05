@@ -8,7 +8,7 @@ export function useTrafficSSE() {
 
   useEffect(() => {
     let eventSource: EventSource | null = null;
-    let reconnectTimeout: NodeJS.Timeout | null = null;
+    let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
 
     const connect = () => {
       eventSource = new EventSource(api.getTrafficStreamUrl());

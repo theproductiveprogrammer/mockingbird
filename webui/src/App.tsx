@@ -1,5 +1,5 @@
 import { Toaster } from 'react-hot-toast';
-import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import { Header } from './components/layout/Header';
 import { FilterBar } from './components/layout/FilterBar';
@@ -13,7 +13,6 @@ import { useTrafficSSE } from './hooks/useTrafficSSE';
 
 function App() {
   const location = useLocation();
-  const navigate = useNavigate();
   const { setCurrentView } = useAppStore();
 
   // Connect to SSE stream
