@@ -5,8 +5,16 @@ go = "latest"
 setup = "mkdir -p ~/.config/mockingbird && cp examples/* ~/.config/mockingbird/"
 build = "go build -o mockingbird ./cmd/server"
 
+[tasks.webui-build]
+run='''
+#!/bin/bash
+set -euo pipefail
+cd webui
+npm run build
+'''
+
 [tasks.start]
-depends = ["build"]
+depends = ["build","webui-build"]
 run = "./mockingbird"
 
 [tasks.docker-build]
