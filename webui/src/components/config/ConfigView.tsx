@@ -111,28 +111,36 @@ export function ConfigView() {
         {config.version && (
           <div className="mb-6">
             <h2 className="text-xs font-medium text-gray-600 mb-3 uppercase tracking-wider">Server Info</h2>
-            <div className="bg-gray-50 border border-gray-200 rounded p-4">
-              <div className="mb-3">
-                <p className="text-sm font-mono font-semibold text-gray-900">
-                  {config.version} {config.build_name && `'${config.build_name}'`}
-                </p>
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-5 shadow-sm">
+              <div className="flex items-center gap-3 mb-4">
+                <img src="/mockingbird.svg" alt="Mockingbird" className="w-8 h-8" />
+                <div>
+                  <p className="text-base font-mono font-bold text-gray-900">
+                    {config.version}
+                  </p>
+                  {config.build_name && (
+                    <p className="text-sm font-medium text-gray-600 italic">
+                      '{config.build_name.replace('_', ' ')}'
+                    </p>
+                  )}
+                </div>
               </div>
-              <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="grid grid-cols-3 gap-4 text-xs bg-white rounded-md p-3 border border-gray-200">
                 {config.build_time && (
                   <div>
-                    <p className="text-gray-600 mb-1">Built</p>
+                    <p className="text-gray-600 mb-1 font-medium">Built</p>
                     <p className="font-mono text-gray-800">{new Date(config.build_time).toLocaleString()}</p>
                   </div>
                 )}
                 {config.commit_hash && (
                   <div>
-                    <p className="text-gray-600 mb-1">Commit</p>
+                    <p className="text-gray-600 mb-1 font-medium">Commit</p>
                     <p className="font-mono text-gray-800">{config.commit_hash}</p>
                   </div>
                 )}
                 {config.go_version && (
                   <div>
-                    <p className="text-gray-600 mb-1">Go Version</p>
+                    <p className="text-gray-600 mb-1 font-medium">Go Version</p>
                     <p className="font-mono text-gray-800">{config.go_version}</p>
                   </div>
                 )}
