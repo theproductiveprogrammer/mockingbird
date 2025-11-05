@@ -6,40 +6,11 @@ import { TrafficEntry } from './TrafficEntry';
 export function TrafficStream() {
   const { traffic, setTraffic, addTraffic, filters, selectedServices, setIsConnected } = useAppStore();
 
-  // Load initial traffic and setup SSE
+  // Load initial traffic on mount
   useEffect(() => {
-    // Load initial traffic
+    console.log('[TrafficStream] Loading initial traffic');
     api.getTraffic(100).then(setTraffic);
-
-    // Setup SSE connection for live updates
-    const eventSource = new EventSource(api.getTrafficStreamUrl());
-
-    eventSource.onopen = () => {
-      console.log('SSE connection opened');
-      setIsConnected(true);
-    };
-
-    eventSource.onmessage = (event) => {
-      try {
-        const entry = JSON.parse(event.data);
-        addTraffic(entry);
-      } catch (error) {
-        console.error('Failed to parse traffic entry:', error);
-      }
-    };
-
-    eventSource.onerror = (error) => {
-      console.error('SSE connection error:', error);
-      setIsConnected(false);
-      eventSource.close();
-    };
-
-    // Cleanup on unmount
-    return () => {
-      eventSource.close();
-      setIsConnected(false);
-    };
-  }, [setTraffic, addTraffic, setIsConnected]);
+  }, [setTraffic]);
 
   // Filter traffic: first by selected services, then by text filters
   const filteredTraffic = traffic.filter((entry) => {
@@ -146,15 +117,8 @@ export function TrafficStream() {
     });
   });
 
-  // Debug: log when filters or services change
-  if (filters.length > 0 || selectedServices.size < serviceCount()) {
-    const deselected = Array.from(new Set(traffic.map(e => e.service))).filter(s => !selectedServices.has(s));
-    console.log('Filters:', filters, '| Deselected services:', deselected, '| Total:', traffic.length, '| Filtered:', filteredTraffic.length);
-  }
-
-  function serviceCount() {
-    return new Set(traffic.map(e => e.service)).size;
-  }
+  // Debug: log traffic count on every render
+  console.log('[TrafficStream] Render - Total traffic:', traffic.length, '| Filtered:', filteredTraffic.length);
 
   return (
     <div className="h-full overflow-y-auto">

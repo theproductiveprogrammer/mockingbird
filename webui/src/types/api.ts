@@ -10,7 +10,7 @@ export interface TrafficEntry {
   body: any;
   response?: MockResponse;
   matched_rule?: number;
-  rule_type: 'mock' | 'proxy' | 'timeout';
+  rule_type: "mock" | "proxy" | "timeout";
 }
 
 export interface MockResponse {

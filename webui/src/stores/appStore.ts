@@ -55,14 +55,23 @@ export const useAppStore = create<AppState>((set) => ({
       // Check if entry already exists by ID to prevent duplicates
       const exists = state.traffic.some((e) => e.id === entry.id);
       if (exists) {
+        console.log('[addTraffic] DUPLICATE detected, skipping:', entry.id);
         return state; // Don't add duplicate
       }
+      const newTraffic = [entry, ...state.traffic].slice(0, 100);
+      console.log('[addTraffic] Adding entry:', entry.id, '| Total after:', newTraffic.length);
       return {
-        traffic: [entry, ...state.traffic].slice(0, 100), // Keep last 100
+        traffic: newTraffic, // Keep last 100
       };
     }),
-  setTraffic: (traffic) => set({ traffic }),
-  clearTraffic: () => set({ traffic: [] }),
+  setTraffic: (traffic) => {
+    console.log('[setTraffic] Loading traffic - received:', traffic.length);
+    return set({ traffic });
+  },
+  clearTraffic: () => {
+    console.log('[clearTraffic] Clearing all traffic');
+    return set({ traffic: [] });
+  },
   selectedTrafficId: null,
   setSelectedTrafficId: (id) => set({ selectedTrafficId: id }),
 
