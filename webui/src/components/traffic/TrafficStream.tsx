@@ -41,36 +41,89 @@ export function TrafficStream() {
     };
   }, [setTraffic, addTraffic, setIsConnected]);
 
-  // Filter traffic with AND logic
+  // Filter traffic with AND logic and advanced syntax
   const filteredTraffic = traffic.filter((entry) => {
     if (filters.length === 0) return true;
 
     // Entry must match ALL filters (AND logic)
-    // Each filter can match: path (URL), request body, response body, or query params
     return filters.every((filter) => {
-      const lowerFilter = filter.toLowerCase();
+      // Parse filter type
+      let isNegative = false;
+      let actualFilter = filter;
 
-      // Match against path/URL
-      if (entry.path.toLowerCase().includes(lowerFilter)) return true;
+      // Check for negative filter (prefix with -)
+      if (filter.startsWith('-')) {
+        isNegative = true;
+        actualFilter = filter.substring(1);
+        if (!actualFilter) return true; // Empty filter after '-' matches everything
+      }
 
-      // Match against query params
-      const queryString = Object.entries(entry.query || {})
-        .map(([key, values]) => `${key}=${values.join(',')}`)
-        .join('&')
-        .toLowerCase();
-      if (queryString.includes(lowerFilter)) return true;
+      let matches = false;
 
-      // Match against request body
-      const requestBody = typeof entry.body === 'string'
-        ? entry.body
-        : JSON.stringify(entry.body || '');
-      if (requestBody.toLowerCase().includes(lowerFilter)) return true;
+      // Check for regex filter (/pattern/)
+      if (actualFilter.startsWith('/') && actualFilter.endsWith('/') && actualFilter.length > 2) {
+        const pattern = actualFilter.substring(1, actualFilter.length - 1);
+        try {
+          const regex = new RegExp(pattern, 'i');
 
-      // Match against response body
-      if (entry.response?.body &&
-          entry.response.body.toLowerCase().includes(lowerFilter)) return true;
+          // Test against all searchable fields
+          const pathMatch = regex.test(entry.path);
 
-      return false;
+          const queryString = Object.entries(entry.query || {})
+            .map(([key, values]) => `${key}=${values.join(',')}`)
+            .join('&');
+          const queryMatch = regex.test(queryString);
+
+          const requestBody = typeof entry.body === 'string'
+            ? entry.body
+            : JSON.stringify(entry.body || '');
+          const requestMatch = regex.test(requestBody);
+
+          const responseMatch = entry.response?.body ? regex.test(entry.response.body) : false;
+
+          matches = pathMatch || queryMatch || requestMatch || responseMatch;
+        } catch (e) {
+          // Invalid regex, no match
+          matches = false;
+        }
+      }
+      // Check for URL-only filter (starts with / but doesn't end with /)
+      else if (actualFilter.startsWith('/')) {
+        matches = entry.path.toLowerCase().includes(actualFilter.toLowerCase());
+      }
+      // Plain text search across all fields
+      else {
+        const lowerFilter = actualFilter.toLowerCase();
+
+        // Match against path/URL
+        if (entry.path.toLowerCase().includes(lowerFilter)) {
+          matches = true;
+        } else {
+          // Match against query params
+          const queryString = Object.entries(entry.query || {})
+            .map(([key, values]) => `${key}=${values.join(',')}`)
+            .join('&')
+            .toLowerCase();
+          if (queryString.includes(lowerFilter)) {
+            matches = true;
+          } else {
+            // Match against request body
+            const requestBody = typeof entry.body === 'string'
+              ? entry.body
+              : JSON.stringify(entry.body || '');
+            if (requestBody.toLowerCase().includes(lowerFilter)) {
+              matches = true;
+            } else if (entry.response?.body &&
+                entry.response.body.toLowerCase().includes(lowerFilter)) {
+              // Match against response body
+              matches = true;
+            }
+          }
+        }
+      }
+
+      // Return inverted match if negative filter
+      return isNegative ? !matches : matches;
     });
   });
 
