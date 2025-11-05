@@ -3,6 +3,7 @@ package admin
 import (
 	"encoding/json"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -74,6 +75,18 @@ func (a *API) setupRoutes() {
 		// Stats
 		r.Get("/stats", a.handleGetStats)
 	})
+
+	// Serve static files from webui/dist (SPA with fallback to index.html)
+	fileServer := http.FileServer(http.Dir("./webui/dist"))
+	r.Handle("/*", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Check if file exists
+		filePath := "./webui/dist" + r.URL.Path
+		if _, err := os.Stat(filePath); os.IsNotExist(err) {
+			// File doesn't exist, serve index.html for SPA routing
+			r.URL.Path = "/"
+		}
+		fileServer.ServeHTTP(w, r)
+	}))
 }
 
 // ServeHTTP implements http.Handler
