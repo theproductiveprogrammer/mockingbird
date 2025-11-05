@@ -40,7 +40,7 @@ depends = ["build","webui-build"]
 run = "./mockingbird"
 
 [tasks.docker-build]
-depends = ["build"]
+depends = ["build", "webui-build"]
 run = '''
 #!/bin/bash
 set -euo pipefail

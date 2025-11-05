@@ -84,6 +84,9 @@ func main() {
 
 	fmt.Println("\n✅ Mockingbird is ready!")
 	fmt.Println("---")
+	if Version != "" && BuildName != "" {
+		fmt.Printf("📦 Version:   %s '%s'\n", Version, BuildName)
+	}
 	fmt.Printf("📍 🚀 Proxy:  http://localhost:%d\n", cfg.ProxyPort)
 	fmt.Printf("📍 ✧˖°Dashboard: http://localhost:%d\n", cfg.AdminPort)
 	fmt.Printf("📍 Admin API: http://localhost:%d/api\n", cfg.AdminPort)
