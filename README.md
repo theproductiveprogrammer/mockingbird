@@ -51,6 +51,8 @@ See the requests and responses in real-time, beautifully formatted and JSON-comp
 
 Add API keys in a the mockingbird centralized config and have the proxy insert them in-flight. API keys are now forever safe from being logged and need not be shared with the services.
 
+All backend keys are automatically masked in the recorded API requests and dashboard displays.
+
 ---
 
 ## 🧩 Features
