@@ -12,6 +12,7 @@ interface AppState {
   traffic: TrafficEntry[];
   addTraffic: (entry: TrafficEntry) => void;
   setTraffic: (traffic: TrafficEntry[]) => void;
+  clearTraffic: () => void;
   selectedTrafficId: string | null;
   setSelectedTrafficId: (id: string | null) => void;
 
@@ -46,10 +47,18 @@ export const useAppStore = create<AppState>((set) => ({
 
   traffic: [],
   addTraffic: (entry) =>
-    set((state) => ({
-      traffic: [entry, ...state.traffic].slice(0, 100), // Keep last 100
-    })),
+    set((state) => {
+      // Check if entry already exists by ID to prevent duplicates
+      const exists = state.traffic.some((e) => e.id === entry.id);
+      if (exists) {
+        return state; // Don't add duplicate
+      }
+      return {
+        traffic: [entry, ...state.traffic].slice(0, 100), // Keep last 100
+      };
+    }),
   setTraffic: (traffic) => set({ traffic }),
+  clearTraffic: () => set({ traffic: [] }),
   selectedTrafficId: null,
   setSelectedTrafficId: (id) => set({ selectedTrafficId: id }),
 
