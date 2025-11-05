@@ -8,6 +8,7 @@ export function useTrafficSSE() {
 
   useEffect(() => {
     let eventSource: EventSource | null = null;
+    let reconnectTimeout: NodeJS.Timeout | null = null;
 
     const connect = () => {
       eventSource = new EventSource(api.getTrafficStreamUrl());
@@ -21,6 +22,8 @@ export function useTrafficSSE() {
         try {
           const entry: TrafficEntry = JSON.parse(event.data);
           addTraffic(entry);
+          // Ensure connected state is true when receiving messages
+          setIsConnected(true);
         } catch (error) {
           console.error('Failed to parse traffic entry:', error);
         }
@@ -32,15 +35,17 @@ export function useTrafficSSE() {
         eventSource?.close();
 
         // Reconnect after 2 seconds
-        setTimeout(connect, 2000);
+        reconnectTimeout = setTimeout(connect, 2000);
       };
     };
 
     connect();
 
     return () => {
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
       eventSource?.close();
-      setIsConnected(false);
     };
   }, [addTraffic, setIsConnected]);
 }

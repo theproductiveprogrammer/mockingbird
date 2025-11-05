@@ -23,7 +23,7 @@ type Store struct {
 	config       *config.Config
 	rules        map[string][]models.Rule // service name -> rules
 	traffic      []models.TrafficEntry
-	trafficChan  chan models.TrafficEntry // For SSE broadcasting
+	subscribers  map[chan models.TrafficEntry]struct{} // Multiple SSE subscribers
 	mu           sync.RWMutex
 	watcher      *Watcher
 	closed       bool
@@ -37,7 +37,7 @@ func New(configDir string, cfg *config.Config) (*Store, error) {
 		config:      cfg,
 		rules:       make(map[string][]models.Rule),
 		traffic:     make([]models.TrafficEntry, 0, cfg.MaxTrafficEntries),
-		trafficChan: make(chan models.TrafficEntry, 10),
+		subscribers: make(map[chan models.TrafficEntry]struct{}),
 		stopSave:    make(chan struct{}),
 	}
 
@@ -282,9 +282,9 @@ func (s *Store) AddTraffic(entry models.TrafficEntry) {
 	// Truncate request body
 	entry.Body = truncateBody(entry.Body)
 
-	// Truncate response body if present
+	// Truncate response body if present (it's always a string)
 	if entry.Response != nil {
-		entry.Response.Body = truncateBody(entry.Response.Body).(string)
+		entry.Response.Body = truncateStringBody(entry.Response.Body)
 	}
 
 	s.mu.Lock()
@@ -299,12 +299,14 @@ func (s *Store) AddTraffic(entry models.TrafficEntry) {
 		s.traffic = s.traffic[len(s.traffic)-maxEntries:]
 	}
 
-	// Broadcast to SSE listeners (non-blocking)
+	// Broadcast to all SSE subscribers (non-blocking)
 	if !s.closed {
-		select {
-		case s.trafficChan <- entry:
-		default:
-			// Channel full, skip
+		for ch := range s.subscribers {
+			select {
+			case ch <- entry:
+			default:
+				// Channel full, skip this subscriber
+			}
 		}
 	}
 }
@@ -342,9 +344,26 @@ func (s *Store) GetTrafficByID(id string) *models.TrafficEntry {
 	return nil
 }
 
-// SubscribeTraffic returns a channel for traffic updates
+// SubscribeTraffic creates a new channel for traffic updates
 func (s *Store) SubscribeTraffic() <-chan models.TrafficEntry {
-	return s.trafficChan
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	ch := make(chan models.TrafficEntry, 10)
+	s.subscribers[ch] = struct{}{}
+	return ch
+}
+
+// UnsubscribeTraffic removes a subscriber channel
+func (s *Store) UnsubscribeTraffic(ch <-chan models.TrafficEntry) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// Convert to bidirectional channel for deletion
+	if writeCh, ok := interface{}(ch).(chan models.TrafficEntry); ok {
+		delete(s.subscribers, writeCh)
+		close(writeCh)
+	}
 }
 
 // Close closes the store and stops the file watcher
@@ -352,7 +371,11 @@ func (s *Store) Close() error {
 	s.mu.Lock()
 	if !s.closed {
 		s.closed = true
-		close(s.trafficChan)
+		// Close all subscriber channels
+		for ch := range s.subscribers {
+			close(ch)
+		}
+		s.subscribers = make(map[chan models.TrafficEntry]struct{})
 		close(s.stopSave) // Stop background save goroutine
 	}
 	s.mu.Unlock()
@@ -366,6 +389,14 @@ func (s *Store) Close() error {
 		return s.watcher.Close()
 	}
 	return nil
+}
+
+// truncateStringBody truncates a string body to maxBodySizeBytes
+func truncateStringBody(body string) string {
+	if len(body) <= maxBodySizeBytes {
+		return body
+	}
+	return body[:maxBodySizeBytes] + "...[truncated]"
 }
 
 // truncateBody truncates large body data to maxBodySizeBytes
