@@ -1,5 +1,5 @@
-import { useNavigate } from 'react-router-dom';
-import { TrafficEntry as TrafficEntryType } from '../../types/api';
+import { useNavigate } from "react-router-dom";
+import { TrafficEntry as TrafficEntryType } from "../../types/api";
 import {
   formatTime,
   formatQueryParams,
@@ -7,8 +7,8 @@ import {
   formatResponseSummary,
   getStatusColor,
   getRuleTypeBadgeClasses,
-} from '../../utils/formatters';
-import { Tag } from '../ui/Tag';
+  formatPathParts,
+} from "../../utils/formatters";
 
 interface TrafficEntryProps {
   entry: TrafficEntryType;
@@ -19,47 +19,53 @@ export function TrafficEntry({ entry }: TrafficEntryProps) {
   const queryString = formatQueryParams(entry.query);
   const statusColor = entry.response
     ? getStatusColor(entry.response.status_code)
-    : 'text-gray-600';
+    : "text-gray-600";
 
   // Parse response summary to extract and style the rule type badge
   const responseSummary = formatResponseSummary(entry);
   const ruleTypeBadgeClasses = entry.rule_type
     ? getRuleTypeBadgeClasses(entry.rule_type)
-    : '';
+    : "";
 
-  // Split the summary to style the badge separately
-  const badgeRegex = /\[(mock|proxy|timeout)\]/;
-  const parts = responseSummary.split(badgeRegex);
+  const pathParts = formatPathParts(entry);
 
   return (
     <div
       onClick={() => navigate(`/traffic/${entry.id}`)}
-      className="px-6 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 transition-colors"
+      className="group px-6 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100"
     >
-      {/* Line 1: Timestamp, Method, Path, Query */}
-      <div className="flex items-center gap-2 text-sm font-mono">
-        <span className="text-gray-600">[{formatTime(entry.timestamp)}]</span>
-        <Tag variant="method">{entry.method}</Tag>
-        <span className="text-gray-900">{entry.path}</span>
-        {queryString && <span className="text-gray-600 text-xs">{queryString}</span>}
-      </div>
-
-      {/* Line 2: Request summary */}
-      <div className="mt-1 ml-28 text-sm text-gray-700 font-mono">
-        <span className="text-gray-500">→ </span>
-        {formatRequestSummary(entry)}
-      </div>
-
-      {/* Line 3: Response summary with styled badge */}
-      <div className={`mt-1 ml-28 text-sm font-mono ${statusColor}`}>
-        <span className="text-gray-500">← </span>
-        {parts[0]}
-        {parts[1] && (
-          <span className={`${ruleTypeBadgeClasses} px-1 rounded`}>
-            [{parts[1]}]
+      <div className="items-center gap-2 text-xs font-mono">
+        {/* Timestamp, Method, Path, Query */}
+        <span className="">
+          <span className="text-gray-600">
+            [{formatTime(entry.timestamp)}]{" "}
           </span>
-        )}
-        {parts[2]}
+          {pathParts.service && (
+            <span className="text-gray-600 text-xs">{pathParts.service}</span>
+          )}
+          <span className="text-gray-900 font-semibold">{pathParts.path}</span>
+          {queryString && (
+            <span className="text-gray-600 text-xs">{queryString}</span>
+          )}
+        </span>
+        {/* Request summary */}
+        <span className="text-xs opacity-70 group-hover:opacity-100 transition-opacity text-blue-600">
+          {" "}
+          → {formatRequestSummary(entry)}
+        </span>
+        {/* Response summary */}
+        <span
+          className={`text-xs opacity-70 group-hover:opacity-100 transition-opacity ${statusColor}`}
+        >
+          {" "}
+          ←
+          {responseSummary.ruleType && (
+            <span className={`${ruleTypeBadgeClasses} px-1 rounded`}>
+              [{responseSummary.ruleType} {responseSummary.delayStr}]
+            </span>
+          )}
+          {responseSummary.bodySummary}
+        </span>
       </div>
     </div>
   );
