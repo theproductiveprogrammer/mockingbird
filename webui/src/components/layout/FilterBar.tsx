@@ -65,11 +65,45 @@ export function FilterBar() {
             );
           })}
 
-          {filters.map((filter) => (
-            <Tag key={filter} onRemove={() => removeFilter(filter)}>
-              {filter}
-            </Tag>
-          ))}
+          {filters.map((filter) => {
+            // Determine filter type for styling
+            const isNegative = filter.startsWith('-');
+            const isRegex = filter.startsWith('/') && filter.endsWith('/') && filter.length > 2;
+            const isUrl = filter.startsWith('/') && !filter.endsWith('/');
+
+            let bgColor = 'bg-blue-50';
+            let textColor = 'text-blue-700';
+            let borderColor = 'border-blue-300';
+
+            if (isNegative) {
+              bgColor = 'bg-red-50';
+              textColor = 'text-red-700';
+              borderColor = 'border-red-300';
+            } else if (isRegex) {
+              bgColor = 'bg-purple-50';
+              textColor = 'text-purple-700';
+              borderColor = 'border-purple-300';
+            } else if (isUrl) {
+              bgColor = 'bg-green-50';
+              textColor = 'text-green-700';
+              borderColor = 'border-green-300';
+            }
+
+            return (
+              <span
+                key={filter}
+                className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded border ${bgColor} ${textColor} ${borderColor}`}
+              >
+                {filter}
+                <button
+                  onClick={() => removeFilter(filter)}
+                  className="hover:opacity-70"
+                >
+                  ×
+                </button>
+              </span>
+            );
+          })}
         </div>
 
         {/* Right side: Filter input and Clear button */}
