@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -144,7 +145,10 @@ func (h *Handler) parseRequestBody(r *http.Request) interface{} {
 
 // handleProxy proxies the request to upstream
 func (h *Handler) handleProxy(w http.ResponseWriter, r *http.Request, rule *models.Rule, ctx *models.RequestContext) *models.Response {
-	upstreamURL, err := url.Parse(rule.ProxyTo)
+	// Replace localhost with container URL if running in Docker
+	proxyTo := replaceLocalhostURL(rule.ProxyTo)
+
+	upstreamURL, err := url.Parse(proxyTo)
 	if err != nil {
 		http.Error(w, "Invalid upstream URL", http.StatusInternalServerError)
 		return &models.Response{
@@ -352,4 +356,25 @@ func maskBackendKeys(entry *models.TrafficEntry, cfg *config.Config) {
 			}
 		}
 	}
+}
+
+// replaceLocalhostURL replaces localhost/127.0.0.1 references with the container URL
+// if LOCALHOST_CONTAINER_URL environment variable is set
+func replaceLocalhostURL(proxyURL string) string {
+	containerURL := os.Getenv("LOCALHOST_CONTAINER_URL")
+	if containerURL == "" {
+		return proxyURL // No replacement needed
+	}
+
+	// Replace localhost (case-insensitive)
+	result := strings.ReplaceAll(proxyURL, "://localhost", "://"+containerURL)
+	result = strings.ReplaceAll(result, "://localhost:", "://"+containerURL+":")
+	result = strings.ReplaceAll(result, "://LOCALHOST", "://"+containerURL)
+	result = strings.ReplaceAll(result, "://LOCALHOST:", "://"+containerURL+":")
+
+	// Replace 127.0.0.1
+	result = strings.ReplaceAll(result, "://127.0.0.1", "://"+containerURL)
+	result = strings.ReplaceAll(result, "://127.0.0.1:", "://"+containerURL+":")
+
+	return result
 }
