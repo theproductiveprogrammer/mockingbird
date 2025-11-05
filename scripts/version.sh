@@ -3,26 +3,33 @@
 # Version management script
 # Updates package.json and creates git tag
 #
-# Usage: ./scripts/version.sh <version>
+# Usage: ./scripts/version.sh [version]
 # Example: ./scripts/version.sh 1.4.0
+# No argument: Show current version
 #
 
 set -euo pipefail
-
-# Check if version argument is provided
-if [ $# -ne 1 ]; then
-    echo "Usage: $0 <version>"
-    echo "Example: $0 1.4.0"
-    exit 1
-fi
-
-VERSION="$1"
-GIT_TAG="v${VERSION}"
 
 # Get the script directory and project root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 PACKAGE_JSON="${PROJECT_ROOT}/webui/package.json"
+
+# If no argument provided, show current version
+if [ $# -eq 0 ]; then
+    if [ ! -f "${PACKAGE_JSON}" ]; then
+        echo "❌ Error: ${PACKAGE_JSON} not found"
+        exit 1
+    fi
+    CURRENT_VERSION=$(grep -o '"version": "[^"]*"' "${PACKAGE_JSON}" | cut -d'"' -f4)
+    CURRENT_GIT_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "none")
+    echo "📦 Current version: ${CURRENT_VERSION}"
+    echo "🏷️  Latest git tag: ${CURRENT_GIT_TAG}"
+    exit 0
+fi
+
+VERSION="$1"
+GIT_TAG="v${VERSION}"
 
 echo "🐦 Mockingbird Version Manager"
 echo "================================"
