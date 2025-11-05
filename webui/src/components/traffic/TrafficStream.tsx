@@ -41,21 +41,43 @@ export function TrafficStream() {
     };
   }, [setTraffic, addTraffic, setIsConnected]);
 
-  // Filter traffic
+  // Filter traffic with AND logic
   const filteredTraffic = traffic.filter((entry) => {
     if (filters.length === 0) return true;
 
+    // Entry must match ALL filters (AND logic)
+    // Each filter can match: path (URL), request body, response body, or query params
     return filters.every((filter) => {
       const lowerFilter = filter.toLowerCase();
-      return (
-        entry.method.toLowerCase().includes(lowerFilter) ||
-        entry.path.toLowerCase().includes(lowerFilter) ||
-        entry.service.toLowerCase().includes(lowerFilter) ||
-        entry.rule_type.toLowerCase().includes(lowerFilter) ||
-        entry.response?.status_code.toString().includes(filter)
-      );
+
+      // Match against path/URL
+      if (entry.path.toLowerCase().includes(lowerFilter)) return true;
+
+      // Match against query params
+      const queryString = Object.entries(entry.query || {})
+        .map(([key, values]) => `${key}=${values.join(',')}`)
+        .join('&')
+        .toLowerCase();
+      if (queryString.includes(lowerFilter)) return true;
+
+      // Match against request body
+      const requestBody = typeof entry.body === 'string'
+        ? entry.body
+        : JSON.stringify(entry.body || '');
+      if (requestBody.toLowerCase().includes(lowerFilter)) return true;
+
+      // Match against response body
+      if (entry.response?.body &&
+          entry.response.body.toLowerCase().includes(lowerFilter)) return true;
+
+      return false;
     });
   });
+
+  // Debug: log when filters change
+  if (filters.length > 0) {
+    console.log('Filters:', filters, '| Total:', traffic.length, '| Filtered:', filteredTraffic.length);
+  }
 
   return (
     <div className="h-full overflow-y-auto">
