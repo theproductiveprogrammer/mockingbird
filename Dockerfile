@@ -1,4 +1,13 @@
-# Build stage
+# Build stage for React webui
+FROM node:20-alpine AS web-builder
+
+WORKDIR /web
+COPY webui/package*.json ./
+RUN npm ci
+COPY webui/ .
+RUN npm run build
+
+# Build stage for Go backend
 FROM golang:1.25-alpine AS builder
 
 WORKDIR /build
@@ -22,6 +31,9 @@ WORKDIR /app
 
 # Copy binary from builder
 COPY --from=builder /build/mockingbird .
+
+# Copy built webui from web-builder
+COPY --from=web-builder /web/dist ./webui/dist
 
 # Create config directory
 RUN mkdir -p /app/config
