@@ -2,7 +2,6 @@
 go = "latest"
 
 [tasks]
-setup = "mkdir -p ~/.config/mockingbird && cp examples/* ~/.config/mockingbird/"
 version = "./scripts/version.sh"
 
 [tasks.build]

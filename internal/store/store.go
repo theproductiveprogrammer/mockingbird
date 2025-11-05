@@ -55,8 +55,9 @@ func New(configDir string, cfg *config.Config) (*Store, error) {
 		fmt.Printf("Note: Could not load traffic history: %v\n", err)
 	}
 
-	// Start file watcher
-	watcher, err := NewWatcher(configDir, s.onFileChange)
+	// Start file watcher for _rules directory
+	rulesDir := filepath.Join(configDir, "_rules")
+	watcher, err := NewWatcher(rulesDir, s.onFileChange)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start file watcher: %w", err)
 	}
@@ -65,9 +66,16 @@ func New(configDir string, cfg *config.Config) (*Store, error) {
 	return s, nil
 }
 
-// loadAllRules loads all YAML rule files from the config directory
+// loadAllRules loads all YAML rule files from the _rules subdirectory
 func (s *Store) loadAllRules() error {
-	files, err := filepath.Glob(filepath.Join(s.configDir, "*.yaml"))
+	rulesDir := filepath.Join(s.configDir, "_rules")
+
+	// Create _rules directory if it doesn't exist
+	if err := os.MkdirAll(rulesDir, 0755); err != nil {
+		return fmt.Errorf("failed to create rules directory: %w", err)
+	}
+
+	files, err := filepath.Glob(filepath.Join(rulesDir, "*.yaml"))
 	if err != nil {
 		return err
 	}
@@ -233,8 +241,10 @@ func (s *Store) DisableService(service string) error {
 		return fmt.Errorf("service not found: %s", service)
 	}
 
+	rulesDir := filepath.Join(s.configDir, "_rules")
+
 	// Get the file path
-	filePath := filepath.Join(s.configDir, service+".yaml")
+	filePath := filepath.Join(rulesDir, service+".yaml")
 
 	// Check if file exists
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
@@ -243,7 +253,7 @@ func (s *Store) DisableService(service string) error {
 
 	// Create new filename with timestamp
 	timestamp := time.Now().Format("20060102-150405")
-	newFilePath := filepath.Join(s.configDir, fmt.Sprintf("%s.yaml.disabled-%s", service, timestamp))
+	newFilePath := filepath.Join(rulesDir, fmt.Sprintf("%s.yaml.disabled-%s", service, timestamp))
 
 	// Rename the file
 	if err := os.Rename(filePath, newFilePath); err != nil {
@@ -256,7 +266,7 @@ func (s *Store) DisableService(service string) error {
 	return nil
 }
 
-// saveRulesToFile saves rules to a YAML file
+// saveRulesToFile saves rules to a YAML file in the _rules subdirectory
 func (s *Store) saveRulesToFile(service string, rules []models.Rule) error {
 	serviceRules := models.ServiceRules{Rules: rules}
 
@@ -265,7 +275,13 @@ func (s *Store) saveRulesToFile(service string, rules []models.Rule) error {
 		return fmt.Errorf("failed to marshal YAML: %w", err)
 	}
 
-	filePath := filepath.Join(s.configDir, service+".yaml")
+	rulesDir := filepath.Join(s.configDir, "_rules")
+	// Ensure _rules directory exists
+	if err := os.MkdirAll(rulesDir, 0755); err != nil {
+		return fmt.Errorf("failed to create rules directory: %w", err)
+	}
+
+	filePath := filepath.Join(rulesDir, service+".yaml")
 	if err := os.WriteFile(filePath, data, 0644); err != nil {
 		return fmt.Errorf("failed to write file: %w", err)
 	}
