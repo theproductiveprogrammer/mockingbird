@@ -55,7 +55,22 @@ All backend keys are automatically masked in the recorded API requests and dashb
 
 ---
 
-## 🧩 Features
+## 🧩 Tips
+
+1. **First-match-wins:** Rules are evaluated top-to-bottom. Put more specific rules before general ones.
+
+2. **Hot-reload:** Mockingbird watches for file changes. If you do not use the UI, you can edit rule files manually and they will be reloaded automatically.
+
+3. **Debugging:** Watch live traffic to see what your app is calling:
+
+    ```bash
+    curl -N http://localhost:8768/api/traffic/stream
+    ```
+
+4. **Path patterns:**
+    - `/service/**` - matches `/service/anything/nested`
+    - `/service/*` - matches `/service/one-level`
+    - `/service/{id}` - matches `/service/123` and extracts `id`
 
 
 ---
