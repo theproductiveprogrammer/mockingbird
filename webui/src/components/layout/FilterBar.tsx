@@ -1,46 +1,54 @@
-import { useState, useMemo, useEffect } from 'react';
-import { useAppStore } from '../../stores/appStore';
-import { Tag } from '../ui/Tag';
-import { Button } from '../ui/Button';
+import { useState, useMemo, useEffect } from "react";
+import { useAppStore } from "../../stores/appStore";
+import { Tag } from "../ui/Tag";
+import { Button } from "../ui/Button";
 
 export function FilterBar() {
-  const { traffic, filters, addFilter, removeFilter, clearTraffic, selectedServices, toggleService } = useAppStore();
-  const [inputValue, setInputValue] = useState('');
+  const {
+    traffic,
+    filters,
+    addFilter,
+    removeFilter,
+    clearTraffic,
+    selectedServices,
+    toggleService,
+  } = useAppStore();
+  const [inputValue, setInputValue] = useState("");
 
   // Extract unique service names from traffic
   const serviceNames = useMemo(() => {
-    const services = new Set(traffic.map(entry => entry.service));
+    const services = new Set(traffic.map((entry) => entry.service));
     return Array.from(services).sort();
   }, [traffic]);
 
   // Initialize only NEW services as selected (don't re-initialize existing ones)
   useEffect(() => {
     // Find services that are in serviceNames but not yet in selectedServices
-    const newServices = serviceNames.filter(service => !selectedServices.has(service));
+    const newServices = serviceNames.filter(
+      (service) => !selectedServices.has(service),
+    );
 
     // Only add new services, don't touch existing selections
     if (newServices.length > 0) {
-      newServices.forEach(service => toggleService(service));
+      newServices.forEach((service) => toggleService(service));
     }
-  }, [serviceNames.join(',')]);
+  }, [serviceNames.join(",")]);
 
   const handleAddFilter = () => {
     if (inputValue.trim()) {
       addFilter(inputValue.trim());
-      setInputValue('');
+      setInputValue("");
     }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       handleAddFilter();
     }
   };
 
   const handleClear = () => {
-    if (confirm('Clear all traffic history? This will remove all entries from view.')) {
-      clearTraffic();
-    }
+    clearTraffic();
   };
 
   return (
@@ -56,8 +64,8 @@ export function FilterBar() {
                 onClick={() => toggleService(service)}
                 className={`inline-flex items-center px-1.5 py-0 text-xs font-normal rounded border cursor-pointer transition-all ${
                   isSelected
-                    ? 'bg-white text-gray-700 border-gray-400 hover:bg-gray-50'
-                    : 'bg-gray-100 text-gray-500 border-gray-300 italic hover:bg-gray-200'
+                    ? "bg-white text-gray-700 border-gray-400 hover:bg-gray-50"
+                    : "bg-gray-100 text-gray-500 border-gray-300 italic hover:bg-gray-200"
                 }`}
               >
                 {service}
@@ -68,7 +76,7 @@ export function FilterBar() {
           {filters.map((filter) => {
             // Determine filter type for styling (same logic as TrafficStream.tsx)
             let actualFilter = filter;
-            const isNegative = filter.startsWith('-');
+            const isNegative = filter.startsWith("-");
             if (isNegative) {
               actualFilter = filter.substring(1);
             }
@@ -76,9 +84,16 @@ export function FilterBar() {
             let isRegex = false;
             let isUrl = false;
 
-            if (actualFilter.startsWith('/') && actualFilter.endsWith('/') && actualFilter.length > 2) {
-              const content = actualFilter.substring(1, actualFilter.length - 1);
-              const hasInternalSlashes = content.includes('/');
+            if (
+              actualFilter.startsWith("/") &&
+              actualFilter.endsWith("/") &&
+              actualFilter.length > 2
+            ) {
+              const content = actualFilter.substring(
+                1,
+                actualFilter.length - 1,
+              );
+              const hasInternalSlashes = content.includes("/");
               const hasRegexChars = /[\\^$*+?()[\]{}|]/.test(content);
               const isLikelyUrlPath = hasInternalSlashes && !hasRegexChars;
 
@@ -87,26 +102,26 @@ export function FilterBar() {
               } else {
                 isRegex = true; // /\d+/ → Regex filter
               }
-            } else if (actualFilter.startsWith('/')) {
+            } else if (actualFilter.startsWith("/")) {
               isUrl = true; // /users → URL filter
             }
 
-            let bgColor = 'bg-blue-50';
-            let textColor = 'text-blue-700';
-            let borderColor = 'border-blue-300';
+            let bgColor = "bg-blue-50";
+            let textColor = "text-blue-700";
+            let borderColor = "border-blue-300";
 
             if (isNegative) {
-              bgColor = 'bg-red-50';
-              textColor = 'text-red-700';
-              borderColor = 'border-red-300';
+              bgColor = "bg-red-50";
+              textColor = "text-red-700";
+              borderColor = "border-red-300";
             } else if (isRegex) {
-              bgColor = 'bg-purple-50';
-              textColor = 'text-purple-700';
-              borderColor = 'border-purple-300';
+              bgColor = "bg-purple-50";
+              textColor = "text-purple-700";
+              borderColor = "border-purple-300";
             } else if (isUrl) {
-              bgColor = 'bg-green-50';
-              textColor = 'text-green-700';
-              borderColor = 'border-green-300';
+              bgColor = "bg-green-50";
+              textColor = "text-green-700";
+              borderColor = "border-green-300";
             }
 
             return (
@@ -137,11 +152,7 @@ export function FilterBar() {
             className="px-2 py-0.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-transparent"
           />
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleClear}
-          >
+          <Button variant="ghost" size="sm" onClick={handleClear}>
             Clear
           </Button>
         </div>
