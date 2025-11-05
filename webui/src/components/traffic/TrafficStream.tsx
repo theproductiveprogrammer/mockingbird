@@ -67,30 +67,43 @@ export function TrafficStream() {
       let matches = false;
 
       // Check for regex filter (/pattern/)
+      // But be forgiving: if it looks like a URL path (e.g., /users/create/), treat it as URL-only
       if (actualFilter.startsWith('/') && actualFilter.endsWith('/') && actualFilter.length > 2) {
-        const pattern = actualFilter.substring(1, actualFilter.length - 1);
-        try {
-          const regex = new RegExp(pattern, 'i');
+        const content = actualFilter.substring(1, actualFilter.length - 1);
 
-          // Test against all searchable fields
-          const pathMatch = regex.test(entry.path);
+        // Heuristic: if content has internal slashes and no regex special chars, it's probably a URL path
+        const hasInternalSlashes = content.includes('/');
+        const hasRegexChars = /[\\^$*+?()[\]{}|]/.test(content);
+        const isLikelyUrlPath = hasInternalSlashes && !hasRegexChars;
 
-          const queryString = Object.entries(entry.query || {})
-            .map(([key, values]) => `${key}=${values.join(',')}`)
-            .join('&');
-          const queryMatch = regex.test(queryString);
+        if (isLikelyUrlPath) {
+          // Treat as URL-only filter (remove trailing slash)
+          matches = entry.path.toLowerCase().includes(content.toLowerCase());
+        } else {
+          // Treat as regex
+          try {
+            const regex = new RegExp(content, 'i');
 
-          const requestBody = typeof entry.body === 'string'
-            ? entry.body
-            : JSON.stringify(entry.body || '');
-          const requestMatch = regex.test(requestBody);
+            // Test against all searchable fields
+            const pathMatch = regex.test(entry.path);
 
-          const responseMatch = entry.response?.body ? regex.test(entry.response.body) : false;
+            const queryString = Object.entries(entry.query || {})
+              .map(([key, values]) => `${key}=${values.join(',')}`)
+              .join('&');
+            const queryMatch = regex.test(queryString);
 
-          matches = pathMatch || queryMatch || requestMatch || responseMatch;
-        } catch (e) {
-          // Invalid regex, no match
-          matches = false;
+            const requestBody = typeof entry.body === 'string'
+              ? entry.body
+              : JSON.stringify(entry.body || '');
+            const requestMatch = regex.test(requestBody);
+
+            const responseMatch = entry.response?.body ? regex.test(entry.response.body) : false;
+
+            matches = pathMatch || queryMatch || requestMatch || responseMatch;
+          } catch (e) {
+            // Invalid regex, no match
+            matches = false;
+          }
         }
       }
       // Check for URL-only filter (starts with / but doesn't end with /)

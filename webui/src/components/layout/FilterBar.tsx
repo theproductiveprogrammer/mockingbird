@@ -66,10 +66,30 @@ export function FilterBar() {
           })}
 
           {filters.map((filter) => {
-            // Determine filter type for styling
+            // Determine filter type for styling (same logic as TrafficStream.tsx)
+            let actualFilter = filter;
             const isNegative = filter.startsWith('-');
-            const isRegex = filter.startsWith('/') && filter.endsWith('/') && filter.length > 2;
-            const isUrl = filter.startsWith('/') && !filter.endsWith('/');
+            if (isNegative) {
+              actualFilter = filter.substring(1);
+            }
+
+            let isRegex = false;
+            let isUrl = false;
+
+            if (actualFilter.startsWith('/') && actualFilter.endsWith('/') && actualFilter.length > 2) {
+              const content = actualFilter.substring(1, actualFilter.length - 1);
+              const hasInternalSlashes = content.includes('/');
+              const hasRegexChars = /[\\^$*+?()[\]{}|]/.test(content);
+              const isLikelyUrlPath = hasInternalSlashes && !hasRegexChars;
+
+              if (isLikelyUrlPath) {
+                isUrl = true; // /users/create/ → URL filter
+              } else {
+                isRegex = true; // /\d+/ → Regex filter
+              }
+            } else if (actualFilter.startsWith('/')) {
+              isUrl = true; // /users → URL filter
+            }
 
             let bgColor = 'bg-blue-50';
             let textColor = 'text-blue-700';
