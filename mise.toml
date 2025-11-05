@@ -3,7 +3,29 @@ go = "latest"
 
 [tasks]
 setup = "mkdir -p ~/.config/mockingbird && cp examples/* ~/.config/mockingbird/"
-build = "go build -o mockingbird ./cmd/server"
+version = "./scripts/version.sh"
+
+[tasks.build]
+run = '''
+#!/bin/bash
+set -euo pipefail
+
+# Get version information
+VERSION=$(git describe --tags --always 2>/dev/null || echo "dev")
+BUILD_NAME=$(./scripts/generate_name.sh)
+BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+COMMIT_HASH=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+GO_VERSION=$(go version | awk '{print $3}')
+
+echo "Building Mockingbird ${VERSION} '${BUILD_NAME}'..."
+
+# Build with ldflags to inject version info
+go build \
+  -ldflags="-X main.Version=${VERSION} -X main.BuildName=${BUILD_NAME} -X main.BuildTime=${BUILD_TIME} -X main.CommitHash=${COMMIT_HASH} -X main.GoVersion=${GO_VERSION}" \
+  -o mockingbird ./cmd/server
+
+echo "✅ Built: mockingbird ${VERSION} '${BUILD_NAME}'"
+'''
 
 [tasks.webui-build]
 run='''
@@ -20,9 +42,30 @@ run = "./mockingbird"
 [tasks.docker-build]
 depends = ["build"]
 run = '''
-VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "dev")
-echo "Building Docker image with tag: $VERSION"
-docker build -t charleslobo77/mockingbird:$VERSION -t charleslobo77/mockingbird:latest .
+#!/bin/bash
+set -euo pipefail
+
+# Get version information
+VERSION=$(git describe --tags --always 2>/dev/null || echo "dev")
+BUILD_NAME=$(./scripts/generate_name.sh)
+BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+COMMIT_HASH=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+GO_VERSION=$(go version | awk '{print $3}')
+
+echo "Building Docker image ${VERSION} '${BUILD_NAME}'..."
+
+# Build Docker image with build args
+docker build \
+  --build-arg GIT_TAG="${VERSION}" \
+  --build-arg BUILD_NAME="${BUILD_NAME}" \
+  --build-arg BUILD_TIME="${BUILD_TIME}" \
+  --build-arg COMMIT_HASH="${COMMIT_HASH}" \
+  --build-arg GO_VERSION="${GO_VERSION}" \
+  -t charleslobo77/mockingbird:${VERSION} \
+  -t charleslobo77/mockingbird:latest \
+  .
+
+echo "✅ Built Docker image: ${VERSION} '${BUILD_NAME}'"
 '''
 
 [tasks.docker-push]

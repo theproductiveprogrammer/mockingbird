@@ -16,6 +16,11 @@ type Config struct {
 	ConfigDir         string            `json:"config_dir,omitempty"`      // Where rules are stored
 	MaxTrafficEntries int               `json:"max_traffic_entries"`       // Maximum traffic entries to store
 	Values            map[string]string `json:"values"`                    // Custom key-value pairs (API keys, etc.)
+	Version           string            `json:"version,omitempty"`         // Version (e.g., "v1.3.0")
+	BuildName         string            `json:"build_name,omitempty"`      // Fun build name (e.g., "raging_rhino")
+	BuildTime         string            `json:"build_time,omitempty"`      // Build timestamp
+	CommitHash        string            `json:"commit_hash,omitempty"`     // Git commit hash
+	GoVersion         string            `json:"go_version,omitempty"`      // Go compiler version
 	mu                sync.RWMutex      `json:"-"`
 }
 

@@ -12,6 +12,9 @@ FROM golang:1.25-alpine AS builder
 
 WORKDIR /build
 
+# Install git for version info
+RUN apk add --no-cache git
+
 # Copy go mod files
 COPY go.mod go.sum ./
 RUN go mod download
@@ -19,8 +22,17 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Build binary
-RUN CGO_ENABLED=0 GOOS=linux go build -o mockingbird ./cmd/server
+# Build args for version injection
+ARG GIT_TAG=dev
+ARG BUILD_NAME=docker_build
+ARG BUILD_TIME=""
+ARG COMMIT_HASH=""
+ARG GO_VERSION=""
+
+# Build binary with version information
+RUN CGO_ENABLED=0 GOOS=linux go build \
+    -ldflags="-X main.Version=${GIT_TAG} -X main.BuildName=${BUILD_NAME} -X main.BuildTime=${BUILD_TIME} -X main.CommitHash=${COMMIT_HASH} -X main.GoVersion=${GO_VERSION}" \
+    -o mockingbird ./cmd/server
 
 # Runtime stage
 FROM alpine:latest

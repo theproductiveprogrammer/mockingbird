@@ -107,6 +107,40 @@ export function ConfigView() {
           </div>
         )}
 
+        {/* Server Info */}
+        {config.version && (
+          <div className="mb-6">
+            <h2 className="text-xs font-medium text-gray-600 mb-3 uppercase tracking-wider">Server Info</h2>
+            <div className="bg-gray-50 border border-gray-200 rounded p-4">
+              <div className="mb-3">
+                <p className="text-sm font-mono font-semibold text-gray-900">
+                  {config.version} {config.build_name && `'${config.build_name}'`}
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                {config.build_time && (
+                  <div>
+                    <p className="text-gray-600 mb-1">Built</p>
+                    <p className="font-mono text-gray-800">{new Date(config.build_time).toLocaleString()}</p>
+                  </div>
+                )}
+                {config.commit_hash && (
+                  <div>
+                    <p className="text-gray-600 mb-1">Commit</p>
+                    <p className="font-mono text-gray-800">{config.commit_hash}</p>
+                  </div>
+                )}
+                {config.go_version && (
+                  <div>
+                    <p className="text-gray-600 mb-1">Go Version</p>
+                    <p className="font-mono text-gray-800">{config.go_version}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Server Settings */}
         <div className="mb-6">
           <h2 className="text-xs font-medium text-gray-600 mb-3 uppercase tracking-wider">Server Settings</h2>

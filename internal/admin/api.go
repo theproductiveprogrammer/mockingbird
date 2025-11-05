@@ -97,8 +97,12 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // handleHealth returns health status
 func (a *API) handleHealth(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, map[string]interface{}{
-		"status":  "ok",
-		"version": "1.0.0",
+		"status":      "ok",
+		"version":     a.config.Version,
+		"build_name":  a.config.BuildName,
+		"build_time":  a.config.BuildTime,
+		"commit_hash": a.config.CommitHash,
+		"go_version":  a.config.GoVersion,
 	})
 }
 
@@ -372,10 +376,15 @@ func (a *API) handleMoveRule(w http.ResponseWriter, r *http.Request) {
 // handleGetConfig returns configuration
 func (a *API) handleGetConfig(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, map[string]interface{}{
-		"proxy_port": a.config.ProxyPort,
-		"admin_port": a.config.AdminPort,
-		"config_dir": a.config.ConfigDir,
-		"values":     a.config.GetAll(true), // Masked
+		"proxy_port":  a.config.ProxyPort,
+		"admin_port":  a.config.AdminPort,
+		"config_dir":  a.config.ConfigDir,
+		"values":      a.config.GetAll(true), // Masked
+		"version":     a.config.Version,
+		"build_name":  a.config.BuildName,
+		"build_time":  a.config.BuildTime,
+		"commit_hash": a.config.CommitHash,
+		"go_version":  a.config.GoVersion,
 	})
 }
 

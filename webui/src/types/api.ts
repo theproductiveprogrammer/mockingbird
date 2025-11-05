@@ -54,6 +54,11 @@ export interface Config {
   admin_port: number;
   config_dir: string;
   values: Record<string, string>;
+  version?: string;
+  build_name?: string;
+  build_time?: string;
+  commit_hash?: string;
+  go_version?: string;
 }
 
 export interface Stats {

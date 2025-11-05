@@ -15,6 +15,15 @@ import (
 	"github.com/theproductiveprogrammer/mockingbird.git/internal/store"
 )
 
+// Build-time variables (injected via ldflags)
+var (
+	Version    = "dev"
+	BuildName  = "local_build"
+	BuildTime  = ""
+	CommitHash = ""
+	GoVersion  = ""
+)
+
 func main() {
 	fmt.Println("🐦 Mockingbird - Starting...")
 
@@ -24,6 +33,13 @@ func main() {
 		fmt.Printf("Error loading config: %v\n", err)
 		os.Exit(1)
 	}
+
+	// Set version information
+	cfg.Version = Version
+	cfg.BuildName = BuildName
+	cfg.BuildTime = BuildTime
+	cfg.CommitHash = CommitHash
+	cfg.GoVersion = GoVersion
 
 	fmt.Printf("Config directory: %s\n", cfg.ConfigDir)
 	fmt.Printf("Proxy port: %d\n", cfg.ProxyPort)
