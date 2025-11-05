@@ -101,6 +101,9 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		entry.MatchedRule = &ruleIndex
 	}
 
+	// Mask backend keys before storing (replace config values with key names)
+	maskBackendKeys(&entry, h.config)
+
 	h.store.AddTraffic(entry)
 }
 
@@ -297,4 +300,56 @@ func decompressGzip(data []byte) ([]byte, error) {
 	defer reader.Close()
 
 	return io.ReadAll(reader)
+}
+
+// maskBackendKeys replaces config values with their key names in traffic entry
+// This ensures secrets are never stored to disk or sent to frontend
+func maskBackendKeys(entry *models.TrafficEntry, cfg *config.Config) {
+	// Get all config values (unmasked)
+	configValues := cfg.GetAll(false)
+	if len(configValues) == 0 {
+		return
+	}
+
+	// Mask request headers
+	for headerName, headerValues := range entry.Headers {
+		for i, value := range headerValues {
+			for key, configValue := range configValues {
+				if len(configValue) > 0 && strings.Contains(value, configValue) {
+					entry.Headers[headerName][i] = strings.ReplaceAll(value, configValue, key)
+				}
+			}
+		}
+	}
+
+	// Mask request body
+	if entry.Body != nil {
+		// If body is a string, mask directly
+		if bodyStr, ok := entry.Body.(string); ok {
+			for key, configValue := range configValues {
+				if len(configValue) > 0 && strings.Contains(bodyStr, configValue) {
+					bodyStr = strings.ReplaceAll(bodyStr, configValue, key)
+				}
+			}
+			entry.Body = bodyStr
+		} else {
+			// If body is JSON object, serialize, mask, and parse back
+			bodyBytes, err := json.Marshal(entry.Body)
+			if err == nil {
+				bodyStr := string(bodyBytes)
+				for key, configValue := range configValues {
+					if len(configValue) > 0 && strings.Contains(bodyStr, configValue) {
+						bodyStr = strings.ReplaceAll(bodyStr, configValue, key)
+					}
+				}
+				// Try to unmarshal back to maintain structure
+				var maskedBody interface{}
+				if err := json.Unmarshal([]byte(bodyStr), &maskedBody); err == nil {
+					entry.Body = maskedBody
+				} else {
+					entry.Body = bodyStr
+				}
+			}
+		}
+	}
 }

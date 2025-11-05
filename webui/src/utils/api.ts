@@ -101,6 +101,16 @@ class ApiClient {
     }
   }
 
+  async deleteConfigValue(key: string): Promise<void> {
+    const response = await fetch(`${API_BASE}/config/${key}`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to delete config value');
+    }
+  }
+
   async getStats(): Promise<Stats> {
     const response = await fetch(`${API_BASE}/stats`);
     return response.json();
