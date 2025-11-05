@@ -1,6 +1,7 @@
 package store
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -19,15 +20,14 @@ const maxBodySizeBytes = 1024 // 1KB limit for request/response bodies
 
 // Store manages rules and traffic history
 type Store struct {
-	configDir    string
-	config       *config.Config
-	rules        map[string][]models.Rule // service name -> rules
-	traffic      []models.TrafficEntry
-	subscribers  map[chan models.TrafficEntry]struct{} // Multiple SSE subscribers
-	mu           sync.RWMutex
-	watcher      *Watcher
-	closed       bool
-	stopSave     chan struct{} // Signal to stop background save
+	configDir   string
+	config      *config.Config
+	rules       map[string][]models.Rule // service name -> rules
+	traffic     []models.TrafficEntry
+	subscribers map[chan models.TrafficEntry]struct{} // Multiple SSE subscribers
+	mu          sync.RWMutex
+	watcher     *Watcher
+	closed      bool
 }
 
 // New creates a new store
@@ -38,7 +38,6 @@ func New(configDir string, cfg *config.Config) (*Store, error) {
 		rules:       make(map[string][]models.Rule),
 		traffic:     make([]models.TrafficEntry, 0, cfg.MaxTrafficEntries),
 		subscribers: make(map[chan models.TrafficEntry]struct{}),
-		stopSave:    make(chan struct{}),
 	}
 
 	// Ensure config directory exists
@@ -62,9 +61,6 @@ func New(configDir string, cfg *config.Config) (*Store, error) {
 		return nil, fmt.Errorf("failed to start file watcher: %w", err)
 	}
 	s.watcher = watcher
-
-	// Start background save goroutine
-	go s.backgroundSave()
 
 	return s, nil
 }
@@ -299,6 +295,11 @@ func (s *Store) AddTraffic(entry models.TrafficEntry) {
 		s.traffic = s.traffic[len(s.traffic)-maxEntries:]
 	}
 
+	// Immediately append to disk (eager write)
+	if err := s.appendTrafficEntry(entry); err != nil {
+		fmt.Printf("Warning: Failed to append traffic entry to disk: %v\n", err)
+	}
+
 	// Broadcast to all SSE subscribers (non-blocking)
 	if !s.closed {
 		for ch := range s.subscribers {
@@ -376,14 +377,8 @@ func (s *Store) Close() error {
 			close(ch)
 		}
 		s.subscribers = make(map[chan models.TrafficEntry]struct{})
-		close(s.stopSave) // Stop background save goroutine
 	}
 	s.mu.Unlock()
-
-	// Save traffic before closing
-	if err := s.saveTrafficToFile(); err != nil {
-		fmt.Printf("Warning: Failed to save traffic on shutdown: %v\n", err)
-	}
 
 	if s.watcher != nil {
 		return s.watcher.Close()
@@ -428,21 +423,41 @@ func truncateBody(data interface{}) interface{} {
 	return bodyStr[:maxBodySizeBytes] + "...[truncated]"
 }
 
-// loadTrafficFromFile loads traffic history from traffic.json
+// loadTrafficFromFile loads traffic history from traffic.ndjson
 func (s *Store) loadTrafficFromFile() error {
-	trafficPath := filepath.Join(s.configDir, "traffic.json")
+	trafficPath := filepath.Join(s.configDir, "traffic.ndjson")
 
-	data, err := os.ReadFile(trafficPath)
+	file, err := os.Open(trafficPath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil // File doesn't exist yet, start with empty traffic
 		}
 		return err
 	}
+	defer file.Close()
 
 	var traffic []models.TrafficEntry
-	if err := json.Unmarshal(data, &traffic); err != nil {
-		return fmt.Errorf("failed to parse traffic.json: %w", err)
+	scanner := bufio.NewScanner(file)
+	lineNum := 0
+
+	for scanner.Scan() {
+		lineNum++
+		line := scanner.Text()
+		if line == "" {
+			continue // Skip empty lines
+		}
+
+		var entry models.TrafficEntry
+		if err := json.Unmarshal([]byte(line), &entry); err != nil {
+			fmt.Printf("Warning: Skipping invalid traffic entry at line %d: %v\n", lineNum, err)
+			continue
+		}
+
+		traffic = append(traffic, entry)
+	}
+
+	if err := scanner.Err(); err != nil {
+		return fmt.Errorf("failed to read traffic.ndjson: %w", err)
 	}
 
 	s.mu.Lock()
@@ -453,39 +468,29 @@ func (s *Store) loadTrafficFromFile() error {
 	return nil
 }
 
-// saveTrafficToFile saves traffic history to traffic.json
-func (s *Store) saveTrafficToFile() error {
-	s.mu.RLock()
-	trafficCopy := make([]models.TrafficEntry, len(s.traffic))
-	copy(trafficCopy, s.traffic)
-	s.mu.RUnlock()
-
-	data, err := json.MarshalIndent(trafficCopy, "", "  ")
+// appendTrafficEntry appends a single traffic entry to traffic.ndjson
+func (s *Store) appendTrafficEntry(entry models.TrafficEntry) error {
+	// Marshal entry to compact JSON (no indentation)
+	data, err := json.Marshal(entry)
 	if err != nil {
-		return fmt.Errorf("failed to marshal traffic: %w", err)
+		return fmt.Errorf("failed to marshal traffic entry: %w", err)
 	}
 
-	trafficPath := filepath.Join(s.configDir, "traffic.json")
-	if err := os.WriteFile(trafficPath, data, 0644); err != nil {
-		return fmt.Errorf("failed to write traffic file: %w", err)
+	// Open file in append mode (create if doesn't exist)
+	trafficPath := filepath.Join(s.configDir, "traffic.ndjson")
+	file, err := os.OpenFile(trafficPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to open traffic file: %w", err)
+	}
+	defer file.Close()
+
+	// Write JSON line + newline
+	if _, err := file.Write(data); err != nil {
+		return fmt.Errorf("failed to write traffic entry: %w", err)
+	}
+	if _, err := file.WriteString("\n"); err != nil {
+		return fmt.Errorf("failed to write newline: %w", err)
 	}
 
 	return nil
-}
-
-// backgroundSave periodically saves traffic to disk
-func (s *Store) backgroundSave() {
-	ticker := time.NewTicker(2 * time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-			if err := s.saveTrafficToFile(); err != nil {
-				fmt.Printf("Warning: Failed to save traffic: %v\n", err)
-			}
-		case <-s.stopSave:
-			return
-		}
-	}
 }
