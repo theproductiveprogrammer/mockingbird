@@ -3,7 +3,7 @@ import { useAppStore } from '../../stores/appStore';
 
 export function Header() {
   const navigate = useNavigate();
-  const { currentView, isConnected } = useAppStore();
+  const { currentView } = useAppStore();
 
   return (
     <header className="bg-gray-50 border-b border-gray-200 px-6 py-2.5">
@@ -19,59 +19,53 @@ export function Header() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('/')}
-            className={`px-2 py-1 text-xs font-normal rounded transition-colors ${
+            className={`px-2 py-1 text-xs font-normal rounded transition-colors flex items-center gap-1 ${
               currentView === 'traffic'
                 ? 'bg-blue-50 text-blue-700 border border-blue-200'
                 : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
             }`}
           >
+            <img src="/traffic.svg" alt="Traffic" className="w-3.5 h-3.5" />
             Traffic
           </button>
 
           <button
             onClick={() => navigate('/rules')}
-            className={`px-2 py-1 text-xs font-normal rounded transition-colors ${
+            className={`px-2 py-1 text-xs font-normal rounded transition-colors flex items-center gap-1 ${
               currentView === 'rules'
                 ? 'bg-blue-50 text-blue-700 border border-blue-200'
                 : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
             }`}
-            title="Rules"
           >
-            ⚙️
+            <img src="/rules.svg" alt="Rules" className="w-3.5 h-3.5" />
+            Rules
           </button>
 
           <button
             onClick={() => navigate('/stats')}
-            className={`px-2 py-1 text-xs font-normal rounded transition-colors ${
+            className={`px-2 py-1 text-xs font-normal rounded transition-colors flex items-center gap-1 ${
               currentView === 'stats'
                 ? 'bg-blue-50 text-blue-700 border border-blue-200'
                 : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
             }`}
             title="Statistics"
           >
-            📊
+            <img src="/statistics.svg" alt="Stats" className="w-3.5 h-3.5" />
+            Stats
           </button>
 
           <button
             onClick={() => navigate('/config')}
-            className={`px-2 py-1 text-xs font-normal rounded transition-colors ${
+            className={`px-2 py-1 text-xs font-normal rounded transition-colors flex items-center gap-1 ${
               currentView === 'config'
                 ? 'bg-blue-50 text-blue-700 border border-blue-200'
                 : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
             }`}
             title="Configuration"
           >
-            🔧
+            <img src="/settings.svg" alt="Config" className="w-3.5 h-3.5" />
+            Config
           </button>
-
-          <div
-            className={`flex items-center gap-1.5 text-xs ${
-              isConnected ? 'text-green-600' : 'text-red-600'
-            }`}
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
-            {isConnected ? 'Connected' : 'Disconnected'}
-          </div>
         </div>
       </div>
     </header>
