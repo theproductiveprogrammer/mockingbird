@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
 import { useAppStore } from "../../stores/appStore";
-import { Tag } from "../ui/Tag";
 import { Button } from "../ui/Button";
 
 export function FilterBar() {
