@@ -55,37 +55,23 @@ func main() {
 
 	// Start servers
 	go func() {
-		fmt.Printf("🚀 Proxy server listening on http://localhost:%d\n", cfg.ProxyPort)
 		if err := proxyServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			fmt.Printf("Proxy server error: %v\n", err)
 		}
 	}()
 
 	go func() {
-		fmt.Printf("🔧 Admin API listening on http://localhost:%d\n", cfg.AdminPort)
 		if err := adminServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			fmt.Printf("Admin server error: %v\n", err)
 		}
 	}()
 
-	// Print loaded rules summary
-	allRules := st.GetAllRules()
-	if len(allRules) > 0 {
-		fmt.Println("\n📋 Loaded rules:")
-		for service, rules := range allRules {
-			fmt.Printf("  - %s: %d rule(s)\n", service, len(rules))
-		}
-	} else {
-		fmt.Println("\n⚠️  No rules loaded. Create rules via the Admin API.")
-		fmt.Printf("   Example: curl -X POST http://localhost:%d/api/rules/servicex -H 'Content-Type: application/json' -d '{...}'\n", cfg.AdminPort)
-	}
-
 	fmt.Println("\n✅ Mockingbird is ready!")
 	fmt.Println("---")
-	fmt.Printf("📍 Proxy:     http://localhost:%d\n", cfg.ProxyPort)
-	fmt.Printf("📍 Admin API: http://localhost:%d\n", cfg.AdminPort)
+	fmt.Printf("📍 🚀 Proxy:  http://localhost:%d\n", cfg.ProxyPort)
+	fmt.Printf("📍 ✧˖°Dashboard: http://localhost:%d\n", cfg.AdminPort)
+	fmt.Printf("📍 Admin API: http://localhost:%d/api\n", cfg.AdminPort)
 	fmt.Printf("📍 Health:    http://localhost:%d/health\n", cfg.AdminPort)
-	fmt.Printf("📍 Traffic:   http://localhost:%d/api/traffic/stream\n", cfg.AdminPort)
 	fmt.Println("---")
 
 	// Wait for interrupt signal
