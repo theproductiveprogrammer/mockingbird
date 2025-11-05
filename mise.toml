@@ -2,9 +2,26 @@
 go = "latest"
 
 [tasks]
-setup="mkdir -p ~/.config/mockingbird && cp examples/* ~/.config/mockingbird/"
-build="go build -o mockingbird ./cmd/server"
+setup = "mkdir -p ~/.config/mockingbird && cp examples/* ~/.config/mockingbird/"
+build = "go build -o mockingbird ./cmd/server"
 
 [tasks.start]
-depends=["build"]
-run="./mockingbird"
+depends = ["build"]
+run = "./mockingbird"
+
+[tasks.docker-build]
+depends = ["build"]
+run = '''
+VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "dev")
+echo "Building Docker image with tag: $VERSION"
+docker build -t charleslobo77/mockingbird:$VERSION -t charleslobo77/mockingbird:latest .
+'''
+
+[tasks.docker-push]
+depends = ["docker-build"]
+run = '''
+VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "dev")
+echo "Pushing Docker image with tag: $VERSION"
+docker push charleslobo77/mockingbird:$VERSION
+docker push charleslobo77/mockingbird:latest
+'''

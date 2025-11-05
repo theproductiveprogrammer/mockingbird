@@ -1,22 +1,19 @@
-version: "3.8"
+version: "3.9"
 
 services:
   mockingbird:
     build: .
+    container_name: charleslobo77/mockingbird:latest
     ports:
       - "8769:8769" # Proxy port
       - "8768:8768" # Admin API port
     volumes:
-      # Mount config directory
-      - ./examples:/app/config:ro
-      # Or use a local config directory:
-      # - ~/.config/mockingbird:/app/config
+      - ~/.config/mockingbird:/app/config
     environment:
       - MOCKINGBIRD_PROXY_PORT=8769
       - MOCKINGBIRD_ADMIN_PORT=8768
       - MOCKINGBIRD_CONFIG_DIR=/app/config
     restart: unless-stopped
-    container_name: mockingbird
 
   # Example: A service that uses Mockingbird
   # my-app:
