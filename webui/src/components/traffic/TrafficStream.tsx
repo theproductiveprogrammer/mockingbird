@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
-import { useAppStore } from '../../stores/appStore';
-import { api } from '../../utils/api';
-import { TrafficEntry } from './TrafficEntry';
+import { useEffect, useRef, useState } from "react";
+import { useAppStore } from "../../stores/appStore";
+import { api } from "../../utils/api";
+import { TrafficEntry } from "./TrafficEntry";
 
 export function TrafficStream() {
   const {
@@ -22,7 +22,7 @@ export function TrafficStream() {
 
   // Load initial traffic on mount
   useEffect(() => {
-    console.log('[TrafficStream] Loading initial traffic');
+    console.log("[TrafficStream] Loading initial traffic");
     api.getTraffic(100).then((result) => {
       setTraffic(result.entries, result.total);
     });
@@ -44,20 +44,20 @@ export function TrafficStream() {
       }
     };
 
-    container.addEventListener('scroll', handleScroll);
-    return () => container.removeEventListener('scroll', handleScroll);
+    container.addEventListener("scroll", handleScroll);
+    return () => container.removeEventListener("scroll", handleScroll);
   }, [unseenCount, clearUnseenCount]);
 
   // Auto-scroll to top when new entries arrive (only if already near top)
   useEffect(() => {
     if (traffic.length > previousTrafficLength.current && isNearTop) {
-      scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+      scrollContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
     }
     previousTrafficLength.current = traffic.length;
   }, [traffic.length, isNearTop]);
 
   const scrollToTop = () => {
-    scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    scrollContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
     clearUnseenCount();
   };
 
@@ -78,7 +78,7 @@ export function TrafficStream() {
       let actualFilter = filter;
 
       // Check for negative filter (prefix with -)
-      if (filter.startsWith('-')) {
+      if (filter.startsWith("-")) {
         isNegative = true;
         actualFilter = filter.substring(1);
         if (!actualFilter) return true; // Empty filter after '-' matches everything
@@ -88,11 +88,15 @@ export function TrafficStream() {
 
       // Check for regex filter (/pattern/)
       // But be forgiving: if it looks like a URL path (e.g., /users/create/), treat it as URL-only
-      if (actualFilter.startsWith('/') && actualFilter.endsWith('/') && actualFilter.length > 2) {
+      if (
+        actualFilter.startsWith("/") &&
+        actualFilter.endsWith("/") &&
+        actualFilter.length > 2
+      ) {
         const content = actualFilter.substring(1, actualFilter.length - 1);
 
         // Heuristic: if content has internal slashes and no regex special chars, it's probably a URL path
-        const hasInternalSlashes = content.includes('/');
+        const hasInternalSlashes = content.includes("/");
         const hasRegexChars = /[\\^$*+?()[\]{}|]/.test(content);
         const isLikelyUrlPath = hasInternalSlashes && !hasRegexChars;
 
@@ -102,22 +106,25 @@ export function TrafficStream() {
         } else {
           // Treat as regex
           try {
-            const regex = new RegExp(content, 'i');
+            const regex = new RegExp(content, "i");
 
             // Test against all searchable fields
             const pathMatch = regex.test(entry.path);
 
             const queryString = Object.entries(entry.query || {})
-              .map(([key, values]) => `${key}=${values.join(',')}`)
-              .join('&');
+              .map(([key, values]) => `${key}=${values.join(",")}`)
+              .join("&");
             const queryMatch = regex.test(queryString);
 
-            const requestBody = typeof entry.body === 'string'
-              ? entry.body
-              : JSON.stringify(entry.body || '');
+            const requestBody =
+              typeof entry.body === "string"
+                ? entry.body
+                : JSON.stringify(entry.body || "");
             const requestMatch = regex.test(requestBody);
 
-            const responseMatch = entry.response?.body ? regex.test(entry.response.body) : false;
+            const responseMatch = entry.response?.body
+              ? regex.test(entry.response.body)
+              : false;
 
             matches = pathMatch || queryMatch || requestMatch || responseMatch;
           } catch (e) {
@@ -127,7 +134,7 @@ export function TrafficStream() {
         }
       }
       // Check for URL-only filter (starts with / but doesn't end with /)
-      else if (actualFilter.startsWith('/')) {
+      else if (actualFilter.startsWith("/")) {
         matches = entry.path.toLowerCase().includes(actualFilter.toLowerCase());
       }
       // Plain text search across all fields
@@ -140,20 +147,23 @@ export function TrafficStream() {
         } else {
           // Match against query params
           const queryString = Object.entries(entry.query || {})
-            .map(([key, values]) => `${key}=${values.join(',')}`)
-            .join('&')
+            .map(([key, values]) => `${key}=${values.join(",")}`)
+            .join("&")
             .toLowerCase();
           if (queryString.includes(lowerFilter)) {
             matches = true;
           } else {
             // Match against request body
-            const requestBody = typeof entry.body === 'string'
-              ? entry.body
-              : JSON.stringify(entry.body || '');
+            const requestBody =
+              typeof entry.body === "string"
+                ? entry.body
+                : JSON.stringify(entry.body || "");
             if (requestBody.toLowerCase().includes(lowerFilter)) {
               matches = true;
-            } else if (entry.response?.body &&
-                entry.response.body.toLowerCase().includes(lowerFilter)) {
+            } else if (
+              entry.response?.body &&
+              entry.response.body.toLowerCase().includes(lowerFilter)
+            ) {
               // Match against response body
               matches = true;
             }
@@ -167,9 +177,40 @@ export function TrafficStream() {
   });
 
   // Debug: log traffic count on every render
-  console.log('[TrafficStream] Render - Total traffic:', traffic.length, '| Filtered:', filteredTraffic.length);
+  console.log(
+    "[TrafficStream] Render - Total traffic:",
+    traffic.length,
+    "| Filtered:",
+    filteredTraffic.length,
+  );
 
   const hasMore = traffic.length < totalAvailable;
+
+  // Helper function to check if we should show a time divider
+  const shouldShowTimeDivider = (
+    currentEntry: any,
+    previousEntry: any,
+  ): boolean => {
+    if (!previousEntry) return true;
+
+    const currentTime = new Date(currentEntry.timestamp).getTime();
+    const previousTime = new Date(previousEntry.timestamp).getTime();
+    const diffInSeconds = Math.abs(currentTime - previousTime) / 1000;
+
+    return diffInSeconds >= 5;
+  };
+
+  // Helper function to format timestamp for divider
+  const formatDividerTime = (timestamp: string): string => {
+    const date = new Date(timestamp);
+    const hours = date.getHours();
+    const minutes = date.getMinutes().toString().padStart(2, "0");
+    const seconds = date.getSeconds().toString().padStart(2, "0");
+    const ampm = hours >= 12 ? "PM" : "AM";
+    const displayHours = hours % 12 || 12;
+
+    return `${displayHours}:${minutes}:${seconds} ${ampm}`;
+  };
 
   return (
     <div className="h-full relative">
@@ -179,7 +220,7 @@ export function TrafficStream() {
           onClick={scrollToTop}
           className="absolute top-0 left-0 right-0 z-10 bg-blue-500 text-white text-center py-2 text-sm cursor-pointer hover:bg-blue-600 transition-colors"
         >
-          {unseenCount} new message{unseenCount > 1 ? 's' : ''} ↑
+          {unseenCount} new message{unseenCount > 1 ? "s" : ""} ↑
         </div>
       )}
 
@@ -188,14 +229,37 @@ export function TrafficStream() {
           <div className="flex items-center justify-center h-full text-gray-600">
             <div className="text-center">
               <p className="text-sm font-normal">No traffic yet</p>
-              <p className="text-xs mt-1 text-gray-500">Make a request to see it here</p>
+              <p className="text-xs mt-1 text-gray-500">
+                Make a request to see it here
+              </p>
             </div>
           </div>
         ) : (
           <>
-            {filteredTraffic.map((entry) => (
-              <TrafficEntry key={entry.id} entry={entry} isNew={newEntryIds.has(entry.id)} />
-            ))}
+            {filteredTraffic.map((entry, index) => {
+              const previousEntry =
+                index > 0 ? filteredTraffic[index - 1] : null;
+              const showDivider = shouldShowTimeDivider(entry, previousEntry);
+
+              return (
+                <div key={entry.id}>
+                  {showDivider && (
+                    <div className="flex items-center justify-center pb-4 pt-8 text-xs text-black-700">
+                      {/*<div className="border-t border-gray-200 w-8"></div>*/}
+                      <span className="text-gray-600">• </span>
+                      <span className="px-3 flex-shrink-0 text-gray-700">
+                        {formatDividerTime(entry.timestamp)}
+                      </span>
+                      <span className="text-gray-600"> •</span>
+                    </div>
+                  )}
+                  <TrafficEntry
+                    entry={entry}
+                    isNew={newEntryIds.has(entry.id)}
+                  />
+                </div>
+              );
+            })}
 
             {/* Load More section */}
             {hasMore && (
@@ -204,7 +268,8 @@ export function TrafficStream() {
                   onClick={loadMoreTraffic}
                   className="text-sm text-gray-600 hover:text-gray-900 font-medium"
                 >
-                  Showing {filteredTraffic.length} of {totalAvailable} • Load 100 More
+                  Showing {filteredTraffic.length} of {totalAvailable} • Load
+                  100 More
                 </button>
               </div>
             )}
