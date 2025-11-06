@@ -191,18 +191,23 @@ ${responseBodyStr}`;
         <div className="p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <h2 className="text-sm font-medium text-gray-800">{entry.path}</h2>
-            <Tag variant="method">{entry.method}</Tag>
-            {entry.matched_rule !== undefined && (
-              <button
-                onClick={handleGoToRule}
-                className="text-xs text-blue-600 hover:text-blue-800 hover:underline cursor-pointer transition-colors"
-                title="Go to rule"
-              >
-                → Rule #{entry.matched_rule + 1}: {entry.service}
-              </button>
-            )}
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-3">
+              <h2 className="text-sm font-medium text-gray-800">{entry.path}</h2>
+              <Tag variant="method">{entry.method}</Tag>
+              {entry.matched_rule !== undefined && (
+                <button
+                  onClick={handleGoToRule}
+                  className="text-xs text-blue-600 hover:text-blue-800 hover:underline cursor-pointer transition-colors"
+                  title="Go to rule"
+                >
+                  → Rule #{entry.matched_rule + 1}: {entry.service}
+                </button>
+              )}
+            </div>
+            <div className="text-xs text-gray-500 font-mono">
+              {new Date(entry.timestamp).toLocaleString()}
+            </div>
           </div>
           <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
             ← Back to Stream
