@@ -12,10 +12,14 @@ interface AppState {
   // Traffic
   traffic: TrafficEntry[];
   totalAvailable: number;
+  newEntryIds: Set<string>; // Track IDs of new entries for flash effect
+  unseenCount: number; // Count of new messages when scrolled down
   addTraffic: (entry: TrafficEntry) => void;
   setTraffic: (traffic: TrafficEntry[], total?: number) => void;
   loadMoreTraffic: () => Promise<void>;
   clearTraffic: () => void;
+  markEntryAsSeen: (id: string) => void;
+  clearUnseenCount: () => void;
   selectedTrafficId: string | null;
   setSelectedTrafficId: (id: string | null) => void;
 
@@ -54,6 +58,8 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   traffic: [],
   totalAvailable: 0,
+  newEntryIds: new Set<string>(),
+  unseenCount: 0,
   addTraffic: (entry) =>
     set((state) => {
       // Check if entry already exists by ID to prevent duplicates
@@ -63,10 +69,25 @@ export const useAppStore = create<AppState>((set, get) => ({
         return state; // Don't add duplicate
       }
       const newTraffic = [entry, ...state.traffic];
+      const newIds = new Set(state.newEntryIds);
+      newIds.add(entry.id);
+
       console.log('[addTraffic] Adding entry:', entry.id, '| Total after:', newTraffic.length);
+
+      // Auto-remove from newEntryIds after 3 seconds (flash/fade duration)
+      setTimeout(() => {
+        set((s) => {
+          const updated = new Set(s.newEntryIds);
+          updated.delete(entry.id);
+          return { newEntryIds: updated };
+        });
+      }, 3000);
+
       return {
         traffic: newTraffic,
-        totalAvailable: state.totalAvailable + 1, // Increment total when new entry arrives
+        totalAvailable: state.totalAvailable + 1,
+        newEntryIds: newIds,
+        unseenCount: state.unseenCount + 1, // Increment unseen (will be cleared when user scrolls to top)
       };
     }),
   setTraffic: (traffic, total) => {
@@ -74,6 +95,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     return set({
       traffic,
       totalAvailable: total !== undefined ? total : traffic.length,
+      newEntryIds: new Set(), // Clear new flags when loading/reloading
+      unseenCount: 0,
     });
   },
   loadMoreTraffic: async () => {
@@ -93,8 +116,15 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   clearTraffic: () => {
     console.log('[clearTraffic] Clearing all traffic');
-    return set({ traffic: [], totalAvailable: 0 });
+    return set({ traffic: [], totalAvailable: 0, newEntryIds: new Set(), unseenCount: 0 });
   },
+  markEntryAsSeen: (id) =>
+    set((state) => {
+      const updated = new Set(state.newEntryIds);
+      updated.delete(id);
+      return { newEntryIds: updated };
+    }),
+  clearUnseenCount: () => set({ unseenCount: 0 }),
   selectedTrafficId: null,
   setSelectedTrafficId: (id) => set({ selectedTrafficId: id }),
 

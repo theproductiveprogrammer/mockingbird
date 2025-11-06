@@ -12,9 +12,10 @@ import {
 
 interface TrafficEntryProps {
   entry: TrafficEntryType;
+  isNew?: boolean;
 }
 
-export function TrafficEntry({ entry }: TrafficEntryProps) {
+export function TrafficEntry({ entry, isNew = false }: TrafficEntryProps) {
   const navigate = useNavigate();
   const queryString = formatQueryParams(entry.query);
   const statusColor = getStatusColor(entry);
@@ -30,7 +31,7 @@ export function TrafficEntry({ entry }: TrafficEntryProps) {
   return (
     <div
       onClick={() => navigate(`/traffic/${entry.id}`)}
-      className="group px-6 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100"
+      className={`group px-6 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 ${isNew ? 'new-entry' : ''}`}
     >
       <div className="items-center gap-2 text-xs font-mono">
         {/* Timestamp, Method, Path, Query */}

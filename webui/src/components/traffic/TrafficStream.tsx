@@ -1,10 +1,24 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAppStore } from '../../stores/appStore';
 import { api } from '../../utils/api';
 import { TrafficEntry } from './TrafficEntry';
 
 export function TrafficStream() {
-  const { traffic, totalAvailable, setTraffic, loadMoreTraffic, filters, selectedServices } = useAppStore();
+  const {
+    traffic,
+    totalAvailable,
+    newEntryIds,
+    unseenCount,
+    setTraffic,
+    loadMoreTraffic,
+    clearUnseenCount,
+    filters,
+    selectedServices,
+  } = useAppStore();
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [isNearTop, setIsNearTop] = useState(true);
+  const previousTrafficLength = useRef(traffic.length);
 
   // Load initial traffic on mount
   useEffect(() => {
@@ -13,6 +27,39 @@ export function TrafficStream() {
       setTraffic(result.entries, result.total);
     });
   }, [setTraffic]);
+
+  // Track scroll position
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const scrollTop = container.scrollTop;
+      const nearTop = scrollTop < 100; // Consider "near top" if within 100px
+      setIsNearTop(nearTop);
+
+      // Clear unseen count when user scrolls to top
+      if (nearTop && unseenCount > 0) {
+        clearUnseenCount();
+      }
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [unseenCount, clearUnseenCount]);
+
+  // Auto-scroll to top when new entries arrive (only if already near top)
+  useEffect(() => {
+    if (traffic.length > previousTrafficLength.current && isNearTop) {
+      scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    previousTrafficLength.current = traffic.length;
+  }, [traffic.length, isNearTop]);
+
+  const scrollToTop = () => {
+    scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    clearUnseenCount();
+  };
 
   // Filter traffic: first by selected services, then by text filters
   const filteredTraffic = traffic.filter((entry) => {
@@ -125,40 +172,52 @@ export function TrafficStream() {
   const hasMore = traffic.length < totalAvailable;
 
   return (
-    <div className="h-full overflow-y-auto">
-      {filteredTraffic.length === 0 ? (
-        <div className="flex items-center justify-center h-full text-gray-600">
-          <div className="text-center">
-            <p className="text-sm font-normal">No traffic yet</p>
-            <p className="text-xs mt-1 text-gray-500">Make a request to see it here</p>
-          </div>
+    <div className="h-full relative">
+      {/* Sticky banner for new messages when scrolled down */}
+      {!isNearTop && unseenCount > 0 && (
+        <div
+          onClick={scrollToTop}
+          className="absolute top-0 left-0 right-0 z-10 bg-blue-500 text-white text-center py-2 text-sm cursor-pointer hover:bg-blue-600 transition-colors"
+        >
+          {unseenCount} new message{unseenCount > 1 ? 's' : ''} ↑
         </div>
-      ) : (
-        <>
-          {filteredTraffic.map((entry) => (
-            <TrafficEntry key={entry.id} entry={entry} />
-          ))}
-
-          {/* Load More section */}
-          {hasMore && (
-            <div className="flex items-center justify-center py-4 border-t border-gray-200">
-              <button
-                onClick={loadMoreTraffic}
-                className="text-sm text-gray-600 hover:text-gray-900 font-medium"
-              >
-                Showing {filteredTraffic.length} of {totalAvailable} • Load 100 More
-              </button>
-            </div>
-          )}
-
-          {/* Show count even when no more to load */}
-          {!hasMore && totalAvailable > 0 && (
-            <div className="flex items-center justify-center py-4 border-t border-gray-200 text-sm text-gray-500">
-              Showing {filteredTraffic.length} of {totalAvailable} messages
-            </div>
-          )}
-        </>
       )}
+
+      <div ref={scrollContainerRef} className="h-full overflow-y-auto">
+        {filteredTraffic.length === 0 ? (
+          <div className="flex items-center justify-center h-full text-gray-600">
+            <div className="text-center">
+              <p className="text-sm font-normal">No traffic yet</p>
+              <p className="text-xs mt-1 text-gray-500">Make a request to see it here</p>
+            </div>
+          </div>
+        ) : (
+          <>
+            {filteredTraffic.map((entry) => (
+              <TrafficEntry key={entry.id} entry={entry} isNew={newEntryIds.has(entry.id)} />
+            ))}
+
+            {/* Load More section */}
+            {hasMore && (
+              <div className="flex items-center justify-center py-4 border-t border-gray-200">
+                <button
+                  onClick={loadMoreTraffic}
+                  className="text-sm text-gray-600 hover:text-gray-900 font-medium"
+                >
+                  Showing {filteredTraffic.length} of {totalAvailable} • Load 100 More
+                </button>
+              </div>
+            )}
+
+            {/* Show count even when no more to load */}
+            {!hasMore && totalAvailable > 0 && (
+              <div className="flex items-center justify-center py-4 border-t border-gray-200 text-sm text-gray-500">
+                Showing {filteredTraffic.length} of {totalAvailable} messages
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
