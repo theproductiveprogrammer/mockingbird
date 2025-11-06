@@ -10,13 +10,19 @@ import { ConfigView } from './components/config/ConfigView';
 import { StatsView } from './components/stats/StatsView';
 import { useAppStore } from './stores/appStore';
 import { useTrafficSSE } from './hooks/useTrafficSSE';
+import { api } from './utils/api';
 
 function App() {
   const location = useLocation();
-  const { setCurrentView } = useAppStore();
+  const { setCurrentView, setConfig } = useAppStore();
 
   // Connect to SSE stream
   useTrafficSSE();
+
+  // Load config on app startup
+  useEffect(() => {
+    api.getConfig().then(setConfig).catch(console.error);
+  }, [setConfig]);
 
   // Derive currentView from URL (single source of truth)
   const currentView = (() => {

@@ -14,7 +14,7 @@ import { JsonViewer } from '../ui/JsonViewer';
 export function TrafficDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { traffic, setServiceRules, setHighlightedRule } = useAppStore();
+  const { traffic, setServiceRules, setHighlightedRule, config } = useAppStore();
   const [showRuleEditor, setShowRuleEditor] = useState(false);
 
   const entry = traffic.find((t) => t.id === id);
@@ -168,11 +168,13 @@ ${responseBodyStr}`;
       curl += ` -d '${bodyStr}'`;
     }
 
-    // Add URL
+    // Add URL (use dynamic proxy port from config)
     const queryStr = Object.entries(entry.query)
       .flatMap(([key, values]) => values.map(v => `${key}=${v}`))
       .join('&');
-    const url = `http://localhost:6625${entry.path}${queryStr ? '?' + queryStr : ''}`;
+    const proxyPort = config?.proxy_port || 6625; // Fallback to default if config not loaded
+    const hostname = window.location.hostname || 'localhost';
+    const url = `http://${hostname}:${proxyPort}${entry.path}${queryStr ? '?' + queryStr : ''}`;
     curl += ` "${url}"`;
 
     // Copy to clipboard
