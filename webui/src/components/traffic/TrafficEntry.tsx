@@ -23,7 +23,7 @@ export function TrafficEntry({ entry, isNew = false }: TrafficEntryProps) {
   // Parse response summary to extract and style the rule type badge
   const responseSummary = formatResponseSummary(entry);
   const ruleTypeBadgeClasses = entry.rule_type
-    ? getRuleTypeBadgeClasses(entry.rule_type, true)
+    ? getRuleTypeBadgeClasses(entry.rule_type)
     : "";
 
   const pathParts = formatPathParts(entry);
@@ -31,7 +31,7 @@ export function TrafficEntry({ entry, isNew = false }: TrafficEntryProps) {
   return (
     <div
       onClick={() => navigate(`/traffic/${entry.id}`)}
-      className={`group px-6 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 ${isNew ? 'new-entry' : ''}`}
+      className={`group px-6 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 ${isNew ? "new-entry" : ""}`}
     >
       <div className="items-center gap-2 text-xs font-mono">
         {/* Timestamp, Method, Path, Query */}
