@@ -148,7 +148,14 @@ func (h *Handler) handleProxy(w http.ResponseWriter, r *http.Request, rule *mode
 	// Replace localhost with container URL if running in Docker
 	proxyTo := replaceLocalhostURL(rule.ProxyTo)
 
-	upstreamURL, err := url.Parse(proxyTo)
+	// Render template with request context
+	renderedProxyTo, err := h.renderer.Render(proxyTo, ctx)
+	if err != nil {
+		fmt.Printf("Error rendering proxyTo URL: %v\n", err)
+		renderedProxyTo = proxyTo // Fall back to original
+	}
+
+	upstreamURL, err := url.Parse(renderedProxyTo)
 	if err != nil {
 		http.Error(w, "Invalid upstream URL", http.StatusInternalServerError)
 		return &models.Response{
