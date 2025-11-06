@@ -530,6 +530,13 @@ func (s *Store) loadTrafficFromFile() error {
 
 	var traffic []models.TrafficEntry
 	scanner := bufio.NewScanner(file)
+
+	// Increase buffer size to handle large bodies (up to 2MB + overhead for JSON structure)
+	// Default maxTokenSize is 64KB, but we need to support 2MB bodies
+	maxScanTokenSize := maxTextBodySizeBytes + (512 * 1024) // 2MB + 512KB overhead
+	buf := make([]byte, 0, maxScanTokenSize)
+	scanner.Buffer(buf, maxScanTokenSize)
+
 	lineNum := 0
 
 	for scanner.Scan() {
