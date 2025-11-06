@@ -16,7 +16,10 @@ import (
 	"github.com/theproductiveprogrammer/mockingbird.git/internal/models"
 )
 
-const maxBodySizeBytes = 1024 // 1KB limit for request/response bodies
+const (
+	maxTextBodySizeBytes   = 2 * 1024 * 1024 // 2MB limit for JSON/text bodies
+	maxBinaryBodySizeBytes = 1024             // 1KB limit for binary bodies (images, PDFs, etc.)
+)
 
 // Store manages rules and traffic history
 type Store struct {
@@ -291,12 +294,23 @@ func (s *Store) saveRulesToFile(service string, rules []models.Rule) error {
 
 // AddTraffic adds a traffic entry
 func (s *Store) AddTraffic(entry models.TrafficEntry) {
-	// Truncate request body
-	entry.Body = truncateBody(entry.Body)
+	// Get request Content-Type header for smart truncation
+	reqContentType := ""
+	if ct, ok := entry.Headers["Content-Type"]; ok && len(ct) > 0 {
+		reqContentType = ct[0]
+	}
+
+	// Truncate request body based on content type
+	entry.Body = truncateBody(entry.Body, reqContentType)
 
 	// Truncate response body if present (it's always a string)
 	if entry.Response != nil {
-		entry.Response.Body = truncateStringBody(entry.Response.Body)
+		// Get response Content-Type header
+		respContentType := ""
+		if ct, ok := entry.Response.Headers["Content-Type"]; ok {
+			respContentType = ct
+		}
+		entry.Response.Body = truncateStringBody(entry.Response.Body, respContentType)
 	}
 
 	s.mu.Lock()
@@ -421,26 +435,63 @@ func (s *Store) Close() error {
 	return nil
 }
 
-// truncateStringBody truncates a string body to maxBodySizeBytes
-func truncateStringBody(body string) string {
-	if len(body) <= maxBodySizeBytes {
-		return body
+// isTextContent checks if the content type is text-based (JSON, XML, HTML, plain text, etc.)
+func isTextContent(contentType string) bool {
+	if contentType == "" {
+		return true // Assume text if no content type
 	}
-	return body[:maxBodySizeBytes] + "...[truncated]"
+
+	// Convert to lowercase for case-insensitive matching
+	ct := strings.ToLower(contentType)
+
+	// Check for text-based content types
+	textTypes := []string{
+		"application/json",
+		"application/xml",
+		"application/x-yaml",
+		"application/yaml",
+		"text/",
+		"application/javascript",
+		"application/x-www-form-urlencoded",
+		"application/graphql",
+	}
+
+	for _, textType := range textTypes {
+		if strings.Contains(ct, textType) {
+			return true
+		}
+	}
+
+	return false
 }
 
-// truncateBody truncates large body data to maxBodySizeBytes
-func truncateBody(data interface{}) interface{} {
+// truncateStringBody truncates a string body based on content type
+func truncateStringBody(body string, contentType string) string {
+	maxSize := maxBinaryBodySizeBytes
+	if isTextContent(contentType) {
+		maxSize = maxTextBodySizeBytes
+	}
+
+	if len(body) <= maxSize {
+		return body
+	}
+	return body[:maxSize] + "...[truncated]"
+}
+
+// truncateBody truncates large body data based on content type
+func truncateBody(data interface{}, contentType string) interface{} {
 	if data == nil {
 		return nil
 	}
 
 	var bodyStr string
+	isJSON := false
 	switch v := data.(type) {
 	case string:
 		bodyStr = v
 	case map[string]interface{}, []interface{}:
-		// Convert to JSON string
+		// JSON objects/arrays - use text limit
+		isJSON = true
 		jsonBytes, err := json.Marshal(v)
 		if err != nil {
 			return data // Return as-is if marshaling fails
@@ -450,12 +501,18 @@ func truncateBody(data interface{}) interface{} {
 		return data // Unknown type, return as-is
 	}
 
-	if len(bodyStr) <= maxBodySizeBytes {
+	// Determine max size based on content type
+	maxSize := maxBinaryBodySizeBytes
+	if isJSON || isTextContent(contentType) {
+		maxSize = maxTextBodySizeBytes
+	}
+
+	if len(bodyStr) <= maxSize {
 		return data // No truncation needed
 	}
 
 	// Truncate and add indicator
-	return bodyStr[:maxBodySizeBytes] + "...[truncated]"
+	return bodyStr[:maxSize] + "...[truncated]"
 }
 
 // loadTrafficFromFile loads traffic history from traffic.ndjson
