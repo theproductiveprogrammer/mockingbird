@@ -35,17 +35,14 @@ export function TrafficEntry({ entry, isNew = false }: TrafficEntryProps) {
     >
       <div className="items-center gap-2 text-xs font-mono">
         {/* Timestamp, Method, Path, Query */}
-        <span className="">
-          <span className="text-gray-600">
-            [{formatTime(entry.timestamp)}]{" "}
-          </span>
-          {pathParts.service && (
-            <span className="text-gray-600 text-xs">{pathParts.service}</span>
-          )}
-          <span className="text-gray-900 font-semibold">{pathParts.path}</span>
-          {queryString && (
-            <span className="text-gray-600 text-xs">{queryString}</span>
-          )}
+        <span className="text-gray-600">[{formatTime(entry.timestamp)}] </span>
+        {pathParts.service && (
+          <span className="text-gray-600 text-xs">{pathParts.service}</span>
+        )}
+        <span className="text-gray-900 font-semibold">{pathParts.path}</span>
+        <span className="text-xs group-hover:text-blue-600 opacity-70 group-hover:opacity-100 transition-opacity">
+          {" "}
+          {queryString}{" "}
         </span>
         {/* Request summary */}
         <span className="text-xs opacity-70 group-hover:opacity-100 transition-opacity group-hover:text-blue-600">
@@ -63,6 +60,10 @@ export function TrafficEntry({ entry, isNew = false }: TrafficEntryProps) {
               [{responseSummary.ruleType} {responseSummary.delayStr}]
             </span>
           )}
+          {responseSummary.status_code &&
+            responseSummary.status_code !== 200 && (
+              <span>[{responseSummary.status_code}] </span>
+            )}
           {responseSummary.bodySummary}
         </span>
       </div>

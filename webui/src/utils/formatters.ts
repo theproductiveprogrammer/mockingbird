@@ -7,8 +7,9 @@ export function formatTime(timestamp: string): string {
 
 export function formatQueryParams(query: Record<string, string[]>): string {
   const params = Object.entries(query)
+    .filter(([_, values]) => values)
     .flatMap(([key, values]) => values.map((v) => `${key}=${v}`))
-    .join("|");
+    .join(", ");
   return params || "";
 }
 
