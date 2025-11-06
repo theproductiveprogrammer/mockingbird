@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { TrafficEntry, ServiceRules, Config, Stats } from '../types/api';
+import { api } from '../utils/api';
 
 type View = 'traffic' | 'rules' | 'config' | 'stats';
 
@@ -10,8 +11,10 @@ interface AppState {
 
   // Traffic
   traffic: TrafficEntry[];
+  totalAvailable: number;
   addTraffic: (entry: TrafficEntry) => void;
-  setTraffic: (traffic: TrafficEntry[]) => void;
+  setTraffic: (traffic: TrafficEntry[], total?: number) => void;
+  loadMoreTraffic: () => Promise<void>;
   clearTraffic: () => void;
   selectedTrafficId: string | null;
   setSelectedTrafficId: (id: string | null) => void;
@@ -45,11 +48,12 @@ interface AppState {
   setIsConnected: (connected: boolean) => void;
 }
 
-export const useAppStore = create<AppState>((set) => ({
+export const useAppStore = create<AppState>((set, get) => ({
   currentView: 'traffic',
   setCurrentView: (view) => set({ currentView: view }),
 
   traffic: [],
+  totalAvailable: 0,
   addTraffic: (entry) =>
     set((state) => {
       // Check if entry already exists by ID to prevent duplicates
@@ -58,19 +62,38 @@ export const useAppStore = create<AppState>((set) => ({
         console.log('[addTraffic] DUPLICATE detected, skipping:', entry.id);
         return state; // Don't add duplicate
       }
-      const newTraffic = [entry, ...state.traffic].slice(0, 100);
+      const newTraffic = [entry, ...state.traffic];
       console.log('[addTraffic] Adding entry:', entry.id, '| Total after:', newTraffic.length);
       return {
-        traffic: newTraffic, // Keep last 100
+        traffic: newTraffic,
+        totalAvailable: state.totalAvailable + 1, // Increment total when new entry arrives
       };
     }),
-  setTraffic: (traffic) => {
-    console.log('[setTraffic] Loading traffic - received:', traffic.length);
-    return set({ traffic });
+  setTraffic: (traffic, total) => {
+    console.log('[setTraffic] Loading traffic - received:', traffic.length, '| Total available:', total);
+    return set({
+      traffic,
+      totalAvailable: total !== undefined ? total : traffic.length,
+    });
+  },
+  loadMoreTraffic: async () => {
+    const state = get();
+    const currentLength = state.traffic.length;
+    console.log('[loadMoreTraffic] Current traffic:', currentLength, '| Loading 100 more...');
+
+    // Fetch more traffic (we want the next 100, starting from where we are)
+    const result = await api.getTraffic(currentLength + 100);
+
+    // The API returns the most recent N entries, so we just replace our traffic with the new longer list
+    set({
+      traffic: result.entries,
+      totalAvailable: result.total,
+    });
+    console.log('[loadMoreTraffic] Updated traffic:', result.entries.length, '| Total:', result.total);
   },
   clearTraffic: () => {
     console.log('[clearTraffic] Clearing all traffic');
-    return set({ traffic: [] });
+    return set({ traffic: [], totalAvailable: 0 });
   },
   selectedTrafficId: null,
   setSelectedTrafficId: (id) => set({ selectedTrafficId: id }),

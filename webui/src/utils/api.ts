@@ -3,13 +3,17 @@ import { TrafficEntry, Rule, ServiceRules, Config, Stats } from '../types/api';
 const API_BASE = 'http://localhost:8768/api';
 
 class ApiClient {
-  async getTraffic(limit = 100, service?: string): Promise<TrafficEntry[]> {
+  async getTraffic(limit = 100, service?: string): Promise<{ entries: TrafficEntry[]; returned: number; total: number }> {
     const params = new URLSearchParams({ limit: limit.toString() });
     if (service) params.append('service', service);
 
     const response = await fetch(`${API_BASE}/traffic?${params}`);
     const data = await response.json();
-    return data.entries || [];
+    return {
+      entries: data.entries || [],
+      returned: data.returned || 0,
+      total: data.total || 0,
+    };
   }
 
   async getTrafficById(id: string): Promise<TrafficEntry> {

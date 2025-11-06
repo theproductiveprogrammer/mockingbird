@@ -4,12 +4,14 @@ import { api } from '../../utils/api';
 import { TrafficEntry } from './TrafficEntry';
 
 export function TrafficStream() {
-  const { traffic, setTraffic, addTraffic, filters, selectedServices, setIsConnected } = useAppStore();
+  const { traffic, totalAvailable, setTraffic, loadMoreTraffic, filters, selectedServices } = useAppStore();
 
   // Load initial traffic on mount
   useEffect(() => {
     console.log('[TrafficStream] Loading initial traffic');
-    api.getTraffic(100).then(setTraffic);
+    api.getTraffic(100).then((result) => {
+      setTraffic(result.entries, result.total);
+    });
   }, [setTraffic]);
 
   // Filter traffic: first by selected services, then by text filters
@@ -120,6 +122,8 @@ export function TrafficStream() {
   // Debug: log traffic count on every render
   console.log('[TrafficStream] Render - Total traffic:', traffic.length, '| Filtered:', filteredTraffic.length);
 
+  const hasMore = traffic.length < totalAvailable;
+
   return (
     <div className="h-full overflow-y-auto">
       {filteredTraffic.length === 0 ? (
@@ -130,9 +134,30 @@ export function TrafficStream() {
           </div>
         </div>
       ) : (
-        filteredTraffic.map((entry) => (
-          <TrafficEntry key={entry.id} entry={entry} />
-        ))
+        <>
+          {filteredTraffic.map((entry) => (
+            <TrafficEntry key={entry.id} entry={entry} />
+          ))}
+
+          {/* Load More section */}
+          {hasMore && (
+            <div className="flex items-center justify-center py-4 border-t border-gray-200">
+              <button
+                onClick={loadMoreTraffic}
+                className="text-sm text-gray-600 hover:text-gray-900 font-medium"
+              >
+                Showing {filteredTraffic.length} of {totalAvailable} • Load 100 More
+              </button>
+            </div>
+          )}
+
+          {/* Show count even when no more to load */}
+          {!hasMore && totalAvailable > 0 && (
+            <div className="flex items-center justify-center py-4 border-t border-gray-200 text-sm text-gray-500">
+              Showing {filteredTraffic.length} of {totalAvailable} messages
+            </div>
+          )}
+        </>
       )}
     </div>
   );

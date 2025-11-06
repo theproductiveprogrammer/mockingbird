@@ -120,8 +120,9 @@ func (a *API) handleGetTraffic(w http.ResponseWriter, r *http.Request) {
 	entries := a.store.GetTraffic(limit, service)
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{
-		"entries": entries,
-		"total":   len(entries),
+		"entries":  entries,
+		"returned": len(entries),
+		"total":    a.store.GetTotalTrafficCount(service),
 	})
 }
 

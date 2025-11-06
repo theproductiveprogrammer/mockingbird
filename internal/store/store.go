@@ -346,6 +346,25 @@ func (s *Store) GetTraffic(limit int, service string) []models.TrafficEntry {
 	return result
 }
 
+// GetTotalTrafficCount returns the total count of traffic entries (optionally filtered by service)
+func (s *Store) GetTotalTrafficCount(service string) int {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if service == "" {
+		return len(s.traffic)
+	}
+
+	// Count entries for specific service
+	count := 0
+	for _, entry := range s.traffic {
+		if entry.Service == service {
+			count++
+		}
+	}
+	return count
+}
+
 // GetTrafficByID returns a specific traffic entry
 func (s *Store) GetTrafficByID(id string) *models.TrafficEntry {
 	s.mu.RLock()
