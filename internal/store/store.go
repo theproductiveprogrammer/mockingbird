@@ -160,10 +160,10 @@ func (s *Store) GetAllRules() map[string][]models.Rule {
 	return result
 }
 
-// AddRule adds a rule to a service
+// AddRule adds a rule to a service (adds at the beginning for highest priority)
 func (s *Store) AddRule(service string, rule models.Rule) error {
 	s.mu.Lock()
-	s.rules[service] = append(s.rules[service], rule)
+	s.rules[service] = append([]models.Rule{rule}, s.rules[service]...)
 	rules := s.rules[service]
 	s.mu.Unlock()
 
