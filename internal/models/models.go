@@ -38,10 +38,11 @@ type Rule struct {
 
 // MatchCondition defines criteria for matching requests
 type MatchCondition struct {
-	Method  []string   `json:"method,omitempty" yaml:"method,omitempty"`
-	Path    string     `json:"path,omitempty" yaml:"path,omitempty"`
+	Method  []string          `json:"method,omitempty" yaml:"method,omitempty"`
+	Path    string            `json:"path,omitempty" yaml:"path,omitempty"`
 	Headers map[string]string `json:"headers,omitempty" yaml:"headers,omitempty"`
-	Body    *BodyMatch `json:"body,omitempty" yaml:"body,omitempty"`
+	Body    *BodyMatch        `json:"body,omitempty" yaml:"body,omitempty"`
+	Query   map[string]string `json:"query,omitempty" yaml:"query,omitempty"`
 }
 
 // BodyMatch defines body matching criteria

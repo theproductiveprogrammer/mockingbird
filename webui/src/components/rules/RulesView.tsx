@@ -368,6 +368,13 @@ export function RulesView() {
                               </span>
                             )}
 
+                            {/* Query Match (if exists) */}
+                            {rule.match.query && Object.keys(rule.match.query).length > 0 && (
+                              <span className="text-gray-600 text-xs">
+                                [?{Object.entries(rule.match.query).map(([k, v]) => `${k}=${v}`).join('&')}]
+                              </span>
+                            )}
+
                             {/* Colored Badge */}
                             <span className={`${badgeClasses} px-1 rounded text-xs`}>
                               [{actionType}]

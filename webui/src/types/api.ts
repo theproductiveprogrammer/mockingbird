@@ -33,6 +33,7 @@ export interface MatchCondition {
   path?: string;
   headers?: Record<string, string>;
   body?: BodyMatch;
+  query?: Record<string, string>;
 }
 
 export interface BodyMatch {

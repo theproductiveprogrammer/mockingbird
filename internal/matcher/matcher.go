@@ -47,6 +47,11 @@ func matchRule(rule *models.Rule, ctx *models.RequestContext) bool {
 		return false
 	}
 
+	// Match query parameters
+	if !matchQuery(rule.Match.Query, ctx.QueryParams) {
+		return false
+	}
+
 	return true
 }
 
@@ -167,4 +172,37 @@ func matchBody(bodyMatch *models.BodyMatch, reqBody interface{}) bool {
 	}
 
 	return matched
+}
+
+// matchQuery checks if request query parameters match
+func matchQuery(ruleQuery map[string]string, reqQuery map[string][]string) bool {
+	// If no query parameters specified, match any
+	if len(ruleQuery) == 0 {
+		return true
+	}
+
+	for key, expectedValue := range ruleQuery {
+		// Get actual query parameter value
+		var actualValue string
+		if values, ok := reqQuery[key]; ok && len(values) > 0 {
+			actualValue = values[0]
+		}
+
+		// Try exact match first
+		if actualValue == expectedValue {
+			continue
+		}
+
+		// Try regex match
+		matched, err := regexp.MatchString(expectedValue, actualValue)
+		if err != nil {
+			fmt.Printf("Invalid regex pattern %s: %v\n", expectedValue, err)
+			return false
+		}
+		if !matched {
+			return false
+		}
+	}
+
+	return true
 }

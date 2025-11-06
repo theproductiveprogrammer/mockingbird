@@ -132,10 +132,18 @@ headers:
 body:
 ${responseBodyStr}`;
 
+    // Convert query parameters from string[] to string (take first value)
+    const queryParams = Object.keys(entry.query || {}).length > 0
+      ? Object.fromEntries(
+          Object.entries(entry.query).map(([k, v]) => [k, v[0]])
+        )
+      : undefined;
+
     return {
       match: {
         method: [entry.method],
         path: entry.path,
+        query: queryParams,
       },
       response: template,
     };

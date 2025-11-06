@@ -75,6 +75,9 @@ export function RuleEditor({ service, rule, index, onSave, onCancel }: RuleEdito
     Object.entries(rule.match.headers || {}).map(([key, value]) => ({ key, value }))
   );
   const [bodyMatch, setBodyMatch] = useState(rule.match.body?.matches || '');
+  const [queryParams, setQueryParams] = useState(
+    Object.entries(rule.match.query || {}).map(([key, value]) => ({ key, value }))
+  );
   const [responseType, setResponseType] = useState<'mock' | 'proxy'>(
     rule.response ? 'mock' : 'proxy'
   );
@@ -128,6 +131,20 @@ export function RuleEditor({ service, rule, index, onSave, onCancel }: RuleEdito
     setProxyHeaders(proxyHeaders.filter((_, i) => i !== idx));
   };
 
+  const addQueryParam = () => {
+    setQueryParams([...queryParams, { key: '', value: '' }]);
+  };
+
+  const updateQueryParam = (idx: number, field: 'key' | 'value', value: string) => {
+    const newParams = [...queryParams];
+    newParams[idx][field] = value;
+    setQueryParams(newParams);
+  };
+
+  const removeQueryParam = (idx: number) => {
+    setQueryParams(queryParams.filter((_, i) => i !== idx));
+  };
+
   const handleSave = () => {
     const matchCondition: MatchCondition = {
       method: methods.length > 0 ? methods : undefined,
@@ -137,6 +154,10 @@ export function RuleEditor({ service, rule, index, onSave, onCancel }: RuleEdito
           ? Object.fromEntries(matchHeaders.filter((h) => h.key).map((h) => [h.key, h.value]))
           : undefined,
       body: bodyMatch ? { matches: bodyMatch } : undefined,
+      query:
+        queryParams.length > 0 && queryParams.some((q) => q.key)
+          ? Object.fromEntries(queryParams.filter((q) => q.key).map((q) => [q.key, q.value]))
+          : undefined,
     };
 
     const updatedRule: Rule = {
@@ -200,6 +221,39 @@ export function RuleEditor({ service, rule, index, onSave, onCancel }: RuleEdito
                 className="w-full px-2 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-400 font-mono text-xs"
               />
               <p className="text-xs text-gray-400 mt-0.5">(use ** for wildcards)</p>
+            </div>
+
+            {/* Query Parameters Match */}
+            <div className="mb-3">
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-normal text-gray-600">
+                  Match Query Parameters (optional):
+                </label>
+                <Button variant="secondary" size="sm" onClick={addQueryParam}>
+                  + Add Query Match
+                </Button>
+              </div>
+              {queryParams.map((param, idx) => (
+                <div key={idx} className="flex gap-2 mb-1.5">
+                  <input
+                    type="text"
+                    value={param.key}
+                    onChange={(e) => updateQueryParam(idx, 'key', e.target.value)}
+                    placeholder="param-name"
+                    className="flex-1 px-2 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-400 font-mono text-xs"
+                  />
+                  <input
+                    type="text"
+                    value={param.value}
+                    onChange={(e) => updateQueryParam(idx, 'value', e.target.value)}
+                    placeholder="value or regex"
+                    className="flex-1 px-2 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-400 font-mono text-xs"
+                  />
+                  <Button variant="secondary" size="sm" onClick={() => removeQueryParam(idx)}>
+                    Remove
+                  </Button>
+                </div>
+              ))}
             </div>
 
             {/* Match Headers */}
