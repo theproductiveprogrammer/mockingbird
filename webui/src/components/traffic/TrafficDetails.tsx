@@ -172,7 +172,7 @@ ${responseBodyStr}`;
     const queryStr = Object.entries(entry.query)
       .flatMap(([key, values]) => values.map(v => `${key}=${v}`))
       .join('&');
-    const url = `http://localhost:8769${entry.path}${queryStr ? '?' + queryStr : ''}`;
+    const url = `http://localhost:6625${entry.path}${queryStr ? '?' + queryStr : ''}`;
     curl += ` "${url}"`;
 
     // Copy to clipboard

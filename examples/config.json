@@ -1,6 +1,6 @@
 {
-	"proxy_port": 8769,
-	"admin_port": 8768,
+	"proxy_port": 6625,
+	"admin_port": 6626,
 	"values": {
 		"SERVICEX_API_KEY": "sk-example-servicex-key-12345",
 		"OPENAI_API_KEY": "sk-example-openai-key-67890",

@@ -8,7 +8,7 @@
 **So that** I can control, monitor, and mock all external dependencies from one place
 
 **Acceptance Criteria:**
-- Developers configure their apps to call `http://localhost:8769/servicex` instead of `https://api.servicex.com`
+- Developers configure their apps to call `http://localhost:6625/servicex` instead of `https://api.servicex.com`
 - Mockingbird routes requests based on path prefix (`/servicex` → servicex, `/openai` → openai)
 - API keys are stored centrally in Mockingbird config, not in individual services
 

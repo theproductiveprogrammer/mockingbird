@@ -6,13 +6,13 @@ services:
     container_name: mockingbird
     restart: unless-stopped
     ports:
-      - "8769:8769"  # Proxy port
-      - "8768:8768"  # Admin API port
+      - "6625:6625"  # Proxy port
+      - "6626:6626"  # Admin API port
     volumes:
       - ~/.config/mockingbird:/app/config
     environment:
-      - MOCKINGBIRD_PROXY_PORT=8769
-      - MOCKINGBIRD_ADMIN_PORT=8768
+      - MOCKINGBIRD_PROXY_PORT=6625
+      - MOCKINGBIRD_ADMIN_PORT=6626
       - MOCKINGBIRD_CONFIG_DIR=/app/config
       - LOCALHOST_CONTAINER_URL=host.docker.internal
     extra_hosts:
@@ -22,7 +22,7 @@ services:
   # my-app:
   #   image: my-app:latest
   #   environment:
-  #     - SERVICEX_BASE_URL=http://mockingbird:8769/servicex
-  #     - OPENAI_BASE_URL=http://mockingbird:8769/openai
+  #     - SERVICEX_BASE_URL=http://mockingbird:6625/servicex
+  #     - OPENAI_BASE_URL=http://mockingbird:6625/openai
   #   depends_on:
   #     - mockingbird

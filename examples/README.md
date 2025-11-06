@@ -21,13 +21,13 @@ go run cmd/server/main.go
 
 ```bash
 # This will return a 504 timeout (no rule for "test" service)
-curl http://localhost:8769/test/endpoint
+curl http://localhost:6625/test/endpoint
 
 # This will proxy to ServiceX with injected API key
-curl http://localhost:8769/servicex/users
+curl http://localhost:6625/servicex/users
 
 # This will return a mocked response (contains "charles")
-curl -X POST http://localhost:8769/servicex/users/new \
+curl -X POST http://localhost:6625/servicex/users/new \
   -H "Content-Type: application/json" \
   -d '{"username": "charles", "email": "charles@example.com"}'
 ```

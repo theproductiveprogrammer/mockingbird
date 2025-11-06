@@ -29,8 +29,8 @@ func Load() (*Config, error) {
 	configDir := getConfigDir()
 
 	cfg := &Config{
-		ProxyPort:         8769,
-		AdminPort:         8768,
+		ProxyPort:         6625, // MOCK on phone keypad
+		AdminPort:         6626, // MOCK + 1
 		ConfigDir:         configDir,
 		MaxTrafficEntries: 10000,
 		Values:            make(map[string]string),

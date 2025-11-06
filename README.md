@@ -29,7 +29,7 @@ Stop hardcoding API keys, stop hitting live APIs during development, and get ful
 Instead of:
   * `https://api.servicex.com`
   use
-  * `http://localhost:8769/servicex`
+  * `http://localhost:6625/servicex`
 
 You will immediately see all the requests your system is making on the mocking bird dashboard. Because they are not configured, they will all show as 'failed'.
 
@@ -64,7 +64,7 @@ All backend keys are automatically masked in the recorded API requests and dashb
 3. **Debugging:** Watch live traffic to see what your app is calling:
 
     ```bash
-    curl -N http://localhost:8768/api/traffic/stream
+    curl -N http://localhost:6626/api/traffic/stream
     ```
 
 4. **Path patterns:**

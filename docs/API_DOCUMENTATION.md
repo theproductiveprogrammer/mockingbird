@@ -1,6 +1,6 @@
 # 🐦 Mockingbird - REST API Documentation
 
-Base URL: `http://localhost:8768` (Admin API)
+Base URL: `http://localhost:6626` (Admin API)
 
 All endpoints return JSON unless otherwise specified.
 
@@ -23,10 +23,10 @@ Get the last N traffic entries.
 
 ```bash
 # Get last 50 traffic entries
-curl http://localhost:8768/api/traffic?limit=50
+curl http://localhost:6626/api/traffic?limit=50
 
 # Get traffic for servicex only
-curl http://localhost:8768/api/traffic?service=servicex
+curl http://localhost:6626/api/traffic?service=servicex
 ```
 
 **Response**:
@@ -78,7 +78,7 @@ Get real-time traffic updates using Server-Sent Events.
 **Example**:
 
 ```bash
-curl -N http://localhost:8768/api/traffic/stream
+curl -N http://localhost:6626/api/traffic/stream
 ```
 
 **Response** (SSE format):
@@ -92,7 +92,7 @@ data: {"id":"req-...","timestamp":"...","method":"GET","path":"/openai/chat",...
 **Usage in Code**:
 
 ```javascript
-const eventSource = new EventSource("http://localhost:8768/api/traffic/stream");
+const eventSource = new EventSource("http://localhost:6626/api/traffic/stream");
 eventSource.onmessage = (event) => {
     const traffic = JSON.parse(event.data);
     console.log("New request:", traffic);
@@ -110,7 +110,7 @@ Get full details for a specific traffic entry.
 **Example**:
 
 ```bash
-curl http://localhost:8768/api/traffic/req-123e4567-e89b-12d3-a456-426614174000
+curl http://localhost:6626/api/traffic/req-123e4567-e89b-12d3-a456-426614174000
 ```
 
 **Response**:
@@ -140,7 +140,7 @@ Generate a rule template from a traffic entry.
 **Example**:
 
 ```bash
-curl -X POST http://localhost:8768/api/traffic/req-123e4567.../generate-rule
+curl -X POST http://localhost:6626/api/traffic/req-123e4567.../generate-rule
 ```
 
 **Response**:
@@ -165,7 +165,7 @@ Get all rules grouped by service.
 **Example**:
 
 ```bash
-curl http://localhost:8768/api/rules
+curl http://localhost:6626/api/rules
 ```
 
 **Response**:
@@ -219,7 +219,7 @@ Get all rules for a specific service.
 **Example**:
 
 ```bash
-curl http://localhost:8768/api/rules/servicex
+curl http://localhost:6626/api/rules/servicex
 ```
 
 **Response**:
@@ -267,7 +267,7 @@ Add a new rule to a service.
 **Example**:
 
 ```bash
-curl -X POST http://localhost:8768/api/rules/servicex \
+curl -X POST http://localhost:6626/api/rules/servicex \
   -H "Content-Type: application/json" \
   -d '{
     "match": {
@@ -312,7 +312,7 @@ Update a rule at a specific index.
 **Example**:
 
 ```bash
-curl -X PUT http://localhost:8768/api/rules/servicex/1 \
+curl -X PUT http://localhost:6626/api/rules/servicex/1 \
   -H "Content-Type: application/json" \
   -d '{
     "match": {
@@ -345,7 +345,7 @@ Delete a rule at a specific index.
 **Example**:
 
 ```bash
-curl -X DELETE http://localhost:8768/api/rules/servicex/1
+curl -X DELETE http://localhost:6626/api/rules/servicex/1
 ```
 
 **Response**:
@@ -370,7 +370,7 @@ Download the raw YAML file for a service.
 **Example**:
 
 ```bash
-curl http://localhost:8768/api/rules/servicex/raw
+curl http://localhost:6626/api/rules/servicex/raw
 ```
 
 **Response** (YAML):
@@ -398,15 +398,15 @@ Get current configuration (API key values are masked).
 **Example**:
 
 ```bash
-curl http://localhost:8768/api/config
+curl http://localhost:6626/api/config
 ```
 
 **Response**:
 
 ```json
 {
-    "proxy_port": 8769,
-    "admin_port": 8768,
+    "proxy_port": 6625,
+    "admin_port": 6626,
     "config_dir": "/Users/user/.config/mockingbird",
     "values": {
         "SERVICEX_API_KEY": "sk-***",
@@ -426,7 +426,7 @@ Get a specific config value (unmasked).
 **Example**:
 
 ```bash
-curl http://localhost:8768/api/config/SERVICEX_API_KEY
+curl http://localhost:6626/api/config/SERVICEX_API_KEY
 ```
 
 **Response**:
@@ -457,7 +457,7 @@ Set or update a config value.
 **Example**:
 
 ```bash
-curl -X PUT http://localhost:8768/api/config/SERVICEX_API_KEY \
+curl -X PUT http://localhost:6626/api/config/SERVICEX_API_KEY \
   -H "Content-Type: application/json" \
   -d '{"value": "sk-new-key-value"}'
 ```
@@ -483,7 +483,7 @@ Delete a config value.
 **Example**:
 
 ```bash
-curl -X DELETE http://localhost:8768/api/config/OLD_KEY
+curl -X DELETE http://localhost:6626/api/config/OLD_KEY
 ```
 
 **Response**:
@@ -509,7 +509,7 @@ Check if Mockingbird is running.
 **Example**:
 
 ```bash
-curl http://localhost:8768/health
+curl http://localhost:6626/health
 ```
 
 **Response**:
@@ -533,7 +533,7 @@ Get system statistics.
 **Example**:
 
 ```bash
-curl http://localhost:8768/api/stats
+curl http://localhost:6626/api/stats
 ```
 
 **Response**:
@@ -593,15 +593,15 @@ All endpoints return errors in this format:
 
 ## Proxy API (Main Traffic)
 
-The proxy server runs on port 8769 and handles actual API requests.
+The proxy server runs on port 6625 and handles actual API requests.
 
-**Base URL**: `http://localhost:8769`
+**Base URL**: `http://localhost:6625`
 
 **Usage**:
 Instead of calling `https://api.servicex.com/api/do?param=value`, call:
 
 ```bash
-curl http://localhost:8769/servicex/api/do?param=value
+curl http://localhost:6625/servicex/api/do?param=value
 ```
 
 The request will:
@@ -620,28 +620,28 @@ The request will:
 
 ```bash
 mockingbird
-# Listening on :8769 (proxy)
-# Listening on :8768 (admin)
+# Listening on :6625 (proxy)
+# Listening on :6626 (admin)
 ```
 
 ### 2. Make a request (no rules yet)
 
 ```bash
-curl http://localhost:8769/servicex/users
+curl http://localhost:6625/servicex/users
 # Returns: 504 Gateway Timeout
 ```
 
 ### 3. Check traffic
 
 ```bash
-curl http://localhost:8768/api/traffic?service=servicex
+curl http://localhost:6626/api/traffic?service=servicex
 # Shows the failed request
 ```
 
 ### 4. Create a proxy rule
 
 ```bash
-curl -X POST http://localhost:8768/api/rules/servicex \
+curl -X POST http://localhost:6626/api/rules/servicex \
   -H "Content-Type: application/json" \
   -d '{
     "match": {
@@ -658,14 +658,14 @@ curl -X POST http://localhost:8768/api/rules/servicex \
 ### 5. Make request again
 
 ```bash
-curl http://localhost:8769/servicex/users
+curl http://localhost:6625/servicex/users
 # Now forwards to https://api.servicex.com/users with API key
 ```
 
 ### 6. Create a mock rule (more specific, wins first)
 
 ```bash
-curl -X POST http://localhost:8768/api/rules/servicex \
+curl -X POST http://localhost:6626/api/rules/servicex \
   -H "Content-Type: application/json" \
   -d '{
     "match": {
@@ -680,16 +680,16 @@ curl -X POST http://localhost:8768/api/rules/servicex \
 
 ```bash
 # Hits mock rule
-curl http://localhost:8769/servicex/users/123
+curl http://localhost:6625/servicex/users/123
 
 # Hits proxy rule
-curl http://localhost:8769/servicex/users/456
+curl http://localhost:6625/servicex/users/456
 ```
 
 ### 8. Stream live traffic
 
 ```bash
-curl -N http://localhost:8768/api/traffic/stream
+curl -N http://localhost:6626/api/traffic/stream
 # Watch requests come in real-time
 ```
 

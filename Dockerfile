@@ -51,7 +51,7 @@ COPY --from=web-builder /web/dist ./webui/dist
 RUN mkdir -p /app/config
 
 # Expose ports
-EXPOSE 8769 8768
+EXPOSE 6625 6626
 
 # Set environment variables
 ENV MOCKINGBIRD_CONFIG_DIR=/app/config

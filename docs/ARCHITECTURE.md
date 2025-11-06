@@ -10,7 +10,7 @@
                 | /servicex/users         | /openai/chat         | /stripe/payments
                 +-------------------------+-----------------------+
                                           |
-                         http://localhost:8769 (Proxy Server)
+                         http://localhost:6625 (Proxy Server)
                                           |
                          +----------------v-----------------+
                          |       MOCKINGBIRD PROXY          |
@@ -23,7 +23,7 @@
                          +----------------+-----------------+
                                 /         |         \
                                /          |          \
-                      (matched)      (no match)   (admin:8768)
+                      (matched)      (no match)   (admin:6626)
                          /              |              \
                         v               v               v
             +------------------+   +---------+   +---------------+
@@ -40,7 +40,7 @@
 ### Path-Based Service Routing
 
 ```
-Request: GET http://localhost:8769/servicex/users/123?filter=active
+Request: GET http://localhost:6625/servicex/users/123?filter=active
                                       ^^^^^^^
                                       service name
 
