@@ -203,6 +203,8 @@ func (h *Handler) handleProxy(w http.ResponseWriter, r *http.Request, rule *mode
 			fmt.Printf("Error decompressing gzip response: %v\n", err)
 		} else {
 			body = string(decompressed)
+			// Remove Content-Encoding header since body is now decompressed
+			rec.Header().Del("Content-Encoding")
 		}
 	}
 
