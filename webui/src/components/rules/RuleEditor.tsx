@@ -220,7 +220,7 @@ export function RuleEditor({ service, rule, index, onSave, onCancel }: RuleEdito
                 placeholder="/servicex/users/**"
                 className="w-full px-2 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-400 font-mono text-xs"
               />
-              <p className="text-xs text-gray-400 mt-0.5">(use ** for wildcards)</p>
+              <p className="text-xs text-gray-600 mt-0.5">(use ** for wildcards)</p>
             </div>
 
             {/* Query Parameters Match */}
@@ -380,7 +380,7 @@ export function RuleEditor({ service, rule, index, onSave, onCancel }: RuleEdito
                     className="w-full px-2 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-400 font-mono text-xs"
                     rows={4}
                   />
-                  <p className="text-xs text-gray-400 mt-0.5">
+                  <p className="text-xs text-gray-600 mt-0.5">
                     One header per line: Key: Value
                   </p>
                 </div>
@@ -396,14 +396,8 @@ export function RuleEditor({ service, rule, index, onSave, onCancel }: RuleEdito
                     className="w-full px-2 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-400 font-mono text-xs"
                     rows={10}
                   />
-                  <p className="text-xs text-gray-400 mt-0.5">
+                  <p className="text-xs text-gray-600 mt-0.5">
                     Use backticks for template variables: {`{{ uuid }}`}, {`{{ reqBody \`field\` }}`}
-                  </p>
-                </div>
-
-                <div className="bg-gray-50 border border-gray-200 rounded p-2">
-                  <p className="text-xs text-gray-600">
-                    We'll format this correctly to YAML when saving
                   </p>
                 </div>
               </>
