@@ -13,7 +13,7 @@ import (
 type Config struct {
 	ProxyPort         int               `json:"proxy_port"`
 	AdminPort         int               `json:"admin_port"`
-	ConfigDir         string            `json:"config_dir,omitempty"`      // Where rules are stored
+	ConfigDir         string            `json:"-"`                         // Where rules are stored (never serialize - use env var only)
 	MaxTrafficEntries int               `json:"max_traffic_entries"`       // Maximum traffic entries to store
 	Values            map[string]string `json:"values"`                    // Custom key-value pairs (API keys, etc.)
 	Version           string            `json:"version,omitempty"`         // Version (e.g., "v1.3.0")
