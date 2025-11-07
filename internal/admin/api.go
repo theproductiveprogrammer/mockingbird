@@ -13,6 +13,7 @@ import (
 
 	"github.com/theproductiveprogrammer/mockingbird.git/internal/config"
 	"github.com/theproductiveprogrammer/mockingbird.git/internal/dsl"
+	"github.com/theproductiveprogrammer/mockingbird.git/internal/matcher"
 	"github.com/theproductiveprogrammer/mockingbird.git/internal/models"
 	"github.com/theproductiveprogrammer/mockingbird.git/internal/store"
 )
@@ -119,6 +120,31 @@ func (a *API) handleGetTraffic(w http.ResponseWriter, r *http.Request) {
 	service := r.URL.Query().Get("service")
 	entries := a.store.GetTraffic(limit, service)
 
+	// Compute current matched rule for each entry
+	for i := range entries {
+		entry := &entries[i]
+
+		// Get current rules for this service
+		rules := a.store.GetRules(entry.Service)
+
+		// Create request context from entry
+		ctx := &models.RequestContext{
+			Method:      entry.Method,
+			Path:        entry.Path,
+			QueryParams: entry.QueryParams,
+			Headers:     entry.Headers,
+			Body:        entry.Body,
+		}
+
+		// Match against current rules
+		_, ruleIndex := matcher.Match(rules, ctx)
+
+		// Set current matched rule (nil if no match)
+		if ruleIndex >= 0 {
+			entry.CurrentMatchedRule = &ruleIndex
+		}
+	}
+
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"entries":  entries,
 		"returned": len(entries),
@@ -139,6 +165,20 @@ func (a *API) handleGetTrafficByID(w http.ResponseWriter, r *http.Request) {
 	if entry == nil {
 		respondError(w, http.StatusNotFound, "Traffic entry not found", "NOT_FOUND")
 		return
+	}
+
+	// Compute current matched rule
+	rules := a.store.GetRules(entry.Service)
+	ctx := &models.RequestContext{
+		Method:      entry.Method,
+		Path:        entry.Path,
+		QueryParams: entry.QueryParams,
+		Headers:     entry.Headers,
+		Body:        entry.Body,
+	}
+	_, ruleIndex := matcher.Match(rules, ctx)
+	if ruleIndex >= 0 {
+		entry.CurrentMatchedRule = &ruleIndex
 	}
 
 	respondJSON(w, http.StatusOK, entry)

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/theproductiveprogrammer/mockingbird.git/internal/matcher"
+	"github.com/theproductiveprogrammer/mockingbird.git/internal/models"
 	"github.com/theproductiveprogrammer/mockingbird.git/internal/store"
 )
 
@@ -33,6 +35,20 @@ func streamTraffic(w http.ResponseWriter, r *http.Request, st *store.Store) {
 			if !ok {
 				// Channel closed, server shutting down
 				return
+			}
+
+			// Compute current matched rule for this entry
+			rules := st.GetRules(entry.Service)
+			ctx := &models.RequestContext{
+				Method:      entry.Method,
+				Path:        entry.Path,
+				QueryParams: entry.QueryParams,
+				Headers:     entry.Headers,
+				Body:        entry.Body,
+			}
+			_, ruleIndex := matcher.Match(rules, ctx)
+			if ruleIndex >= 0 {
+				entry.CurrentMatchedRule = &ruleIndex
 			}
 
 			// Marshal entry to JSON

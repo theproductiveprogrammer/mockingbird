@@ -183,12 +183,12 @@ ${responseBodyStr}`;
   };
 
   const handleGoToRule = () => {
-    if (!entry || entry.matched_rule === undefined) return;
+    if (!entry || entry.current_matched_rule === undefined) return;
 
     // Set the highlighted rule
     setHighlightedRule({
       service: entry.service,
-      index: entry.matched_rule,
+      index: entry.current_matched_rule,
     });
 
     // Navigate to rules view
@@ -205,13 +205,13 @@ ${responseBodyStr}`;
             <div className="flex items-center gap-3">
               <h2 className="text-sm font-medium text-gray-800">{entry.path}</h2>
               <Tag variant="method">{entry.method}</Tag>
-              {entry.matched_rule !== undefined && (
+              {entry.current_matched_rule !== undefined && (
                 <button
                   onClick={handleGoToRule}
                   className="text-xs text-blue-600 hover:text-blue-800 hover:underline cursor-pointer transition-colors"
                   title="Go to rule"
                 >
-                  → Rule #{entry.matched_rule + 1}: {entry.service}
+                  Currently matches: Rule #{entry.current_matched_rule + 1}
                 </button>
               )}
             </div>

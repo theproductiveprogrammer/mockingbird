@@ -9,7 +9,8 @@ export interface TrafficEntry {
   headers: Record<string, string[]>;
   body: any;
   response?: MockResponse;
-  matched_rule?: number;
+  matched_rule?: number; // Historical matched rule (may be stale)
+  current_matched_rule?: number; // Current match with active rules
   rule_type: "mock" | "proxy" | "timeout";
 }
 

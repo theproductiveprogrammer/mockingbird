@@ -6,17 +6,18 @@ import (
 
 // TrafficEntry represents a recorded request/response pair
 type TrafficEntry struct {
-	ID           string              `json:"id"`
-	Timestamp    time.Time           `json:"timestamp"`
-	Service      string              `json:"service"`
-	Method       string              `json:"method"`
-	Path         string              `json:"path"`
-	QueryParams  map[string][]string `json:"query"`
-	Headers      map[string][]string `json:"headers"`
-	Body         interface{}         `json:"body"` // JSON object or string
-	Response     *Response           `json:"response,omitempty"`
-	MatchedRule  *int                `json:"matched_rule,omitempty"` // Index of matched rule
-	RuleType     string              `json:"rule_type,omitempty"`    // "proxy", "mock", or "timeout"
+	ID                 string              `json:"id"`
+	Timestamp          time.Time           `json:"timestamp"`
+	Service            string              `json:"service"`
+	Method             string              `json:"method"`
+	Path               string              `json:"path"`
+	QueryParams        map[string][]string `json:"query"`
+	Headers            map[string][]string `json:"headers"`
+	Body               interface{}         `json:"body"` // JSON object or string
+	Response           *Response           `json:"response,omitempty"`
+	MatchedRule        *int                `json:"matched_rule,omitempty"`         // Historical matched rule (may be stale after rule changes)
+	CurrentMatchedRule *int                `json:"current_matched_rule,omitempty"` // Current match with active rules (computed on-demand by API)
+	RuleType           string              `json:"rule_type,omitempty"`            // "proxy", "mock", or "timeout"
 }
 
 // Response represents an HTTP response
