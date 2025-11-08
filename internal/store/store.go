@@ -593,3 +593,4 @@ func (s *Store) appendTrafficEntry(entry models.TrafficEntry) error {
 
 	return nil
 }
+

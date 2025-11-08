@@ -2,6 +2,7 @@ package admin
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 	"strconv"
@@ -59,39 +60,36 @@ func (a *API) setupRoutes() {
 		r.Post("/{name}/duplicate", a.handleDuplicateWorkspace)
 	})
 
-	// Workspace-specific API routes: /api/w/{workspace}/...
-	r.Route("/api/w/{workspace}", func(r chi.Router) {
-		// Traffic
-		r.Get("/traffic", a.handleGetTraffic)
-		r.Get("/traffic/stream", a.handleTrafficStream)
-		r.Get("/traffic/{id}", a.handleGetTrafficByID)
-		r.Post("/traffic/{id}/generate-rule", a.handleGenerateRule)
-
-		// Rules
-		r.Get("/rules", a.handleGetAllRules)
-		r.Get("/rules/{service}", a.handleGetServiceRules)
-		r.Get("/rules/{service}/raw", a.handleGetRawRules)
-		r.Post("/rules/{service}", a.handleCreateRule)
-		r.Put("/rules/{service}/{index}", a.handleUpdateRule)
-		r.Delete("/rules/{service}/{index}", a.handleDeleteRule)
-		r.Post("/rules/{service}/{index}/move", a.handleMoveRule)
-		r.Delete("/rules/{service}", a.handleDeleteService)
-
-		// Config
-		r.Get("/config", a.handleGetConfig)
-		r.Get("/config/{key}", a.handleGetConfigValue)
-		r.Put("/config/{key}", a.handleSetConfigValue)
-		r.Delete("/config/{key}", a.handleDeleteConfigValue)
-
-		// Stats
-		r.Get("/stats", a.handleGetStats)
-	})
-
-	// Static image assets: /img/w/...
-	r.Handle("/img/w/*", http.StripPrefix("/img", http.FileServer(http.Dir("./webui/public"))))
-
-	// Workspace UI routes: /w/{workspace}/...
+	// Workspace-specific routes: /w/{workspace}/api/...
 	r.Route("/w/{workspace}", func(r chi.Router) {
+		r.Route("/api", func(r chi.Router) {
+			// Traffic
+			r.Get("/traffic", a.handleGetTraffic)
+			r.Get("/traffic/stream", a.handleTrafficStream)
+			r.Get("/traffic/{id}", a.handleGetTrafficByID)
+			r.Post("/traffic/{id}/generate-rule", a.handleGenerateRule)
+
+			// Rules
+			r.Get("/rules", a.handleGetAllRules)
+			r.Get("/rules/{service}", a.handleGetServiceRules)
+			r.Get("/rules/{service}/raw", a.handleGetRawRules)
+			r.Post("/rules/{service}", a.handleCreateRule)
+			r.Put("/rules/{service}/{index}", a.handleUpdateRule)
+			r.Delete("/rules/{service}/{index}", a.handleDeleteRule)
+			r.Post("/rules/{service}/{index}/move", a.handleMoveRule)
+			r.Delete("/rules/{service}", a.handleDeleteService)
+
+			// Config
+			r.Get("/config", a.handleGetConfig)
+			r.Get("/config/{key}", a.handleGetConfigValue)
+			r.Put("/config/{key}", a.handleSetConfigValue)
+			r.Delete("/config/{key}", a.handleDeleteConfigValue)
+
+			// Stats
+			r.Get("/stats", a.handleGetStats)
+		})
+
+		// Serve workspace UI
 		r.Handle("/*", a.serveWorkspaceUI())
 	})
 
@@ -149,7 +147,7 @@ func (a *API) handleGetTraffic(w http.ResponseWriter, r *http.Request) {
 		entry := &entries[i]
 
 		// Get current rules for this service
-		rules := st.GetRules(entry.Service)
+		rules := a.store.GetRules(entry.Service)
 
 		// Create request context from entry
 		ctx := &models.RequestContext{
@@ -172,30 +170,19 @@ func (a *API) handleGetTraffic(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"entries":  entries,
 		"returned": len(entries),
-		"total":    st.GetTotalTrafficCount(service),
+		"total":    a.store.GetTotalTrafficCount(service),
 	})
 }
 
 // handleTrafficStream streams traffic via SSE
 func (a *API) handleTrafficStream(w http.ResponseWriter, r *http.Request) {
-	st, err := a.getWorkspaceStore(r)
-	if err != nil {
-		respondError(w, http.StatusNotFound, "Workspace not found", "WORKSPACE_NOT_FOUND")
-		return
-	}
-	streamTraffic(w, r, st)
+	streamTraffic(w, r, a.store)
 }
 
 // handleGetTrafficByID returns a specific traffic entry
 func (a *API) handleGetTrafficByID(w http.ResponseWriter, r *http.Request) {
-	st, err := a.getWorkspaceStore(r)
-	if err != nil {
-		respondError(w, http.StatusNotFound, "Workspace not found", "WORKSPACE_NOT_FOUND")
-		return
-	}
-
 	id := chi.URLParam(r, "id")
-	entry := st.GetTrafficByID(id)
+	entry := a.store.GetTrafficByID(id)
 
 	if entry == nil {
 		respondError(w, http.StatusNotFound, "Traffic entry not found", "NOT_FOUND")
@@ -203,7 +190,7 @@ func (a *API) handleGetTrafficByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Compute current matched rule
-	rules := st.GetRules(entry.Service)
+	rules := a.store.GetRules(entry.Service)
 	ctx := &models.RequestContext{
 		Method:      entry.Method,
 		Path:        entry.Path,
@@ -221,14 +208,8 @@ func (a *API) handleGetTrafficByID(w http.ResponseWriter, r *http.Request) {
 
 // handleGenerateRule generates a rule from a traffic entry
 func (a *API) handleGenerateRule(w http.ResponseWriter, r *http.Request) {
-	st, err := a.getWorkspaceStore(r)
-	if err != nil {
-		respondError(w, http.StatusNotFound, "Workspace not found", "WORKSPACE_NOT_FOUND")
-		return
-	}
-
 	id := chi.URLParam(r, "id")
-	entry := st.GetTrafficByID(id)
+	entry := a.store.GetTrafficByID(id)
 
 	if entry == nil {
 		respondError(w, http.StatusNotFound, "Traffic entry not found", "NOT_FOUND")
@@ -253,13 +234,7 @@ func (a *API) handleGenerateRule(w http.ResponseWriter, r *http.Request) {
 
 // handleGetAllRules returns all rules
 func (a *API) handleGetAllRules(w http.ResponseWriter, r *http.Request) {
-	st, err := a.getWorkspaceStore(r)
-	if err != nil {
-		respondError(w, http.StatusNotFound, "Workspace not found", "WORKSPACE_NOT_FOUND")
-		return
-	}
-
-	allRules := st.GetAllRules()
+	allRules := a.store.GetAllRules()
 
 	services := make(map[string]interface{})
 	for service, rules := range allRules {
@@ -295,14 +270,8 @@ func (a *API) handleGetAllRules(w http.ResponseWriter, r *http.Request) {
 
 // handleGetServiceRules returns rules for a service
 func (a *API) handleGetServiceRules(w http.ResponseWriter, r *http.Request) {
-	st, err := a.getWorkspaceStore(r)
-	if err != nil {
-		respondError(w, http.StatusNotFound, "Workspace not found", "WORKSPACE_NOT_FOUND")
-		return
-	}
-
 	service := chi.URLParam(r, "service")
-	rules := st.GetRules(service)
+	rules := a.store.GetRules(service)
 
 	indexed := make([]map[string]interface{}, len(rules))
 	for i, rule := range rules {
@@ -330,14 +299,8 @@ func (a *API) handleGetServiceRules(w http.ResponseWriter, r *http.Request) {
 
 // handleGetRawRules returns raw YAML for a service
 func (a *API) handleGetRawRules(w http.ResponseWriter, r *http.Request) {
-	st, err := a.getWorkspaceStore(r)
-	if err != nil {
-		respondError(w, http.StatusNotFound, "Workspace not found", "WORKSPACE_NOT_FOUND")
-		return
-	}
-
 	service := chi.URLParam(r, "service")
-	rules := st.GetRules(service)
+	rules := a.store.GetRules(service)
 
 	serviceRules := models.ServiceRules{Rules: rules}
 	data, err := yaml.Marshal(serviceRules)
@@ -352,12 +315,6 @@ func (a *API) handleGetRawRules(w http.ResponseWriter, r *http.Request) {
 
 // handleCreateRule creates a new rule
 func (a *API) handleCreateRule(w http.ResponseWriter, r *http.Request) {
-	st, err := a.getWorkspaceStore(r)
-	if err != nil {
-		respondError(w, http.StatusNotFound, "Workspace not found", "WORKSPACE_NOT_FOUND")
-		return
-	}
-
 	service := chi.URLParam(r, "service")
 
 	var rule models.Rule
@@ -366,7 +323,7 @@ func (a *API) handleCreateRule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := st.AddRule(service, rule); err != nil {
+	if err := a.store.AddRule(service, rule); err != nil {
 		respondError(w, http.StatusInternalServerError, err.Error(), "ADD_FAILED")
 		return
 	}
@@ -380,12 +337,6 @@ func (a *API) handleCreateRule(w http.ResponseWriter, r *http.Request) {
 
 // handleUpdateRule updates an existing rule
 func (a *API) handleUpdateRule(w http.ResponseWriter, r *http.Request) {
-	st, err := a.getWorkspaceStore(r)
-	if err != nil {
-		respondError(w, http.StatusNotFound, "Workspace not found", "WORKSPACE_NOT_FOUND")
-		return
-	}
-
 	service := chi.URLParam(r, "service")
 	indexStr := chi.URLParam(r, "index")
 
@@ -401,7 +352,7 @@ func (a *API) handleUpdateRule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := st.UpdateRule(service, index, rule); err != nil {
+	if err := a.store.UpdateRule(service, index, rule); err != nil {
 		respondError(w, http.StatusNotFound, err.Error(), "RULE_NOT_FOUND")
 		return
 	}
@@ -416,12 +367,6 @@ func (a *API) handleUpdateRule(w http.ResponseWriter, r *http.Request) {
 
 // handleDeleteRule deletes a rule
 func (a *API) handleDeleteRule(w http.ResponseWriter, r *http.Request) {
-	st, err := a.getWorkspaceStore(r)
-	if err != nil {
-		respondError(w, http.StatusNotFound, "Workspace not found", "WORKSPACE_NOT_FOUND")
-		return
-	}
-
 	service := chi.URLParam(r, "service")
 	indexStr := chi.URLParam(r, "index")
 
@@ -431,7 +376,7 @@ func (a *API) handleDeleteRule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := st.DeleteRule(service, index); err != nil {
+	if err := a.store.DeleteRule(service, index); err != nil {
 		respondError(w, http.StatusNotFound, err.Error(), "RULE_NOT_FOUND")
 		return
 	}
@@ -446,15 +391,9 @@ func (a *API) handleDeleteRule(w http.ResponseWriter, r *http.Request) {
 
 // handleDeleteService deletes an entire service
 func (a *API) handleDeleteService(w http.ResponseWriter, r *http.Request) {
-	st, err := a.getWorkspaceStore(r)
-	if err != nil {
-		respondError(w, http.StatusNotFound, "Workspace not found", "WORKSPACE_NOT_FOUND")
-		return
-	}
-
 	service := chi.URLParam(r, "service")
 
-	if err := st.DisableService(service); err != nil {
+	if err := a.store.DisableService(service); err != nil {
 		respondError(w, http.StatusNotFound, err.Error(), "SERVICE_NOT_FOUND")
 		return
 	}
@@ -468,12 +407,6 @@ func (a *API) handleDeleteService(w http.ResponseWriter, r *http.Request) {
 
 // handleMoveRule moves a rule up or down
 func (a *API) handleMoveRule(w http.ResponseWriter, r *http.Request) {
-	st, err := a.getWorkspaceStore(r)
-	if err != nil {
-		respondError(w, http.StatusNotFound, "Workspace not found", "WORKSPACE_NOT_FOUND")
-		return
-	}
-
 	service := chi.URLParam(r, "service")
 	indexStr := chi.URLParam(r, "index")
 
@@ -491,7 +424,7 @@ func (a *API) handleMoveRule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := st.MoveRule(service, index, req.Direction); err != nil {
+	if err := a.store.MoveRule(service, index, req.Direction); err != nil {
 		respondError(w, http.StatusBadRequest, err.Error(), "MOVE_FAILED")
 		return
 	}
@@ -576,14 +509,8 @@ func (a *API) handleDeleteConfigValue(w http.ResponseWriter, r *http.Request) {
 
 // handleGetStats returns system statistics
 func (a *API) handleGetStats(w http.ResponseWriter, r *http.Request) {
-	st, err := a.getWorkspaceStore(r)
-	if err != nil {
-		respondError(w, http.StatusNotFound, "Workspace not found", "WORKSPACE_NOT_FOUND")
-		return
-	}
-
-	allRules := st.GetAllRules()
-	allTraffic := st.GetTraffic(1000, "")
+	allRules := a.store.GetAllRules()
+	allTraffic := a.store.GetTraffic(1000, "")
 
 	totalRules := 0
 	services := make(map[string]interface{})
@@ -669,7 +596,7 @@ func corsMiddleware(next http.Handler) http.Handler {
 func (a *API) getWorkspaceStore(r *http.Request) (*store.Store, error) {
 	workspace := chi.URLParam(r, "workspace")
 	if workspace == "" {
-		workspace = "default" // default
+		workspace = "bird1" // default
 	}
 	return a.workspaceManager.GetStore(workspace)
 }

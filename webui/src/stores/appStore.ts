@@ -5,6 +5,12 @@ import { api } from '../utils/api';
 type View = 'traffic' | 'rules' | 'config' | 'stats';
 
 interface AppState {
+  // Workspace
+  workspace: string | null;
+  workspaceBirdIcon: string | null;
+  setWorkspace: (workspace: string | null) => void;
+  setWorkspaceBirdIcon: (birdIcon: string | null) => void;
+
   // View state
   currentView: View;
   setCurrentView: (view: View) => void;
@@ -53,6 +59,11 @@ interface AppState {
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
+  workspace: null,
+  workspaceBirdIcon: null,
+  setWorkspace: (workspace) => set({ workspace }),
+  setWorkspaceBirdIcon: (birdIcon) => set({ workspaceBirdIcon: birdIcon }),
+
   currentView: 'traffic',
   setCurrentView: (view) => set({ currentView: view }),
 

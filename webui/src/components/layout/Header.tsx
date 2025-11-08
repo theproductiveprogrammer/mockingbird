@@ -3,22 +3,49 @@ import { useAppStore } from "../../stores/appStore";
 
 export function Header() {
   const navigate = useNavigate();
-  const { currentView } = useAppStore();
+  const { currentView, workspace } = useAppStore();
+
+  // Helper to generate nav path with workspace prefix
+  const navTo = (path: string) => {
+    if (workspace) {
+      return `/w/${workspace}${path}`;
+    }
+    return path;
+  };
 
   return (
     <header className="bg-gray-50 border-b border-gray-200 px-6 py-2.5">
       <div className="flex items-center justify-between">
-        <div
-          onClick={() => navigate("/")}
-          className="flex items-center gap-2 hover:opacity-70 transition-opacity cursor-pointer"
-        >
-          <img src="/mockingbird.svg" alt="Mockingbird" className="w-5 h-5" />
-          <h1 className="text-sm font-normal text-gray-800">Mockingbird</h1>
+        <div className="flex items-center gap-3">
+          <div
+            onClick={() => navigate(navTo("/"))}
+            className="flex items-center gap-2 hover:opacity-70 transition-opacity cursor-pointer"
+          >
+            <img src="/mockingbird.svg" alt="Mockingbird" className="w-5 h-5" />
+            <h1 className="text-sm font-normal text-gray-800">Mockingbird</h1>
+          </div>
+
+          {/* Workspace Badge */}
+          {workspace && (
+            <div className="flex items-center gap-2">
+              <span className="text-gray-400">/</span>
+              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded font-medium">
+                {workspace}
+              </span>
+              <a
+                href="/"
+                className="text-xs text-gray-600 hover:text-gray-900 hover:underline"
+                title="Go to workspace selection"
+              >
+                ← All Workspaces
+              </a>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate("/")}
+            onClick={() => navigate(navTo("/"))}
             className={`px-2 py-1 text-xs font-normal rounded transition-colors flex items-center gap-1 ${
               currentView === "traffic"
                 ? "bg-blue-50 text-blue-700 border border-blue-200"
@@ -30,7 +57,7 @@ export function Header() {
           </button>
 
           <button
-            onClick={() => navigate("/rules")}
+            onClick={() => navigate(navTo("/rules"))}
             className={`px-2 py-1 text-xs font-normal rounded transition-colors flex items-center gap-1 ${
               currentView === "rules"
                 ? "bg-blue-50 text-blue-700 border border-blue-200"
@@ -42,7 +69,7 @@ export function Header() {
           </button>
 
           <button
-            onClick={() => navigate("/stats")}
+            onClick={() => navigate(navTo("/stats"))}
             className={`px-2 py-1 text-xs font-normal rounded transition-colors flex items-center gap-1 ${
               currentView === "stats"
                 ? "bg-blue-50 text-blue-700 border border-blue-200"
@@ -55,7 +82,7 @@ export function Header() {
           </button>
 
           <button
-            onClick={() => navigate("/config")}
+            onClick={() => navigate(navTo("/config"))}
             className={`px-2 py-1 text-xs font-normal rounded transition-colors flex items-center gap-1 ${
               currentView === "config"
                 ? "bg-blue-50 text-blue-700 border border-blue-200"

@@ -24,17 +24,17 @@ import (
 
 // Handler handles proxy requests
 type Handler struct {
-	config   *config.Config
-	store    *store.Store
-	renderer *render.Renderer
+	config           *config.Config
+	workspaceManager *store.WorkspaceManager
+	renderer         *render.Renderer
 }
 
 // NewHandler creates a new proxy handler
-func NewHandler(cfg *config.Config, st *store.Store) *Handler {
+func NewHandler(cfg *config.Config, wm *store.WorkspaceManager) *Handler {
 	return &Handler{
-		config:   cfg,
-		store:    st,
-		renderer: render.NewRenderer(cfg),
+		config:           cfg,
+		workspaceManager: wm,
+		renderer:         render.NewRenderer(cfg),
 	}
 }
 
@@ -42,8 +42,35 @@ func NewHandler(cfg *config.Config, st *store.Store) *Handler {
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 
+	// Parse workspace from URL: /w/{workspace}/{path}
+	workspace := "default" // default
+	path := r.URL.Path
+
+	if strings.HasPrefix(path, "/w/") {
+		// Extract workspace and strip prefix
+		parts := strings.SplitN(path[3:], "/", 2)
+		if len(parts) >= 1 && parts[0] != "" {
+			workspace = parts[0]
+			if len(parts) >= 2 {
+				path = "/" + parts[1]
+			} else {
+				path = "/"
+			}
+		}
+	}
+
+	// Get workspace store
+	st, err := h.workspaceManager.GetStore(workspace)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Workspace %s not found", workspace), http.StatusNotFound)
+		return
+	}
+
+	// Update request path (strip workspace prefix)
+	r.URL.Path = path
+
 	// Extract service name from path
-	service := extractService(r.URL.Path)
+	service := extractService(path)
 
 	// Parse request body
 	body := h.parseRequestBody(r)
@@ -51,15 +78,15 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Create request context
 	ctx := &models.RequestContext{
 		Method:       r.Method,
-		Path:         r.URL.Path,
-		PathSegments: strings.Split(strings.Trim(r.URL.Path, "/"), "/"),
+		Path:         path,
+		PathSegments: strings.Split(strings.Trim(path, "/"), "/"),
 		QueryParams:  r.URL.Query(),
 		Headers:      r.Header,
 		Body:         body,
 	}
 
 	// Get rules for service
-	rules := h.store.GetRules(service)
+	rules := st.GetRules(service)
 
 	// Match request against rules
 	rule, ruleIndex := matcher.Match(rules, ctx)
@@ -90,7 +117,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Timestamp:   start,
 		Service:     service,
 		Method:      r.Method,
-		Path:        r.URL.Path,
+		Path:        path, // Use stripped path
 		QueryParams: r.URL.Query(),
 		Headers:     r.Header,
 		Body:        body,
@@ -105,7 +132,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Mask backend keys before storing (replace config values with key names)
 	maskBackendKeys(&entry, h.config)
 
-	h.store.AddTraffic(entry)
+	st.AddTraffic(entry)
 }
 
 // extractService extracts the service name from the path

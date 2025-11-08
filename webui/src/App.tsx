@@ -1,5 +1,5 @@
 import { Toaster } from 'react-hot-toast';
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, useLocation, useParams } from 'react-router-dom';
 import { useEffect } from 'react';
 import { Header } from './components/layout/Header';
 import { FilterBar } from './components/layout/FilterBar';
@@ -8,13 +8,33 @@ import { TrafficDetails } from './components/traffic/TrafficDetails';
 import { RulesView } from './components/rules/RulesView';
 import { ConfigView } from './components/config/ConfigView';
 import { StatsView } from './components/stats/StatsView';
+import { WorkspaceSplash } from './components/workspaces/WorkspaceSplash';
 import { useAppStore } from './stores/appStore';
 import { useTrafficSSE } from './hooks/useTrafficSSE';
 import { api } from './utils/api';
 
-function App() {
+// Workspace UI wrapper - contains Header, FilterBar, and all workspace-specific views
+function WorkspaceUI() {
   const location = useLocation();
-  const { setCurrentView, setConfig } = useAppStore();
+  const { workspace } = useParams<{ workspace: string }>();
+  const { setCurrentView, setConfig, setWorkspace, setWorkspaceBirdIcon } = useAppStore();
+
+  // Set workspace in store and load workspace metadata (bird icon) when it changes
+  useEffect(() => {
+    setWorkspace(workspace || null);
+
+    // Load workspace metadata to get bird icon
+    if (workspace) {
+      api.getWorkspaces().then(workspaces => {
+        const currentWorkspace = workspaces.find(w => w.name === workspace);
+        if (currentWorkspace) {
+          setWorkspaceBirdIcon(currentWorkspace.bird_icon);
+        }
+      }).catch(console.error);
+    } else {
+      setWorkspaceBirdIcon(null);
+    }
+  }, [workspace, setWorkspace, setWorkspaceBirdIcon]);
 
   // Connect to SSE stream
   useTrafficSSE();
@@ -27,9 +47,11 @@ function App() {
   // Derive currentView from URL (single source of truth)
   const currentView = (() => {
     const path = location.pathname;
-    if (path === '/rules') return 'rules';
-    if (path === '/config') return 'config';
-    if (path === '/stats') return 'stats';
+    // Strip workspace prefix to get the actual view path
+    const viewPath = path.replace(/^\/w\/[^\/]+/, '');
+    if (viewPath === '/rules' || viewPath.startsWith('/rules')) return 'rules';
+    if (viewPath === '/config' || viewPath.startsWith('/config')) return 'config';
+    if (viewPath === '/stats' || viewPath.startsWith('/stats')) return 'stats';
     return 'traffic'; // Default for / and /traffic/:id
   })();
 
@@ -56,6 +78,15 @@ function App() {
 
       <Toaster position="bottom-right" />
     </div>
+  );
+}
+
+function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<WorkspaceSplash />} />
+      <Route path="/w/:workspace/*" element={<WorkspaceUI />} />
+    </Routes>
   );
 }
 

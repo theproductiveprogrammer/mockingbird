@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"sync"
+	"time"
 )
 
 // Config holds application configuration
@@ -32,7 +33,7 @@ func Load() (*Config, error) {
 		ProxyPort:         6625, // MOCK on phone keypad
 		AdminPort:         6626, // MOCK + 1
 		ConfigDir:         configDir,
-		MaxTrafficEntries: 10000,
+		MaxTrafficEntries: 1000, // Reduced default for memory efficiency (configurable via config.json)
 		Values:            make(map[string]string),
 	}
 
@@ -54,6 +55,11 @@ func Load() (*Config, error) {
 		if p, err := strconv.Atoi(port); err == nil {
 			cfg.AdminPort = p
 		}
+	}
+
+	// Ensure default workspace exists
+	if err := cfg.ensureDefaultWorkspace(); err != nil {
+		fmt.Printf("Warning: Failed to create default workspace: %v\n", err)
 	}
 
 	return cfg, nil
@@ -151,4 +157,44 @@ func maskValue(value string) string {
 		return "***"
 	}
 	return value[:7] + "***"
+}
+
+// ensureDefaultWorkspace creates the default workspace structure if it doesn't exist
+func (c *Config) ensureDefaultWorkspace() error {
+	workspacesDir := filepath.Join(c.ConfigDir, "workspaces")
+	defaultWorkspace := filepath.Join(workspacesDir, "default")
+	rulesDir := filepath.Join(defaultWorkspace, "_rules")
+
+	// Create workspaces/default/_rules/ structure
+	if err := os.MkdirAll(rulesDir, 0755); err != nil {
+		return fmt.Errorf("failed to create default workspace: %w", err)
+	}
+
+	// Create metadata.json if it doesn't exist
+	metadataPath := filepath.Join(defaultWorkspace, "metadata.json")
+	if _, err := os.Stat(metadataPath); os.IsNotExist(err) {
+		// Bird icons available
+		birdIcons := []string{
+			"bird01.svg", "bird02.svg", "bird03.svg", "bird04.svg", "bird05.svg", "bird06.svg",
+			"bird07.svg", "bird08.svg", "bird09.svg", "bird10.svg", "bird11.svg", "bird12.svg",
+			"bird13.svg", "bird14.svg", "bird15.svg", "bird16.svg", "bird17.svg", "bird18.svg",
+		}
+
+		// Assign bird01.svg to default workspace (always the first bird for consistency)
+		metadata := map[string]interface{}{
+			"bird_icon": birdIcons[0], // Always use bird01.svg for default workspace
+			"created":   time.Now().Format(time.RFC3339),
+		}
+
+		data, err := json.MarshalIndent(metadata, "", "  ")
+		if err != nil {
+			return fmt.Errorf("failed to marshal metadata: %w", err)
+		}
+
+		if err := os.WriteFile(metadataPath, data, 0644); err != nil {
+			return fmt.Errorf("failed to write metadata: %w", err)
+		}
+	}
+
+	return nil
 }

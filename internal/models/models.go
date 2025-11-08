@@ -73,3 +73,12 @@ type RequestContext struct {
 	Headers     map[string][]string
 	Body        interface{} // JSON object or string
 }
+
+// Workspace represents an isolated environment with its own rules and traffic
+type Workspace struct {
+	Name         string    `json:"name"`
+	Created      time.Time `json:"created"`
+	RuleCount    int       `json:"rule_count"`
+	TrafficCount int       `json:"traffic_count"`
+	BirdIcon     string    `json:"bird_icon"` // e.g., "bird01.svg"
+}

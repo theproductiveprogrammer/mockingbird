@@ -45,18 +45,18 @@ func main() {
 	fmt.Printf("Proxy port: %d\n", cfg.ProxyPort)
 	fmt.Printf("Admin port: %d\n", cfg.AdminPort)
 
-	// Initialize store
-	st, err := store.New(cfg.ConfigDir, cfg)
+	// Initialize workspace manager
+	workspaceManager, err := store.NewWorkspaceManager(cfg.ConfigDir, cfg)
 	if err != nil {
-		fmt.Printf("Error initializing store: %v\n", err)
+		fmt.Printf("Error initializing workspace manager: %v\n", err)
 		os.Exit(1)
 	}
 
 	// Create proxy handler
-	proxyHandler := proxy.NewHandler(cfg, st)
+	proxyHandler := proxy.NewHandler(cfg, workspaceManager)
 
 	// Create admin API
-	adminAPI := admin.NewAPI(cfg, st)
+	adminAPI := admin.NewAPI(cfg, workspaceManager)
 
 	// Create HTTP servers
 	proxyServer := &http.Server{
@@ -100,9 +100,9 @@ func main() {
 
 	fmt.Println("\n🛑 Shutting down gracefully...")
 
-	// Close store first to terminate all SSE connections
-	if err := st.Close(); err != nil {
-		fmt.Printf("Store close error: %v\n", err)
+	// Close workspace manager first to terminate all SSE connections
+	if err := workspaceManager.Close(); err != nil {
+		fmt.Printf("Workspace manager close error: %v\n", err)
 	}
 
 	// Give SSE connections a moment to close

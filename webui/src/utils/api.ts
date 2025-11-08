@@ -1,13 +1,87 @@
 import { TrafficEntry, Rule, ServiceRules, Config, Stats } from '../types/api';
 
-const API_BASE = '/api';
+// Helper to extract workspace from current URL
+function getWorkspace(): string | null {
+  const match = window.location.pathname.match(/^\/w\/([^\/]+)/);
+  return match ? match[1] : null;
+}
+
+// Helper to get the correct API base path for the current workspace
+function getApiBase(): string {
+  const workspace = getWorkspace();
+  return workspace ? `/api/w/${workspace}` : '/api';
+}
+
+export interface Workspace {
+  name: string;
+  created: string;
+  rule_count: number;
+  traffic_count: number;
+  bird_icon: string;
+}
 
 class ApiClient {
+  // Workspace Management APIs (root level - no workspace in path)
+  async getWorkspaces(): Promise<Workspace[]> {
+    const response = await fetch('/api/workspaces');
+    const data = await response.json();
+    return data.workspaces || [];
+  }
+
+  async createWorkspace(name: string): Promise<void> {
+    const response = await fetch('/api/workspaces', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to create workspace');
+    }
+  }
+
+  async deleteWorkspace(name: string): Promise<void> {
+    const response = await fetch(`/api/workspaces/${name}`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to delete workspace');
+    }
+  }
+
+  async enableWorkspace(name: string): Promise<void> {
+    const response = await fetch(`/api/workspaces/${name}/enable`, {
+      method: 'POST',
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to enable workspace');
+    }
+  }
+
+  async duplicateWorkspace(source: string, dest: string): Promise<void> {
+    const response = await fetch(`/api/workspaces/${source}/duplicate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dest }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to duplicate workspace');
+    }
+  }
+
+  // Workspace-specific APIs (use workspace path)
   async getTraffic(limit = 100, service?: string): Promise<{ entries: TrafficEntry[]; returned: number; total: number }> {
     const params = new URLSearchParams({ limit: limit.toString() });
     if (service) params.append('service', service);
 
-    const response = await fetch(`${API_BASE}/traffic?${params}`);
+    const response = await fetch(`${getApiBase()}/traffic?${params}`);
     const data = await response.json();
     return {
       entries: data.entries || [],
@@ -17,23 +91,23 @@ class ApiClient {
   }
 
   async getTrafficById(id: string): Promise<TrafficEntry> {
-    const response = await fetch(`${API_BASE}/traffic/${id}`);
+    const response = await fetch(`${getApiBase()}/traffic/${id}`);
     return response.json();
   }
 
   async getAllRules(): Promise<Record<string, ServiceRules>> {
-    const response = await fetch(`${API_BASE}/rules`);
+    const response = await fetch(`${getApiBase()}/rules`);
     const data = await response.json();
     return data.services || {};
   }
 
   async getServiceRules(service: string): Promise<ServiceRules> {
-    const response = await fetch(`${API_BASE}/rules/${service}`);
+    const response = await fetch(`${getApiBase()}/rules/${service}`);
     return response.json();
   }
 
   async createRule(service: string, rule: Rule): Promise<void> {
-    const response = await fetch(`${API_BASE}/rules/${service}`, {
+    const response = await fetch(`${getApiBase()}/rules/${service}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(rule),
@@ -45,7 +119,7 @@ class ApiClient {
   }
 
   async updateRule(service: string, index: number, rule: Rule): Promise<void> {
-    const response = await fetch(`${API_BASE}/rules/${service}/${index}`, {
+    const response = await fetch(`${getApiBase()}/rules/${service}/${index}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(rule),
@@ -57,7 +131,7 @@ class ApiClient {
   }
 
   async deleteRule(service: string, index: number): Promise<void> {
-    const response = await fetch(`${API_BASE}/rules/${service}/${index}`, {
+    const response = await fetch(`${getApiBase()}/rules/${service}/${index}`, {
       method: 'DELETE',
     });
 
@@ -67,7 +141,7 @@ class ApiClient {
   }
 
   async deleteService(service: string): Promise<void> {
-    const response = await fetch(`${API_BASE}/rules/${service}`, {
+    const response = await fetch(`${getApiBase()}/rules/${service}`, {
       method: 'DELETE',
     });
 
@@ -77,7 +151,7 @@ class ApiClient {
   }
 
   async moveRule(service: string, index: number, direction: 'up' | 'down'): Promise<void> {
-    const response = await fetch(`${API_BASE}/rules/${service}/${index}/move`, {
+    const response = await fetch(`${getApiBase()}/rules/${service}/${index}/move`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ direction }),
@@ -89,12 +163,12 @@ class ApiClient {
   }
 
   async getConfig(): Promise<Config> {
-    const response = await fetch(`${API_BASE}/config`);
+    const response = await fetch(`${getApiBase()}/config`);
     return response.json();
   }
 
   async setConfigValue(key: string, value: string): Promise<void> {
-    const response = await fetch(`${API_BASE}/config/${key}`, {
+    const response = await fetch(`${getApiBase()}/config/${key}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ value }),
@@ -106,7 +180,7 @@ class ApiClient {
   }
 
   async deleteConfigValue(key: string): Promise<void> {
-    const response = await fetch(`${API_BASE}/config/${key}`, {
+    const response = await fetch(`${getApiBase()}/config/${key}`, {
       method: 'DELETE',
     });
 
@@ -116,12 +190,12 @@ class ApiClient {
   }
 
   async getStats(): Promise<Stats> {
-    const response = await fetch(`${API_BASE}/stats`);
+    const response = await fetch(`${getApiBase()}/stats`);
     return response.json();
   }
 
   getTrafficStreamUrl(): string {
-    return `${API_BASE}/traffic/stream`;
+    return `${getApiBase()}/traffic/stream`;
   }
 }
 

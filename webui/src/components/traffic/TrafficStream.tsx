@@ -14,6 +14,7 @@ export function TrafficStream() {
     clearUnseenCount,
     filters,
     selectedServices,
+    workspaceBirdIcon,
   } = useAppStore();
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -263,7 +264,14 @@ export function TrafficStream() {
 
             {/* Load More section */}
             {hasMore && (
-              <div className="flex items-center justify-center py-4 border-t border-gray-200">
+              <div className="flex items-center justify-center gap-2 py-4 border-t border-gray-200">
+                {workspaceBirdIcon && (
+                  <img
+                    src={`/img/w/${workspaceBirdIcon}`}
+                    alt="Workspace"
+                    className="w-5 h-5"
+                  />
+                )}
                 <button
                   onClick={loadMoreTraffic}
                   className="text-sm text-gray-600 hover:text-gray-900 font-medium"
@@ -276,7 +284,14 @@ export function TrafficStream() {
 
             {/* Show count even when no more to load */}
             {!hasMore && totalAvailable > 0 && (
-              <div className="flex items-center justify-center py-4 border-t border-gray-200 text-sm text-gray-500">
+              <div className="flex items-center justify-center gap-2 py-4 border-t border-gray-200 text-sm text-gray-500">
+                {workspaceBirdIcon && (
+                  <img
+                    src={`/img/w/${workspaceBirdIcon}`}
+                    alt="Workspace"
+                    className="w-5 h-5"
+                  />
+                )}
                 Showing {filteredTraffic.length} of {totalAvailable} messages
               </div>
             )}
