@@ -8,7 +8,6 @@ export function WorkspaceSplash() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState('');
-  const [selectedWorkspace, setSelectedWorkspace] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -59,21 +58,12 @@ export function WorkspaceSplash() {
       {/* Header */}
       <header className="border-b border-gray-200 px-8 py-4 flex items-center justify-between bg-white">
         <h1 className="text-2xl font-normal text-gray-900 tracking-wide">Mockingbird</h1>
-        <div className="flex gap-3">
-          <button
-            onClick={() => setCreating(true)}
-            className="px-5 py-2 border border-gray-300 text-gray-700 text-sm rounded-md hover:bg-gray-50 transition-colors"
-          >
-            + New Workspace
-          </button>
-          <button
-            onClick={() => selectedWorkspace && handleOpenWorkspace(selectedWorkspace)}
-            disabled={!selectedWorkspace}
-            className="px-5 py-2 border border-gray-300 text-gray-700 text-sm rounded-md hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            Open
-          </button>
-        </div>
+        <button
+          onClick={() => setCreating(true)}
+          className="px-5 py-2 border border-gray-300 text-gray-700 text-sm rounded-md hover:bg-gray-50 transition-colors"
+        >
+          + New Workspace
+        </button>
       </header>
 
       {/* Main Content */}
@@ -108,13 +98,8 @@ export function WorkspaceSplash() {
                 {workspaces.map((workspace) => (
                   <div
                     key={workspace.name}
-                    onClick={() => setSelectedWorkspace(workspace.name)}
-                    onDoubleClick={() => handleOpenWorkspace(workspace.name)}
-                    className={`flex items-center gap-4 px-4 py-3 rounded-lg cursor-pointer transition-colors ${
-                      selectedWorkspace === workspace.name
-                        ? 'bg-blue-50 border border-blue-200'
-                        : 'hover:bg-gray-50'
-                    }`}
+                    onClick={() => handleOpenWorkspace(workspace.name)}
+                    className="flex items-center gap-4 px-4 py-3 rounded-lg cursor-pointer transition-colors hover:bg-blue-50 hover:border hover:border-blue-200"
                   >
                     {/* Bird Icon */}
                     <img
