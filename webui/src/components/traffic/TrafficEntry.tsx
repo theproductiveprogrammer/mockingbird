@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { TrafficEntry as TrafficEntryType } from "../../types/api";
+import { useAppStore } from "../../stores/appStore";
 import {
   formatTime,
   formatQueryParams,
@@ -17,6 +18,7 @@ interface TrafficEntryProps {
 
 export function TrafficEntry({ entry, isNew = false }: TrafficEntryProps) {
   const navigate = useNavigate();
+  const { workspace } = useAppStore();
   const queryString = formatQueryParams(entry.query);
   const statusColor = getStatusColor(entry);
 
@@ -30,7 +32,7 @@ export function TrafficEntry({ entry, isNew = false }: TrafficEntryProps) {
 
   return (
     <div
-      onClick={() => navigate(`/traffic/${entry.id}`)}
+      onClick={() => navigate(`/w/${workspace}/traffic/${entry.id}`)}
       className={`group px-6 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 ${isNew ? "new-entry" : ""}`}
     >
       <div className="items-center gap-2 text-xs font-mono">
