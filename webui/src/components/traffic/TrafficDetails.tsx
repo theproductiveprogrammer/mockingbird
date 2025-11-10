@@ -14,7 +14,7 @@ import { JsonViewer } from '../ui/JsonViewer';
 export function TrafficDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { traffic, setServiceRules, setHighlightedRule, config } = useAppStore();
+  const { traffic, setServiceRules, setHighlightedRule, config, workspace } = useAppStore();
   const [showRuleEditor, setShowRuleEditor] = useState(false);
   const [entry, setEntry] = useState<TrafficEntryType | null>(null);
   const [loading, setLoading] = useState(true);
@@ -339,8 +339,9 @@ ${responseBodyStr}`;
       index: entry.current_matched_rule,
     });
 
-    // Navigate to rules view
-    navigate('/rules');
+    // Navigate to rules view (workspace-aware)
+    const rulesPath = workspace ? `/w/${workspace}/rules` : '/rules';
+    navigate(rulesPath);
   };
 
   return (
