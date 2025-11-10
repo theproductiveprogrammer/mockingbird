@@ -71,6 +71,38 @@ export function TrafficDetails() {
     return body;
   };
 
+  // Detect if body is SSE (Server-Sent Events) format
+  const isSSEBody = (body: any): boolean => {
+    if (typeof body !== 'string') return false;
+    const lines = body.trim().split('\n');
+    // Check if multiple lines start with "data:"
+    const dataLines = lines.filter(line => line.trim().startsWith('data:'));
+    return dataLines.length > 1;
+  };
+
+  // Parse SSE body into array of parsed JSON objects
+  const parseSSEBody = (body: string): any[] => {
+    const lines = body.trim().split('\n');
+    const events: any[] = [];
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('data:')) {
+        const jsonStr = trimmed.substring(5).trim(); // Remove "data:" prefix
+        if (jsonStr && jsonStr !== '[DONE]') {
+          try {
+            events.push(JSON.parse(jsonStr));
+          } catch (e) {
+            // If parsing fails, keep the raw string
+            events.push(jsonStr);
+          }
+        }
+      }
+    }
+
+    return events;
+  };
+
   const handleCreateRule = () => {
     setShowRuleEditor(true);
   };
@@ -256,7 +288,14 @@ ${responseBodyStr}`;
           <div className="mb-3">
             <p className="text-xs font-normal text-gray-600 mb-1">body:</p>
             <div className="ml-4">
-              {isJsonBody(entry.body) ? (
+              {isSSEBody(entry.body) ? (
+                <div className="bg-gray-50 p-3 rounded">
+                  <div className="mb-2 text-xs text-blue-600 font-medium">
+                    📡 SSE Stream ({parseSSEBody(entry.body).length} events)
+                  </div>
+                  <JsonViewer data={parseSSEBody(entry.body)} defaultExpanded={false} />
+                </div>
+              ) : isJsonBody(entry.body) ? (
                 <div className="bg-gray-50 p-3 rounded">
                   <JsonViewer data={parseJsonBody(entry.body)} defaultExpanded={true} />
                 </div>
@@ -320,6 +359,13 @@ ${responseBodyStr}`;
                       <p className="mt-1 text-gray-600">
                         Response body is gzip compressed. Length: {entry.response.headers?.['Content-Length'] || 'unknown'} bytes
                       </p>
+                    </div>
+                  ) : isSSEBody(entry.response.body) ? (
+                    <div className="bg-gray-50 p-3 rounded">
+                      <div className="mb-2 text-xs text-blue-600 font-medium">
+                        📡 SSE Stream ({parseSSEBody(entry.response.body).length} events)
+                      </div>
+                      <JsonViewer data={parseSSEBody(entry.response.body)} defaultExpanded={false} />
                     </div>
                   ) : isJsonBody(entry.response.body) ? (
                     <div className="bg-gray-50 p-3 rounded">
