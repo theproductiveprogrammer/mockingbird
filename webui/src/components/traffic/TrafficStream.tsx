@@ -227,13 +227,43 @@ export function TrafficStream() {
 
       <div ref={scrollContainerRef} className="h-full overflow-y-auto">
         {filteredTraffic.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-gray-600">
+          <div className="flex flex-col items-center justify-center h-full text-gray-600">
             <div className="text-center">
-              <p className="text-sm font-normal">No traffic yet</p>
-              <p className="text-xs mt-1 text-gray-500">
-                Make a request to see it here
-              </p>
+              {traffic.length > 0 || filters.length > 0 || selectedServices.size > 0 ? (
+                <>
+                  <p className="text-sm font-normal">No matches found</p>
+                  <p className="text-xs mt-1 text-gray-500">
+                    {hasMore ? 'Try adjusting filters or load more traffic' : 'Try adjusting your filters'}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-normal">No traffic yet</p>
+                  <p className="text-xs mt-1 text-gray-500">
+                    Make a request to see it here
+                  </p>
+                </>
+              )}
             </div>
+
+            {/* Load More button when filtering shows no results but more traffic exists */}
+            {hasMore && (
+              <div className="flex items-center justify-center gap-2 mt-6">
+                {workspaceBirdIcon && (
+                  <img
+                    src={`/img/w/${workspaceBirdIcon}`}
+                    alt="Workspace"
+                    className="w-5 h-5"
+                  />
+                )}
+                <button
+                  onClick={loadMoreTraffic}
+                  className="px-4 py-2 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md font-medium transition-colors"
+                >
+                  Load 100 More (showing {traffic.length} of {totalAvailable})
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <>
