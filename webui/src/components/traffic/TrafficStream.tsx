@@ -21,13 +21,15 @@ export function TrafficStream() {
   const [isNearTop, setIsNearTop] = useState(true);
   const previousTrafficLength = useRef(traffic.length);
 
-  // Load initial traffic on mount
+  // Load initial traffic on mount (only if not already loaded)
   useEffect(() => {
-    console.log("[TrafficStream] Loading initial traffic");
-    api.getTraffic(100).then((result) => {
-      setTraffic(result.entries, result.total);
-    });
-  }, [setTraffic]);
+    if (traffic.length === 0) {
+      console.log("[TrafficStream] Loading initial traffic");
+      api.getTraffic(100).then((result) => {
+        setTraffic(result.entries, result.total);
+      });
+    }
+  }, [setTraffic, traffic.length]);
 
   // Track scroll position
   useEffect(() => {
