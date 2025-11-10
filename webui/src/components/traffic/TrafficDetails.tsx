@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -6,7 +6,7 @@ import { useAppStore } from '../../stores/appStore';
 import { Button } from '../ui/Button';
 import { Tag } from '../ui/Tag';
 import { RuleEditor } from '../rules/RuleEditor';
-import { Rule } from '../../types/api';
+import { Rule, TrafficEntry as TrafficEntryType } from '../../types/api';
 import { api } from '../../utils/api';
 import toast from 'react-hot-toast';
 import { JsonViewer } from '../ui/JsonViewer';
@@ -16,13 +16,47 @@ export function TrafficDetails() {
   const navigate = useNavigate();
   const { traffic, setServiceRules, setHighlightedRule, config } = useAppStore();
   const [showRuleEditor, setShowRuleEditor] = useState(false);
+  const [entry, setEntry] = useState<TrafficEntryType | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const entry = traffic.find((t) => t.id === id);
+  // Try to find entry in store first, otherwise fetch it
+  useEffect(() => {
+    const storeEntry = traffic.find((t) => t.id === id);
 
-  if (!entry) {
+    if (storeEntry) {
+      setEntry(storeEntry);
+      setLoading(false);
+    } else if (id) {
+      // Entry not in store, fetch it directly
+      setLoading(true);
+      api.getTrafficById(id)
+        .then((fetchedEntry) => {
+          setEntry(fetchedEntry);
+          setLoading(false);
+        })
+        .catch((err) => {
+          console.error('Failed to load traffic entry:', err);
+          setError('Failed to load traffic entry');
+          setLoading(false);
+        });
+    }
+  }, [id, traffic]);
+
+  if (loading) {
     return (
       <div className="flex items-center justify-center h-full text-gray-600">
-        No traffic selected
+        Loading...
+      </div>
+    );
+  }
+
+  if (error || !entry) {
+    return (
+      <div className="flex items-center justify-center h-full text-gray-600">
+        <div className="text-center">
+          <p className="text-sm font-normal">{error || 'Traffic entry not found'}</p>
+        </div>
       </div>
     );
   }
