@@ -1,8 +1,9 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAppStore } from "../../stores/appStore";
 
 export function Header() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { currentView, workspace } = useAppStore();
 
   // Helper to generate nav path with workspace prefix
@@ -32,13 +33,23 @@ export function Header() {
               <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded font-medium">
                 {workspace}
               </span>
-              <a
-                href="/"
-                className="text-xs text-gray-600 hover:text-gray-900 hover:underline"
-                title="Go to workspace selection"
-              >
-                ← All Workspaces
-              </a>
+              {(() => {
+                // Check if we're on the main traffic page (workspace root)
+                const isOnTrafficList = location.pathname === `/w/${workspace}` || location.pathname === `/w/${workspace}/`;
+                const backLabel = isOnTrafficList ? "← All Workspaces" : "← Traffic";
+                const backPath = isOnTrafficList ? "/" : navTo("/");
+                const backTitle = isOnTrafficList ? "Go to workspace selection" : "Back to traffic list";
+
+                return (
+                  <button
+                    onClick={() => navigate(backPath)}
+                    className="text-xs text-gray-600 hover:text-gray-900 hover:underline"
+                    title={backTitle}
+                  >
+                    {backLabel}
+                  </button>
+                );
+              })()}
             </div>
           )}
         </div>
