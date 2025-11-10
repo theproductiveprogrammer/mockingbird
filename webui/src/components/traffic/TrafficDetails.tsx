@@ -103,6 +103,88 @@ export function TrafficDetails() {
     return events;
   };
 
+  // Detect if SSE stream is from OpenAI
+  const isOpenAIStream = (events: any[]): boolean => {
+    if (events.length === 0) return false;
+    const firstEvent = events[0];
+    return firstEvent?.object === 'chat.completion.chunk' ||
+           firstEvent?.object === 'text_completion.chunk';
+  };
+
+  // Extract readable content from OpenAI stream
+  const extractOpenAIContent = (events: any[]): {
+    content: string,
+    toolCalls: any[],
+    model: string,
+    finishReason: string | null
+  } => {
+    let content = '';
+    const toolCalls: any[] = [];
+    let model = '';
+    let finishReason: string | null = null;
+
+    for (const event of events) {
+      if (typeof event !== 'object') continue;
+
+      // Get model from first event
+      if (!model && event.model) {
+        model = event.model;
+      }
+
+      // Extract content and tool calls from choices
+      if (event.choices && Array.isArray(event.choices)) {
+        for (const choice of event.choices) {
+          // Regular content
+          if (choice.delta?.content) {
+            content += choice.delta.content;
+          }
+
+          // Tool calls
+          if (choice.delta?.tool_calls) {
+            for (const toolCall of choice.delta.tool_calls) {
+              const index = toolCall.index || 0;
+
+              // Initialize tool call if needed
+              if (!toolCalls[index]) {
+                toolCalls[index] = {
+                  id: toolCall.id || '',
+                  type: toolCall.type || 'function',
+                  function: {
+                    name: toolCall.function?.name || '',
+                    arguments: ''
+                  }
+                };
+              }
+
+              // Append to existing tool call
+              if (toolCall.id) toolCalls[index].id = toolCall.id;
+              if (toolCall.function?.name) toolCalls[index].function.name = toolCall.function.name;
+              if (toolCall.function?.arguments) toolCalls[index].function.arguments += toolCall.function.arguments;
+            }
+          }
+
+          // Finish reason
+          if (choice.finish_reason) {
+            finishReason = choice.finish_reason;
+          }
+        }
+      }
+    }
+
+    // Parse tool call arguments if they're JSON strings
+    for (const toolCall of toolCalls) {
+      if (toolCall.function?.arguments) {
+        try {
+          toolCall.function.arguments = JSON.parse(toolCall.function.arguments);
+        } catch (e) {
+          // Keep as string if not valid JSON
+        }
+      }
+    }
+
+    return { content, toolCalls: toolCalls.filter(Boolean), model, finishReason };
+  };
+
   const handleCreateRule = () => {
     setShowRuleEditor(true);
   };
@@ -289,12 +371,58 @@ ${responseBodyStr}`;
             <p className="text-xs font-normal text-gray-600 mb-1">body:</p>
             <div className="ml-4">
               {isSSEBody(entry.body) ? (
-                <div className="bg-gray-50 p-3 rounded">
-                  <div className="mb-2 text-xs text-blue-600 font-medium">
-                    📡 SSE Stream ({parseSSEBody(entry.body).length} events)
-                  </div>
-                  <JsonViewer data={parseSSEBody(entry.body)} defaultExpanded={false} />
-                </div>
+                (() => {
+                  const events = parseSSEBody(entry.body);
+                  const isOpenAI = isOpenAIStream(events);
+                  const openAIContent = isOpenAI ? extractOpenAIContent(events) : null;
+
+                  return (
+                    <div className="bg-gray-50 p-3 rounded">
+                      <div className="mb-2 text-xs text-blue-600 font-medium">
+                        📡 SSE Stream ({events.length} events)
+                      </div>
+
+                      {isOpenAI && openAIContent && (
+                        <div className="mb-4 bg-white border border-blue-200 rounded p-3">
+                          <div className="text-xs font-semibold text-gray-700 mb-2">
+                            🤖 OpenAI Response ({openAIContent.model})
+                          </div>
+
+                          {openAIContent.content && (
+                            <div className="mb-3">
+                              <div className="text-xs font-medium text-gray-600 mb-1">Content:</div>
+                              <div className="text-xs text-gray-800 whitespace-pre-wrap font-mono bg-gray-50 p-2 rounded">
+                                {openAIContent.content}
+                              </div>
+                            </div>
+                          )}
+
+                          {openAIContent.toolCalls.length > 0 && (
+                            <div className="mb-3">
+                              <div className="text-xs font-medium text-gray-600 mb-1">Tool Calls:</div>
+                              <JsonViewer data={openAIContent.toolCalls} defaultExpanded={true} />
+                            </div>
+                          )}
+
+                          {openAIContent.finishReason && (
+                            <div className="text-xs text-gray-500">
+                              Finish reason: {openAIContent.finishReason}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <details>
+                        <summary className="text-xs text-gray-600 cursor-pointer hover:text-gray-900">
+                          Raw events ({events.length})
+                        </summary>
+                        <div className="mt-2">
+                          <JsonViewer data={events} defaultExpanded={false} />
+                        </div>
+                      </details>
+                    </div>
+                  );
+                })()
               ) : isJsonBody(entry.body) ? (
                 <div className="bg-gray-50 p-3 rounded">
                   <JsonViewer data={parseJsonBody(entry.body)} defaultExpanded={true} />
@@ -361,12 +489,58 @@ ${responseBodyStr}`;
                       </p>
                     </div>
                   ) : isSSEBody(entry.response.body) ? (
-                    <div className="bg-gray-50 p-3 rounded">
-                      <div className="mb-2 text-xs text-blue-600 font-medium">
-                        📡 SSE Stream ({parseSSEBody(entry.response.body).length} events)
-                      </div>
-                      <JsonViewer data={parseSSEBody(entry.response.body)} defaultExpanded={false} />
-                    </div>
+                    (() => {
+                      const events = parseSSEBody(entry.response.body);
+                      const isOpenAI = isOpenAIStream(events);
+                      const openAIContent = isOpenAI ? extractOpenAIContent(events) : null;
+
+                      return (
+                        <div className="bg-gray-50 p-3 rounded">
+                          <div className="mb-2 text-xs text-blue-600 font-medium">
+                            📡 SSE Stream ({events.length} events)
+                          </div>
+
+                          {isOpenAI && openAIContent && (
+                            <div className="mb-4 bg-white border border-blue-200 rounded p-3">
+                              <div className="text-xs font-semibold text-gray-700 mb-2">
+                                🤖 OpenAI Response ({openAIContent.model})
+                              </div>
+
+                              {openAIContent.content && (
+                                <div className="mb-3">
+                                  <div className="text-xs font-medium text-gray-600 mb-1">Content:</div>
+                                  <div className="text-xs text-gray-800 whitespace-pre-wrap font-mono bg-gray-50 p-2 rounded">
+                                    {openAIContent.content}
+                                  </div>
+                                </div>
+                              )}
+
+                              {openAIContent.toolCalls.length > 0 && (
+                                <div className="mb-3">
+                                  <div className="text-xs font-medium text-gray-600 mb-1">Tool Calls:</div>
+                                  <JsonViewer data={openAIContent.toolCalls} defaultExpanded={true} />
+                                </div>
+                              )}
+
+                              {openAIContent.finishReason && (
+                                <div className="text-xs text-gray-500">
+                                  Finish reason: {openAIContent.finishReason}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          <details>
+                            <summary className="text-xs text-gray-600 cursor-pointer hover:text-gray-900">
+                              Raw events ({events.length})
+                            </summary>
+                            <div className="mt-2">
+                              <JsonViewer data={events} defaultExpanded={false} />
+                            </div>
+                          </details>
+                        </div>
+                      );
+                    })()
                   ) : isJsonBody(entry.response.body) ? (
                     <div className="bg-gray-50 p-3 rounded">
                       <JsonViewer data={parseJsonBody(entry.response.body)} defaultExpanded={true} />
