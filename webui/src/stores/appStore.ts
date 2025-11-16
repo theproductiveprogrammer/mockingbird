@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { TrafficEntry, ServiceRules, Config, Stats } from '../types/api';
 import { api } from '../utils/api';
 
-type View = 'traffic' | 'rules' | 'config' | 'stats';
+type View = 'traffic' | 'rules' | 'config' | 'stats' | 'plugins';
 
 interface AppState {
   // Workspace

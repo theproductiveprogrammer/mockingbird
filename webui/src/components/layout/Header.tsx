@@ -104,6 +104,19 @@ export function Header() {
             <img src="/settings.svg" alt="Config" className="w-3.5 h-3.5" />
             Config
           </button>
+
+          <button
+            onClick={() => navigate(navTo("/plugins"))}
+            className={`px-2 py-1 text-xs font-normal rounded transition-colors flex items-center gap-1 ${
+              currentView === "plugins"
+                ? "bg-blue-50 text-blue-700 border border-blue-200"
+                : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+            }`}
+            title="Plugins"
+          >
+            <img src="/plugins.svg" alt="Plugins" className="w-3.5 h-3.5" />
+            Plugins
+          </button>
         </div>
       </div>
     </header>

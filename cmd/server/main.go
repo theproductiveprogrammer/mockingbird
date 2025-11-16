@@ -11,6 +11,7 @@ import (
 
 	"github.com/theproductiveprogrammer/mockingbird.git/internal/admin"
 	"github.com/theproductiveprogrammer/mockingbird.git/internal/config"
+	"github.com/theproductiveprogrammer/mockingbird.git/internal/plugin"
 	"github.com/theproductiveprogrammer/mockingbird.git/internal/proxy"
 	"github.com/theproductiveprogrammer/mockingbird.git/internal/store"
 )
@@ -52,11 +53,17 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Initialize plugin manager
+	pluginManager := plugin.NewManager(cfg)
+	if err := pluginManager.LoadPlugins(); err != nil {
+		fmt.Printf("Warning: Failed to load plugins: %v\n", err)
+	}
+
 	// Create proxy handler
-	proxyHandler := proxy.NewHandler(cfg, workspaceManager)
+	proxyHandler := proxy.NewHandler(cfg, workspaceManager, pluginManager)
 
 	// Create admin API
-	adminAPI := admin.NewAPI(cfg, workspaceManager)
+	adminAPI := admin.NewAPI(cfg, workspaceManager, pluginManager)
 
 	// Create HTTP servers
 	proxyServer := &http.Server{

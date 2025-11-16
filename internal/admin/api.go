@@ -16,6 +16,7 @@ import (
 	"github.com/theproductiveprogrammer/mockingbird.git/internal/dsl"
 	"github.com/theproductiveprogrammer/mockingbird.git/internal/matcher"
 	"github.com/theproductiveprogrammer/mockingbird.git/internal/models"
+	"github.com/theproductiveprogrammer/mockingbird.git/internal/plugin"
 	"github.com/theproductiveprogrammer/mockingbird.git/internal/store"
 )
 
@@ -23,14 +24,16 @@ import (
 type API struct {
 	config           *config.Config
 	workspaceManager *store.WorkspaceManager
+	pluginManager    *plugin.Manager
 	router           chi.Router
 }
 
 // NewAPI creates a new admin API
-func NewAPI(cfg *config.Config, wm *store.WorkspaceManager) *API {
+func NewAPI(cfg *config.Config, wm *store.WorkspaceManager, pm *plugin.Manager) *API {
 	api := &API{
 		config:           cfg,
 		workspaceManager: wm,
+		pluginManager:    pm,
 		router:           chi.NewRouter(),
 	}
 
@@ -85,6 +88,11 @@ func (a *API) setupRoutes() {
 
 		// Stats
 		r.Get("/stats", a.handleGetStats)
+
+		// Plugins
+		r.Get("/plugins", a.handleGetPlugins)
+		r.Get("/plugins/{plugin}/ui", a.handleGetPluginUI)
+		r.Post("/plugins/{plugin}/action", a.handlePluginAction)
 	})
 
 	// Static image assets: /img/w/...
@@ -782,5 +790,98 @@ func (a *API) handleDuplicateWorkspace(w http.ResponseWriter, r *http.Request) {
 		"source":  source,
 		"dest":    req.Dest,
 		"message": "Workspace duplicated successfully",
+	})
+}
+
+// handleGetPlugins returns a list of all loaded plugins
+func (a *API) handleGetPlugins(w http.ResponseWriter, r *http.Request) {
+	if a.pluginManager == nil {
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"plugins": []interface{}{},
+		})
+		return
+	}
+
+	plugins := a.pluginManager.GetPlugins()
+	pluginList := make([]map[string]interface{}, 0, len(plugins))
+
+	for _, p := range plugins {
+		pluginList = append(pluginList, map[string]interface{}{
+			"name":    p.Name,
+			"version": p.Version,
+			"routes":  p.Routes,
+		})
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"plugins": pluginList,
+	})
+}
+
+// handleGetPluginUI returns the UI definition for a plugin
+func (a *API) handleGetPluginUI(w http.ResponseWriter, r *http.Request) {
+	if a.pluginManager == nil {
+		respondError(w, http.StatusNotFound, "Plugin manager not initialized", "NO_PLUGIN_MANAGER")
+		return
+	}
+
+	pluginName := chi.URLParam(r, "plugin")
+	plugin := a.pluginManager.GetPlugin(pluginName)
+	if plugin == nil {
+		respondError(w, http.StatusNotFound, "Plugin not found", "PLUGIN_NOT_FOUND")
+		return
+	}
+
+	ui, err := plugin.GetPluginUI()
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err.Error(), "PLUGIN_UI_ERROR")
+		return
+	}
+
+	if ui == nil {
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"type":  "empty",
+			"items": []interface{}{},
+		})
+		return
+	}
+
+	respondJSON(w, http.StatusOK, ui)
+}
+
+// handlePluginAction handles a plugin action request
+func (a *API) handlePluginAction(w http.ResponseWriter, r *http.Request) {
+	if a.pluginManager == nil {
+		respondError(w, http.StatusNotFound, "Plugin manager not initialized", "NO_PLUGIN_MANAGER")
+		return
+	}
+
+	pluginName := chi.URLParam(r, "plugin")
+	plugin := a.pluginManager.GetPlugin(pluginName)
+	if plugin == nil {
+		respondError(w, http.StatusNotFound, "Plugin not found", "PLUGIN_NOT_FOUND")
+		return
+	}
+
+	var req struct {
+		Action string                 `json:"action"`
+		ID     string                 `json:"id"`
+		Data   map[string]interface{} `json:"data"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid request body", "INVALID_REQUEST")
+		return
+	}
+
+	result, err := plugin.HandleAction(req.Action, req.ID, req.Data)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err.Error(), "PLUGIN_ACTION_ERROR")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"success": true,
+		"result":  result,
 	})
 }

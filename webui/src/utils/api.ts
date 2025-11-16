@@ -20,6 +20,32 @@ export interface Workspace {
   bird_icon: string;
 }
 
+// Plugin types
+export interface Plugin {
+  name: string;
+  version: string;
+  routes: string[];
+}
+
+export interface PluginUIAction {
+  label: string;
+  action: string;
+  hasTextarea?: boolean;
+}
+
+export interface PluginUIItem {
+  id: string;
+  title: string;
+  subtitle: string;
+  content: string;
+  actions: PluginUIAction[];
+}
+
+export interface PluginUI {
+  type: string;
+  items: PluginUIItem[];
+}
+
 class ApiClient {
   // Workspace Management APIs (root level - no workspace in path)
   async getWorkspaces(): Promise<Workspace[]> {
@@ -196,6 +222,32 @@ class ApiClient {
 
   getTrafficStreamUrl(): string {
     return `${getApiBase()}/traffic/stream`;
+  }
+
+  // Plugin APIs
+  async getPlugins(): Promise<Plugin[]> {
+    const response = await fetch(`${getApiBase()}/plugins`);
+    const data = await response.json();
+    return data.plugins || [];
+  }
+
+  async getPluginUI(pluginName: string): Promise<PluginUI> {
+    const response = await fetch(`${getApiBase()}/plugins/${pluginName}/ui`);
+    return response.json();
+  }
+
+  async pluginAction(pluginName: string, action: string, id: string, data: Record<string, unknown> = {}): Promise<unknown> {
+    const response = await fetch(`${getApiBase()}/plugins/${pluginName}/action`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, id, data }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Plugin action failed');
+    }
+
+    return response.json();
   }
 }
 

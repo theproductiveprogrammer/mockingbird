@@ -8,6 +8,7 @@ import { TrafficDetails } from './components/traffic/TrafficDetails';
 import { RulesView } from './components/rules/RulesView';
 import { ConfigView } from './components/config/ConfigView';
 import { StatsView } from './components/stats/StatsView';
+import { PluginsView } from './components/plugins/PluginsView';
 import { WorkspaceSplash } from './components/workspaces/WorkspaceSplash';
 import { useAppStore } from './stores/appStore';
 import { useTrafficSSE } from './hooks/useTrafficSSE';
@@ -52,6 +53,7 @@ function WorkspaceUI() {
     if (viewPath === '/rules' || viewPath.startsWith('/rules')) return 'rules';
     if (viewPath === '/config' || viewPath.startsWith('/config')) return 'config';
     if (viewPath === '/stats' || viewPath.startsWith('/stats')) return 'stats';
+    if (viewPath === '/plugins' || viewPath.startsWith('/plugins')) return 'plugins';
     return 'traffic'; // Default for / and /traffic/:id
   })();
 
@@ -73,6 +75,7 @@ function WorkspaceUI() {
           <Route path="/rules" element={<RulesView />} />
           <Route path="/config" element={<ConfigView />} />
           <Route path="/stats" element={<StatsView />} />
+          <Route path="/plugins" element={<PluginsView />} />
         </Routes>
       </div>
 

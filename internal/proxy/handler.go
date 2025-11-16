@@ -18,6 +18,7 @@ import (
 	"github.com/theproductiveprogrammer/mockingbird.git/internal/dsl"
 	"github.com/theproductiveprogrammer/mockingbird.git/internal/matcher"
 	"github.com/theproductiveprogrammer/mockingbird.git/internal/models"
+	"github.com/theproductiveprogrammer/mockingbird.git/internal/plugin"
 	"github.com/theproductiveprogrammer/mockingbird.git/internal/render"
 	"github.com/theproductiveprogrammer/mockingbird.git/internal/store"
 )
@@ -27,14 +28,16 @@ type Handler struct {
 	config           *config.Config
 	workspaceManager *store.WorkspaceManager
 	renderer         *render.Renderer
+	pluginManager    *plugin.Manager
 }
 
 // NewHandler creates a new proxy handler
-func NewHandler(cfg *config.Config, wm *store.WorkspaceManager) *Handler {
+func NewHandler(cfg *config.Config, wm *store.WorkspaceManager, pm *plugin.Manager) *Handler {
 	return &Handler{
 		config:           cfg,
 		workspaceManager: wm,
 		renderer:         render.NewRenderer(cfg),
+		pluginManager:    pm,
 	}
 }
 
@@ -83,6 +86,43 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		QueryParams:  r.URL.Query(),
 		Headers:      r.Header,
 		Body:         body,
+	}
+
+	// Check if any plugin wants to handle this request
+	if h.pluginManager != nil {
+		pluginResp, err := h.pluginManager.HandleRequest(ctx)
+		if err != nil {
+			fmt.Printf("Plugin error: %v\n", err)
+		} else if pluginResp != nil {
+			// Plugin handled the request
+			for k, v := range pluginResp.Headers {
+				w.Header().Set(k, v)
+			}
+			w.WriteHeader(pluginResp.Status)
+			w.Write([]byte(pluginResp.Body))
+
+			// Record traffic
+			entry := models.TrafficEntry{
+				ID:          uuid.New().String(),
+				Timestamp:   start,
+				Service:     service,
+				Method:      r.Method,
+				Path:        path,
+				QueryParams: r.URL.Query(),
+				Headers:     r.Header,
+				Body:        body,
+				Response: &models.Response{
+					StatusCode: pluginResp.Status,
+					Headers:    pluginResp.Headers,
+					Body:       pluginResp.Body,
+					DelayMS:    time.Since(start).Milliseconds(),
+				},
+				RuleType: "plugin",
+			}
+			maskBackendKeys(&entry, h.config)
+			st.AddTraffic(entry)
+			return
+		}
 	}
 
 	// Get rules for service
