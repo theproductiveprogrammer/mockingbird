@@ -106,7 +106,14 @@ function sendReply(originalEmail, replyText) {
 
     // Build the reply body - only quote original if it has meaningful text
     var replyBody = replyText;
-    var originalText = originalEmail.Text || "";
+    var originalText = "";
+
+    // Prefer HTML over Text, convert to markdown for quoting
+    if (originalEmail.HTML && originalEmail.HTML.length > 0) {
+        originalText = htmlToMarkdown(originalEmail.HTML);
+    } else {
+        originalText = originalEmail.Text || "";
+    }
 
     // Skip quoting if the original text is empty or just a HTML fallback message
     if (originalText && originalText.length > 10 && !originalText.includes("does not support HTML")) {
