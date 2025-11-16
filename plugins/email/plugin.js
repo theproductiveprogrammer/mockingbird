@@ -60,6 +60,16 @@ function fetchEmailDetails(messageId) {
 function sendReply(originalEmail, replyText) {
     var url = getMailpitUrl() + "/api/v1/send";
 
+    // Build the reply body - only quote original if it has meaningful text
+    var replyBody = replyText;
+    var originalText = originalEmail.Text || "";
+
+    // Skip quoting if the original text is empty or just a HTML fallback message
+    if (originalText && originalText.length > 10 && !originalText.includes("does not support HTML")) {
+        replyBody = replyText + "\n\n---\nOn " + (originalEmail.Date || "earlier") + ", " +
+                    (originalEmail.From.Name || originalEmail.From.Address) + " wrote:\n" + originalText;
+    }
+
     // Build reply email with proper headers
     var replyEmail = {
         From: {
@@ -71,7 +81,7 @@ function sendReply(originalEmail, replyText) {
             Name: originalEmail.From.Name || originalEmail.From.Address
         }],
         Subject: "Re: " + originalEmail.Subject.replace(/^Re:\s*/i, ""),
-        Text: replyText + "\n\n---\nOn " + originalEmail.Date + ", " + (originalEmail.From.Name || originalEmail.From.Address) + " wrote:\n" + originalEmail.Text,
+        Text: replyBody,
         Headers: {
             "In-Reply-To": originalEmail.MessageID,
             "References": originalEmail.MessageID
@@ -137,13 +147,26 @@ exports.getUI = function() {
             actions: []
         });
     } else {
-        // Show first 10 emails
+        // Show first 10 emails - fetch full content for each
         var maxEmails = Math.min(emails.length, 10);
         for (var i = 0; i < maxEmails; i++) {
             var email = emails[i];
             var fromStr = email.From ? (email.From.Name || email.From.Address || "Unknown") : "Unknown";
             var subject = email.Subject || "(No Subject)";
-            var snippet = email.Snippet || "";
+            var dateStr = email.Created || email.Date || "Unknown date";
+
+            // Fetch full email content to get the actual body
+            var fullEmail = fetchEmailDetails(email.ID);
+            var emailContent = "";
+            if (fullEmail) {
+                // Prefer Text over HTML, show first 500 chars
+                emailContent = fullEmail.Text || fullEmail.Snippet || "";
+                if (emailContent.length > 500) {
+                    emailContent = emailContent.substring(0, 500) + "...";
+                }
+            } else {
+                emailContent = email.Snippet || "";
+            }
 
             // Check if we've replied to this email
             var hasReplied = sentReplies.some(function(reply) {
@@ -155,8 +178,8 @@ exports.getUI = function() {
             items.push({
                 id: "email_" + email.ID,
                 title: subject + statusLabel,
-                subtitle: "From: " + fromStr + " | " + email.Date,
-                content: snippet.substring(0, 500) + (snippet.length > 500 ? "..." : ""),
+                subtitle: "From: " + fromStr + " | " + dateStr,
+                content: emailContent,
                 actions: hasReplied ? [
                     { label: "View Details", action: "view_email" }
                 ] : [
