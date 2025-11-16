@@ -21,6 +21,50 @@ function now() {
     return new Date().toISOString();
 }
 
+// Convert HTML to markdown for display
+function htmlToMarkdown(html) {
+    // Convert line breaks
+    html = html.replace(/<br\s*\/?>/gi, "\n");
+
+    // Convert headings
+    html = html.replace(/<h1[^>]*>(.*?)<\/h1>/gi, "# $1\n");
+    html = html.replace(/<h2[^>]*>(.*?)<\/h2>/gi, "## $1\n");
+    html = html.replace(/<h3[^>]*>(.*?)<\/h3>/gi, "### $1\n");
+
+    // Bold / italic
+    html = html.replace(/<b[^>]*>(.*?)<\/b>/gi, "**$1**");
+    html = html.replace(/<strong[^>]*>(.*?)<\/strong>/gi, "**$1**");
+    html = html.replace(/<i[^>]*>(.*?)<\/i>/gi, "_$1_");
+    html = html.replace(/<em[^>]*>(.*?)<\/em>/gi, "_$1_");
+
+    // Links
+    html = html.replace(/<a [^>]*href="([^"]+)"[^>]*>(.*?)<\/a>/gi, "[$2]($1)");
+
+    // Paragraphs
+    html = html.replace(/<p[^>]*>(.*?)<\/p>/gi, "$1\n\n");
+
+    // Unordered lists
+    html = html.replace(/<ul[^>]*>([\s\S]*?)<\/ul>/gi, function(match, content) {
+        return content
+            .replace(/<li[^>]*>(.*?)<\/li>/gi, "- $1")
+            .trim() + "\n\n";
+    });
+
+    // Ordered lists
+    html = html.replace(/<ol[^>]*>([\s\S]*?)<\/ol>/gi, function(match, content) {
+        var i = 1;
+        return content
+            .replace(/<li[^>]*>(.*?)<\/li>/gi, function() { return (i++) + ". $1"; })
+            .trim() + "\n\n";
+    });
+
+    // Strip remaining tags
+    html = html.replace(/<\/?[^>]+(>|$)/g, "");
+
+    // Clean extra spacing
+    return html.replace(/\n{3,}/g, "\n\n").trim();
+}
+
 // Fetch emails from Mailpit
 function fetchEmails() {
     var url = getMailpitUrl() + "/api/v1/messages";
@@ -70,12 +114,30 @@ function sendReply(originalEmail, replyText) {
                     (originalEmail.From.Name || originalEmail.From.Address) + " wrote:\n" + originalText;
     }
 
+    // Get the original recipient (who we're pretending to be)
+    var replyFrom = {
+        Email: plugin.getConfig("FROM_EMAIL") || "mockingbird@localhost",
+        Name: plugin.getConfig("FROM_NAME") || "Mockingbird"
+    };
+
+    // Use the original To address as the From (we're replying as the recipient)
+    if (originalEmail.To && originalEmail.To.length > 0) {
+        var originalRecipient = originalEmail.To[0];
+        replyFrom = {
+            Email: originalRecipient.Address || originalRecipient.Email || replyFrom.Email,
+            Name: originalRecipient.Name || replyFrom.Name
+        };
+    }
+
+    // Build References header (chain previous references + current message ID)
+    var references = originalEmail.MessageID || "";
+    if (originalEmail.References) {
+        references = originalEmail.References + " " + originalEmail.MessageID;
+    }
+
     // Build reply email with proper headers
     var replyEmail = {
-        From: {
-            Email: plugin.getConfig("FROM_EMAIL") || "mockingbird@localhost",
-            Name: plugin.getConfig("FROM_NAME") || "Mockingbird"
-        },
+        From: replyFrom,
         To: [{
             Email: originalEmail.From.Address,
             Name: originalEmail.From.Name || originalEmail.From.Address
@@ -83,8 +145,8 @@ function sendReply(originalEmail, replyText) {
         Subject: "Re: " + originalEmail.Subject.replace(/^Re:\s*/i, ""),
         Text: replyBody,
         Headers: {
-            "In-Reply-To": originalEmail.MessageID,
-            "References": originalEmail.MessageID
+            "In-Reply-To": originalEmail.MessageID || "",
+            "References": references.trim()
         }
     };
 
@@ -159,8 +221,12 @@ exports.getUI = function() {
             var fullEmail = fetchEmailDetails(email.ID);
             var emailContent = "";
             if (fullEmail) {
-                // Prefer Text over HTML, show first 500 chars
-                emailContent = fullEmail.Text || fullEmail.Snippet || "";
+                // Prefer HTML over Text, convert to markdown for display
+                if (fullEmail.HTML && fullEmail.HTML.length > 0) {
+                    emailContent = htmlToMarkdown(fullEmail.HTML);
+                } else {
+                    emailContent = fullEmail.Text || fullEmail.Snippet || "";
+                }
                 if (emailContent.length > 500) {
                     emailContent = emailContent.substring(0, 500) + "...";
                 }
