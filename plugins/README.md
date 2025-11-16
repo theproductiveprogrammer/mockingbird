@@ -15,19 +15,27 @@ Restart Mockingbird to load the new plugins.
 
 ## Available Plugins
 
-### LinkedIn Plugin (v2.0)
+### LinkedIn Plugin (v3.0)
 
-Intercepts and mocks LinkedIn API calls.
+Intercepts LinkedIn API calls with Unipile integration and caching.
 
 **Routes:** `/linkedin/**`
 
 **Features:**
+- Forwards profile and post requests to Unipile API
+- Caches responses for faster subsequent requests
+- Updates cached profiles to FIRST_DEGREE when invites are accepted
 - Handles invitations (send, list, accept/reject)
 - Manages chats and messages
 - User profile lookups
 - Post creation and retrieval
 - Tracks all activities with persistent state
 - UI for reviewing and approving messages
+- Cache management (view stats, clear cache)
+
+**Configuration (via Mockingbird config):**
+- `LINKEDIN_PLUGIN_DNS` - Unipile DNS server (e.g., api1.unipile.com:13111)
+- `LINKEDIN_PLUGIN_API_KEY` - Unipile API key
 
 ### Email Plugin (v1.0)
 

@@ -1,6 +1,6 @@
-// LinkedIn Plugin - Full Implementation
+// LinkedIn Plugin - Full Implementation with Unipile Integration
 exports.name = "linkedin";
-exports.version = "2.0";
+exports.version = "3.0";
 exports.routes = ["/linkedin/**"];
 exports.config_env = "LINKEDIN_PLUGIN_";
 
@@ -22,6 +22,149 @@ function generateLinkedInId() {
 // Helper to get current ISO timestamp
 function now() {
     return new Date().toISOString();
+}
+
+// Helper to get Unipile API URL
+function getUnipileUrl() {
+    var dns = plugin.getConfig("DNS") || "";
+    if (!dns) {
+        return null;
+    }
+    return "https://" + dns;
+}
+
+// Helper to get Unipile API key
+function getUnipileApiKey() {
+    return plugin.getConfig("API_KEY") || "";
+}
+
+// Helper to convert query params object to query string
+function buildQueryString(queryParams) {
+    if (!queryParams) {
+        return "";
+    }
+    var parts = [];
+    for (var key in queryParams) {
+        if (queryParams.hasOwnProperty(key)) {
+            parts.push(encodeURIComponent(key) + "=" + encodeURIComponent(queryParams[key]));
+        }
+    }
+    return parts.join("&");
+}
+
+// Forward request to Unipile API
+function forwardToUnipile(path, queryParams) {
+    var baseUrl = getUnipileUrl();
+    var apiKey = getUnipileApiKey();
+
+    if (!baseUrl || !apiKey) {
+        console.log("LinkedIn plugin: Unipile not configured (missing DNS or API_KEY)");
+        return null;
+    }
+
+    var url = baseUrl + path;
+    var queryString = buildQueryString(queryParams);
+    if (queryString) {
+        url += "?" + queryString;
+    }
+    console.log("LinkedIn plugin: Forwarding to Unipile: " + url);
+
+    var result = plugin.httpRequest("GET", url, {
+        "X-API-KEY": apiKey,
+        "Accept": "application/json"
+    }, null);
+
+    if (result.error) {
+        console.log("LinkedIn plugin: Unipile request failed: " + result.error);
+        return null;
+    }
+
+    if (result.status !== 200) {
+        console.log("LinkedIn plugin: Unipile returned status: " + result.status);
+        return null;
+    }
+
+    return result.body;
+}
+
+// Get cached profile or fetch from Unipile
+function getProfileWithCache(identifier, queryParams) {
+    var cache = plugin.getData("profiles_cache") || {};
+
+    // Check cache first (cache key is just identifier, ignoring query params)
+    if (cache[identifier]) {
+        console.log("LinkedIn plugin: Returning cached profile for " + identifier);
+        return cache[identifier].data;
+    }
+
+    // Try to fetch from Unipile (passing query params for authentication)
+    var profile = forwardToUnipile("/api/v1/users/" + identifier, queryParams);
+    if (profile) {
+        // Cache the result
+        cache[identifier] = {
+            data: profile,
+            cached_at: now()
+        };
+        plugin.saveData("profiles_cache", cache);
+        console.log("LinkedIn plugin: Cached profile for " + identifier);
+        return profile;
+    }
+
+    return null;
+}
+
+// Get cached posts or fetch from Unipile
+function getPostsWithCache(identifier, queryParams) {
+    var cache = plugin.getData("posts_cache") || {};
+
+    // Check cache first (cache key is just identifier, ignoring query params)
+    if (cache[identifier]) {
+        console.log("LinkedIn plugin: Returning cached posts for " + identifier);
+        return cache[identifier].data;
+    }
+
+    // Try to fetch from Unipile (passing query params for authentication)
+    var posts = forwardToUnipile("/api/v1/users/" + identifier + "/posts", queryParams);
+    if (posts) {
+        // Cache the result
+        cache[identifier] = {
+            data: posts,
+            cached_at: now()
+        };
+        plugin.saveData("posts_cache", cache);
+        console.log("LinkedIn plugin: Cached posts for " + identifier);
+        return posts;
+    }
+
+    return null;
+}
+
+// Update cached profile to FIRST_DEGREE connection
+function updateCacheToFirstDegree(identifier) {
+    var cache = plugin.getData("profiles_cache") || {};
+
+    // Check if we have this profile cached directly by key
+    if (cache[identifier] && cache[identifier].data) {
+        cache[identifier].data.network_distance = "FIRST_DEGREE";
+        cache[identifier].updated_at = now();
+        plugin.saveData("profiles_cache", cache);
+        console.log("LinkedIn plugin: Updated " + identifier + " to FIRST_DEGREE connection");
+        return true;
+    }
+
+    // Search by provider_id if not found by key
+    for (var cacheKey in cache) {
+        var profile = cache[cacheKey].data;
+        if (profile && profile.provider_id === identifier) {
+            cache[cacheKey].data.network_distance = "FIRST_DEGREE";
+            cache[cacheKey].updated_at = now();
+            plugin.saveData("profiles_cache", cache);
+            console.log("LinkedIn plugin: Updated " + cacheKey + " (provider_id: " + identifier + ") to FIRST_DEGREE connection");
+            return true;
+        }
+    }
+
+    return false;
 }
 
 // Initialize mock data if empty
@@ -73,6 +216,7 @@ exports.handleRequest = function(ctx) {
     var path = ctx.path;
     var method = ctx.method;
     var body = ctx.body || {};
+    var queryParams = ctx.query || {};
 
     console.log("LinkedIn plugin: " + method + " " + path);
 
@@ -86,7 +230,8 @@ exports.handleRequest = function(ctx) {
         var invitation = {
             id: generateId("inv"),
             invitation_id: Date.now().toString(),
-            recipient_id: body.identifier || body.to || "unknown",
+            recipient_id: body.provider_id || body.identifier || body.to || "unknown",
+            account_id: body.account_id || "",
             message: body.message || "",
             status: "pending",
             sent_at: now()
@@ -304,6 +449,18 @@ exports.handleRequest = function(ctx) {
     }
     if (method === "GET" && profileMatch && !apiPath.includes("/posts") && !apiPath.includes("/invitations") && !apiPath.includes("/relations")) {
         var identifier = profileMatch[1];
+
+        // Try to get from cache or Unipile first (pass query params for Unipile auth)
+        var cachedProfile = getProfileWithCache(identifier, queryParams);
+        if (cachedProfile) {
+            return {
+                status: 200,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(cachedProfile)
+            };
+        }
+
+        // Fall back to local users store
         var users = plugin.getData("users") || {};
 
         // Check if we have this user
@@ -343,6 +500,27 @@ exports.handleRequest = function(ctx) {
     var postsMatch = apiPath.match(/\/api\/v1\/users\/([^\/]+)\/posts$/);
     if (method === "GET" && postsMatch) {
         var userId = postsMatch[1];
+
+        // Try to get from cache or Unipile first (pass query params for Unipile auth)
+        var cachedPosts = getPostsWithCache(userId, queryParams);
+        if (cachedPosts) {
+            // If it's already an array (from Unipile), wrap it
+            if (Array.isArray(cachedPosts)) {
+                return {
+                    status: 200,
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(cachedPosts)
+                };
+            }
+            // If it's already a response object, return it
+            return {
+                status: 200,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(cachedPosts)
+            };
+        }
+
+        // Fall back to local posts store
         var userPosts = plugin.getData("posts") || [];
         var filtered = userPosts.filter(function(p) {
             return p.author_id === userId;
@@ -447,14 +625,49 @@ exports.getUI = function() {
 
     // Section: Pending Invitations
     var pendingInvites = invitesSent.filter(function(inv) { return inv.status === "pending"; });
+    var profilesCache = plugin.getData("profiles_cache") || {};
     if (pendingInvites.length > 0) {
         for (var i = 0; i < pendingInvites.length; i++) {
             var inv = pendingInvites[i];
+            var recipientDisplay = inv.recipient_id;
+            var recipientName = "";
+            var recipientHeadline = "";
+
+            // Try to find cached profile info for this recipient
+            var cachedProfile = null;
+            for (var cacheKey in profilesCache) {
+                var profile = profilesCache[cacheKey].data;
+                if (profile && (profile.provider_id === inv.recipient_id || cacheKey === inv.recipient_id)) {
+                    cachedProfile = profile;
+                    break;
+                }
+            }
+
+            if (cachedProfile) {
+                recipientName = (cachedProfile.first_name || "") + " " + (cachedProfile.last_name || "");
+                recipientHeadline = cachedProfile.headline || "";
+                recipientDisplay = recipientName.trim() || inv.recipient_id;
+            } else if (recipientDisplay && recipientDisplay.startsWith("ACoAA")) {
+                // Show a shorter version if it's a provider_id
+                recipientDisplay = recipientDisplay.substr(0, 15) + "...";
+            }
+
+            var contentText = inv.message ? "Message: " + inv.message : "No message included";
+            if (recipientName) {
+                contentText += "\nRecipient: " + recipientName;
+            }
+            if (recipientHeadline) {
+                contentText += "\nHeadline: " + recipientHeadline;
+            }
+            contentText += "\nProvider ID: " + inv.recipient_id;
+            if (inv.account_id) {
+                contentText += "\nAccount ID: " + inv.account_id;
+            }
             items.push({
                 id: inv.id,
                 title: "Connection Request (Pending)",
-                subtitle: "To: " + inv.recipient_id + " | Sent: " + inv.sent_at,
-                content: inv.message ? "Message: " + inv.message : "No message included",
+                subtitle: "To: " + recipientDisplay + " | Sent: " + inv.sent_at,
+                content: contentText,
                 actions: [
                     { label: "Mark Accepted", action: "accept_invite" },
                     { label: "Mark Declined", action: "decline_invite" }
@@ -507,6 +720,27 @@ exports.getUI = function() {
     var acceptedInvites = invitesSent.filter(function(inv) { return inv.status === "accepted"; }).length;
     var totalMessages = messages.length;
     var approvedMessages = messages.filter(function(m) { return m.status === "approved"; }).length;
+    var profilesCache = plugin.getData("profiles_cache") || {};
+    var postsCache = plugin.getData("posts_cache") || {};
+    var cachedProfiles = Object.keys(profilesCache).length;
+    var cachedPosts = Object.keys(postsCache).length;
+
+    // Show configuration status
+    var unipileUrl = getUnipileUrl();
+    var apiKeyConfigured = getUnipileApiKey() ? "Yes" : "No";
+    items.unshift({
+        id: "config_status",
+        title: "LinkedIn Plugin Configuration",
+        subtitle: "Unipile connection and cache settings",
+        content: "Unipile DNS: " + (unipileUrl || "Not configured") + "\n" +
+                 "API Key configured: " + apiKeyConfigured + "\n" +
+                 "Configure via: LINKEDIN_PLUGIN_DNS, LINKEDIN_PLUGIN_API_KEY\n" +
+                 "Cached Profiles: " + cachedProfiles + "\n" +
+                 "Cached Posts: " + cachedPosts,
+        actions: [
+            { label: "Clear Cache", action: "clear_cache" }
+        ]
+    });
 
     if (totalInvites > 0 || totalMessages > 0 || chatIds.length > 0) {
         items.unshift({
@@ -543,14 +777,22 @@ exports.handleAction = function(action, id, data) {
 
     if (action === "accept_invite" || action === "decline_invite") {
         var invites = plugin.getData("invitations_sent") || [];
+        var recipientId = null;
         for (var i = 0; i < invites.length; i++) {
             if (invites[i].id === id) {
                 invites[i].status = action === "accept_invite" ? "accepted" : "declined";
                 invites[i].updated_at = now();
+                recipientId = invites[i].recipient_id;
                 break;
             }
         }
         plugin.saveData("invitations_sent", invites);
+
+        // If accepting, update the cached profile to FIRST_DEGREE
+        if (action === "accept_invite" && recipientId) {
+            updateCacheToFirstDegree(recipientId);
+        }
+
         return { success: true, message: "Invitation " + (action === "accept_invite" ? "accepted" : "declined") };
     }
 
@@ -603,6 +845,12 @@ exports.handleAction = function(action, id, data) {
         messages.push(newMessage);
         plugin.saveData("messages", messages);
         return { success: true, message: "Reply added (pending review)" };
+    }
+
+    if (action === "clear_cache") {
+        plugin.saveData("profiles_cache", {});
+        plugin.saveData("posts_cache", {});
+        return { success: true, message: "Cache cleared successfully" };
     }
 
     return { success: false, message: "Unknown action: " + action };
