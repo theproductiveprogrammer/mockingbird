@@ -93,6 +93,7 @@ func (a *API) setupRoutes() {
 		r.Get("/plugins", a.handleGetPlugins)
 		r.Get("/plugins/{plugin}/ui", a.handleGetPluginUI)
 		r.Post("/plugins/{plugin}/action", a.handlePluginAction)
+		r.Post("/plugins/{plugin}/toggle", a.handleTogglePlugin)
 	})
 
 	// Static image assets: /img/w/...
@@ -810,11 +811,41 @@ func (a *API) handleGetPlugins(w http.ResponseWriter, r *http.Request) {
 			"name":    p.Name,
 			"version": p.Version,
 			"routes":  p.Routes,
+			"enabled": p.Enabled,
 		})
 	}
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"plugins": pluginList,
+	})
+}
+
+// handleTogglePlugin toggles a plugin's enabled state
+func (a *API) handleTogglePlugin(w http.ResponseWriter, r *http.Request) {
+	if a.pluginManager == nil {
+		respondError(w, http.StatusNotFound, "Plugin manager not initialized", "NO_PLUGIN_MANAGER")
+		return
+	}
+
+	pluginName := chi.URLParam(r, "plugin")
+
+	var req struct {
+		Enabled bool `json:"enabled"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid request body", "INVALID_REQUEST")
+		return
+	}
+
+	if err := a.pluginManager.TogglePlugin(pluginName, req.Enabled); err != nil {
+		respondError(w, http.StatusNotFound, err.Error(), "PLUGIN_NOT_FOUND")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"success": true,
+		"enabled": req.Enabled,
 	})
 }
 

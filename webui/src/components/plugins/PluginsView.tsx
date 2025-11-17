@@ -69,6 +69,19 @@ export function PluginsView() {
     }
   };
 
+  const handleTogglePlugin = async (pluginName: string, enabled: boolean) => {
+    try {
+      await api.togglePlugin(pluginName, enabled);
+      toast.success(`Plugin ${pluginName} ${enabled ? 'enabled' : 'disabled'}`);
+      // Update local state
+      setPlugins(prev => prev.map(p =>
+        p.name === pluginName ? { ...p, enabled } : p
+      ));
+    } catch (error) {
+      toast.error(`Failed to toggle plugin: ${error}`);
+    }
+  };
+
   if (loading) {
     return (
       <div className="h-full flex items-center justify-center text-gray-600">
@@ -102,10 +115,13 @@ export function PluginsView() {
               selectedPlugin === plugin.name
                 ? 'bg-blue-50 text-blue-700 border border-blue-200'
                 : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50 border border-transparent'
-            }`}
+            } ${!plugin.enabled ? 'opacity-50' : ''}`}
           >
             {plugin.name}
             <span className="ml-1 text-xs text-gray-400">v{plugin.version}</span>
+            {!plugin.enabled && (
+              <span className="ml-1 text-xs text-red-400">(off)</span>
+            )}
           </button>
         ))}
       </div>
@@ -113,8 +129,36 @@ export function PluginsView() {
       {/* Plugin Info */}
       {selectedPlugin && (
         <div className="px-6 py-2 bg-gray-50 border-b border-gray-200">
-          <div className="text-xs text-gray-500">
-            Routes: {plugins.find(p => p.name === selectedPlugin)?.routes.join(', ')}
+          <div className="flex items-center justify-between">
+            <div className="text-xs text-gray-500">
+              Routes: {plugins.find(p => p.name === selectedPlugin)?.routes.join(', ') || '(none)'}
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-500">
+                {plugins.find(p => p.name === selectedPlugin)?.enabled ? 'Enabled' : 'Disabled'}
+              </span>
+              <button
+                onClick={() => {
+                  const plugin = plugins.find(p => p.name === selectedPlugin);
+                  if (plugin) {
+                    handleTogglePlugin(selectedPlugin, !plugin.enabled);
+                  }
+                }}
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                  plugins.find(p => p.name === selectedPlugin)?.enabled
+                    ? 'bg-blue-600'
+                    : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+                    plugins.find(p => p.name === selectedPlugin)?.enabled
+                      ? 'translate-x-4.5'
+                      : 'translate-x-0.5'
+                  }`}
+                />
+              </button>
+            </div>
           </div>
         </div>
       )}

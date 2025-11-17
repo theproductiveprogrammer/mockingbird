@@ -23,6 +23,7 @@ type Plugin struct {
 	Version    string   `json:"version"`
 	Routes     []string `json:"routes"`
 	ConfigEnv  string   `json:"config_env"` // Environment variable prefix
+	Enabled    bool     `json:"enabled"`    // Whether plugin is enabled
 	PluginPath string   `json:"-"`
 	runtime    *goja.Runtime
 	mu         sync.Mutex
@@ -157,6 +158,7 @@ func (m *Manager) loadPlugin(name, pluginPath, scriptPath string) (*Plugin, erro
 		Version:    "1.0",
 		Routes:     []string{},
 		ConfigEnv:  strings.ToUpper(name) + "_PLUGIN_",
+		Enabled:    true, // Default to enabled
 		PluginPath: pluginPath,
 		runtime:    vm,
 	}
@@ -186,6 +188,15 @@ func (m *Manager) loadPlugin(name, pluginPath, scriptPath string) (*Plugin, erro
 	// Get config_env if exported
 	if configEnvVal := exports.Get("config_env"); configEnvVal != nil && !goja.IsUndefined(configEnvVal) {
 		plugin.ConfigEnv = configEnvVal.String()
+	}
+
+	// Load enabled state from plugin data (default to true for backward compatibility)
+	dataFile := filepath.Join(pluginPath, "data.json")
+	pluginData := m.loadPluginData(dataFile)
+	if enabledVal, ok := pluginData["_enabled"]; ok {
+		if enabled, ok := enabledVal.(bool); ok {
+			plugin.Enabled = enabled
+		}
 	}
 
 	return plugin, nil
@@ -364,6 +375,29 @@ func (m *Manager) GetPlugin(name string) *Plugin {
 	return m.plugins[name]
 }
 
+// TogglePlugin enables or disables a plugin
+func (m *Manager) TogglePlugin(name string, enabled bool) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	plugin, ok := m.plugins[name]
+	if !ok {
+		return fmt.Errorf("plugin not found: %s", name)
+	}
+
+	plugin.Enabled = enabled
+
+	// Persist the enabled state to plugin's data file
+	dataFile := filepath.Join(plugin.PluginPath, "data.json")
+	data := m.loadPluginData(dataFile)
+	data["_enabled"] = enabled
+	m.savePluginData(dataFile, data)
+
+	fmt.Printf("[Plugin] %s %s\n", name, map[bool]string{true: "enabled", false: "disabled"}[enabled])
+
+	return nil
+}
+
 // HandleRequest checks if any plugin should handle the request
 func (m *Manager) HandleRequest(ctx *models.RequestContext) (*PluginResponse, error) {
 	m.mu.RLock()
@@ -374,6 +408,10 @@ func (m *Manager) HandleRequest(ctx *models.RequestContext) (*PluginResponse, er
 	m.mu.RUnlock()
 
 	for _, plugin := range plugins {
+		// Skip disabled plugins
+		if !plugin.Enabled {
+			continue
+		}
 		if plugin.matchesRoute(ctx.Path) {
 			resp, err := plugin.handleRequest(ctx)
 			if err != nil {

@@ -25,6 +25,7 @@ export interface Plugin {
   name: string;
   version: string;
   routes: string[];
+  enabled: boolean;
 }
 
 export interface PluginUIAction {
@@ -248,6 +249,18 @@ class ApiClient {
     }
 
     return response.json();
+  }
+
+  async togglePlugin(pluginName: string, enabled: boolean): Promise<void> {
+    const response = await fetch(`${getApiBase()}/plugins/${pluginName}/toggle`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to toggle plugin');
+    }
   }
 }
 
