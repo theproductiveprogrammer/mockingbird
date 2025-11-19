@@ -243,6 +243,15 @@ func (h *Handler) handleProxy(w http.ResponseWriter, r *http.Request, rule *mode
 		service := extractService(req.URL.Path)
 		req.URL.Path = strings.TrimPrefix(req.URL.Path, "/"+service)
 
+		// Remove hop-by-hop headers that cause issues with HTTPS proxying
+		// The h2c upgrade is invalid for HTTPS targets (they use ALPN instead)
+		req.Header.Del("Upgrade")
+		req.Header.Del("Connection")
+		req.Header.Del("Http2-Settings")
+
+		// Set Host header to match the target for proper routing
+		req.Host = req.URL.Host
+
 		// Inject headers from rule
 		for key, value := range rule.Headers {
 			// Render header value with templates
