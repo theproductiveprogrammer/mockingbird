@@ -87,6 +87,27 @@ function forwardToUnipile(path, queryParams) {
     return result.body;
 }
 
+// Get invite status for a user by provider_id
+function getInviteStatus(providerId) {
+    var invites = plugin.getData("invitations_sent") || [];
+    for (var i = 0; i < invites.length; i++) {
+        if (invites[i].recipient_id === providerId) {
+            return invites[i].status;
+        }
+    }
+    return null; // No invite sent
+}
+
+// Determine network_distance based on invite status
+function getNetworkDistanceByInviteStatus(status) {
+    if (status === "accepted") {
+        return "FIRST_DEGREE";
+    } else if (status === "pending") {
+        return "SECOND_DEGREE";
+    }
+    return "THIRD_DEGREE"; // Not invited or declined
+}
+
 // Get cached profile or fetch from Unipile
 function getProfileWithCache(identifier, queryParams) {
     var cache = plugin.getData("profiles_cache") || {};
@@ -94,7 +115,15 @@ function getProfileWithCache(identifier, queryParams) {
     // Check cache first (cache key is just identifier, ignoring query params)
     if (cache[identifier]) {
         console.log("LinkedIn plugin: Returning cached profile for " + identifier);
-        return cache[identifier].data;
+        var cachedProfile = cache[identifier].data;
+
+        // Create a copy and override network_distance based on invite status
+        var result = JSON.parse(JSON.stringify(cachedProfile));
+        var inviteStatus = getInviteStatus(result.provider_id);
+        result.network_distance = getNetworkDistanceByInviteStatus(inviteStatus);
+        console.log("LinkedIn plugin: Set network_distance to " + result.network_distance + " (invite status: " + (inviteStatus || "none") + ")");
+
+        return result;
     }
 
     // Try to fetch from Unipile (passing query params for authentication)
@@ -107,7 +136,14 @@ function getProfileWithCache(identifier, queryParams) {
         };
         plugin.saveData("profiles_cache", cache);
         console.log("LinkedIn plugin: Cached profile for " + identifier);
-        return profile;
+
+        // Create a copy and override network_distance based on invite status
+        var result = JSON.parse(JSON.stringify(profile));
+        var inviteStatus = getInviteStatus(result.provider_id);
+        result.network_distance = getNetworkDistanceByInviteStatus(inviteStatus);
+        console.log("LinkedIn plugin: Set network_distance to " + result.network_distance + " (invite status: " + (inviteStatus || "none") + ")");
+
+        return result;
     }
 
     return null;
@@ -391,7 +427,7 @@ exports.handleRequest = function(ctx) {
             sender: "self",
             text: body.text || "",
             timestamp: now(),
-            status: "pending_review"
+            status: "sent"
         };
         messages.push(newMessage);
         plugin.saveData("messages", messages);
@@ -670,26 +706,46 @@ exports.getUI = function() {
                 content: contentText,
                 actions: [
                     { label: "Mark Accepted", action: "accept_invite" },
-                    { label: "Mark Declined", action: "decline_invite" }
+                    { label: "Mark Declined", action: "decline_invite" },
+                    { label: "Remove", action: "remove_invite" }
                 ]
             });
         }
     }
 
-    // Section: Messages pending review
-    var pendingMessages = messages.filter(function(m) { return m.status === "pending_review"; });
-    if (pendingMessages.length > 0) {
-        for (var i = 0; i < pendingMessages.length; i++) {
-            var msg = pendingMessages[i];
+    // Section: Accepted/Declined Invitations (for re-testing)
+    var completedInvites = invitesSent.filter(function(inv) { return inv.status === "accepted" || inv.status === "declined"; });
+    if (completedInvites.length > 0) {
+        for (var i = 0; i < completedInvites.length; i++) {
+            var inv = completedInvites[i];
+            var recipientDisplay = inv.recipient_id;
+            var recipientName = "";
+
+            // Try to find cached profile info for this recipient
+            var cachedProfile = null;
+            for (var cacheKey in profilesCache) {
+                var profile = profilesCache[cacheKey].data;
+                if (profile && (profile.provider_id === inv.recipient_id || cacheKey === inv.recipient_id)) {
+                    cachedProfile = profile;
+                    break;
+                }
+            }
+
+            if (cachedProfile) {
+                recipientName = (cachedProfile.first_name || "") + " " + (cachedProfile.last_name || "");
+                recipientDisplay = recipientName.trim() || inv.recipient_id;
+            } else if (recipientDisplay && recipientDisplay.startsWith("ACoAA")) {
+                recipientDisplay = recipientDisplay.substr(0, 15) + "...";
+            }
+
+            var statusLabel = inv.status === "accepted" ? "Accepted" : "Declined";
             items.push({
-                id: msg.id,
-                title: "Message Pending Review",
-                subtitle: "Chat: " + msg.chat_id + " | " + msg.timestamp,
-                content: msg.text,
+                id: inv.id,
+                title: "Connection Request (" + statusLabel + ")",
+                subtitle: "To: " + recipientDisplay + " | " + (inv.updated_at || inv.sent_at),
+                content: "Provider ID: " + inv.recipient_id,
                 actions: [
-                    { label: "Approve & Send", action: "approve_message" },
-                    { label: "Edit & Send", action: "edit_message", hasTextarea: true },
-                    { label: "Discard", action: "discard_message" }
+                    { label: "Remove", action: "remove_invite" }
                 ]
             });
         }
@@ -701,13 +757,28 @@ exports.getUI = function() {
         for (var i = 0; i < Math.min(chatIds.length, 5); i++) {
             var chat = chats[chatIds[i]];
             var chatMessages = messages.filter(function(m) { return m.chat_id === chat.id; });
-            var lastMessage = chatMessages.length > 0 ? chatMessages[chatMessages.length - 1] : null;
+
+            // Show last 3 messages
+            var recentMessages = chatMessages.slice(-3);
+            var messagesContent = "";
+            if (recentMessages.length > 0) {
+                for (var j = 0; j < recentMessages.length; j++) {
+                    var msg = recentMessages[j];
+                    var senderLabel = msg.sender === "self" ? "You" : "Them";
+                    if (j > 0) {
+                        messagesContent += "\n\n---\n\n";
+                    }
+                    messagesContent += senderLabel + ": " + msg.text;
+                }
+            } else {
+                messagesContent = "No messages yet";
+            }
 
             items.push({
                 id: "chat_" + chat.id,
                 title: "Chat: " + chat.id.substr(0, 12) + "...",
                 subtitle: "Attendees: " + (chat.attendees || []).join(", ") + " | Messages: " + chatMessages.length,
-                content: lastMessage ? "Last message: " + lastMessage.text : "No messages yet",
+                content: messagesContent.trim(),
                 actions: [
                     { label: "Send Reply", action: "send_chat_reply", hasTextarea: true }
                 ]
@@ -788,12 +859,14 @@ exports.handleAction = function(action, id, data) {
         }
         plugin.saveData("invitations_sent", invites);
 
-        // If accepting, update the cached profile to FIRST_DEGREE
-        if (action === "accept_invite" && recipientId) {
-            updateCacheToFirstDegree(recipientId);
-        }
-
         return { success: true, message: "Invitation " + (action === "accept_invite" ? "accepted" : "declined") };
+    }
+
+    if (action === "remove_invite") {
+        var invites = plugin.getData("invitations_sent") || [];
+        invites = invites.filter(function(inv) { return inv.id !== id; });
+        plugin.saveData("invitations_sent", invites);
+        return { success: true, message: "Invitation removed - user can be re-invited" };
     }
 
     if (action === "approve_message") {
@@ -840,11 +913,11 @@ exports.handleAction = function(action, id, data) {
             sender: "self",
             text: data.text || "",
             timestamp: now(),
-            status: "pending_review"
+            status: "sent"
         };
         messages.push(newMessage);
         plugin.saveData("messages", messages);
-        return { success: true, message: "Reply added (pending review)" };
+        return { success: true, message: "Reply sent" };
     }
 
     if (action === "clear_cache") {
