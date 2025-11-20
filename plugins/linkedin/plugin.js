@@ -329,11 +329,16 @@ exports.handleRequest = function(ctx) {
         var messageId = generateLinkedInId();
         var chats = plugin.getData("chats") || {};
 
+        var attendeeIds = body.attendees_ids || [body.attendee_id || "unknown"];
         var newChat = {
+            object: "Chat",
             id: chatId,
-            attendees: body.attendees_ids || [body.attendee_id || "unknown"],
-            created_at: now(),
-            last_message_at: now()
+            account_id: body.account_id || "",
+            provider: "LINKEDIN",
+            type: attendeeIds.length > 1 ? "GROUP" : "ONE_TO_ONE",
+            attendees_ids: attendeeIds,
+            unread_count: 0,
+            timestamp: now()
         };
         chats[chatId] = newChat;
         plugin.saveData("chats", chats);
@@ -346,7 +351,8 @@ exports.handleRequest = function(ctx) {
                 chat_id: chatId,
                 sender: "self",
                 text: body.text,
-                timestamp: now()
+                timestamp: now(),
+                status: "sent"
             });
             plugin.saveData("messages", messages);
         }
@@ -386,10 +392,47 @@ exports.handleRequest = function(ctx) {
         var chats = plugin.getData("chats") || {};
         var chat = chats[chatId];
         if (chat) {
+            // Build enriched attendees from profile cache
+            var profilesCache = plugin.getData("profiles_cache") || {};
+            var attendeeIds = chat.attendees_ids || chat.attendees || [];
+            var enrichedAttendees = [];
+
+            for (var i = 0; i < attendeeIds.length; i++) {
+                var attendeeId = attendeeIds[i];
+                var attendeeInfo = {
+                    attendee_provider_id: attendeeId,
+                    display_name: "Unknown User"
+                };
+
+                // Look up profile in cache
+                for (var cacheKey in profilesCache) {
+                    var profile = profilesCache[cacheKey].data;
+                    if (profile && (profile.provider_id === attendeeId || cacheKey === attendeeId)) {
+                        attendeeInfo.display_name = (profile.first_name || "") + " " + (profile.last_name || "");
+                        attendeeInfo.headline = profile.headline || "";
+                        attendeeInfo.profile_picture_url = profile.profile_picture_url || "";
+                        break;
+                    }
+                }
+
+                enrichedAttendees.push(attendeeInfo);
+            }
+
+            var response = {
+                object: "Chat",
+                id: chat.id,
+                account_id: chat.account_id || "",
+                provider: chat.provider || "LINKEDIN",
+                type: chat.type || "ONE_TO_ONE",
+                attendees: enrichedAttendees,
+                unread_count: chat.unread_count || 0,
+                timestamp: chat.timestamp || chat.last_message_at || chat.created_at
+            };
+
             return {
                 status: 200,
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(chat)
+                body: JSON.stringify(response)
             };
         }
         return {
@@ -774,13 +817,18 @@ exports.getUI = function() {
                 messagesContent = "No messages yet";
             }
 
+            // Get attendees for display
+            var attendeesList = chat.attendees_ids || chat.attendees || [];
+            var attendeeDisplay = attendeesList.join(", ");
+
             items.push({
                 id: "chat_" + chat.id,
                 title: "Chat: " + chat.id.substr(0, 12) + "...",
-                subtitle: "Attendees: " + (chat.attendees || []).join(", ") + " | Messages: " + chatMessages.length,
+                subtitle: "Attendees: " + attendeeDisplay + " | Messages: " + chatMessages.length,
                 content: messagesContent.trim(),
                 actions: [
-                    { label: "Send Reply", action: "send_chat_reply", hasTextarea: true }
+                    { label: "Send Reply", action: "send_chat_reply", hasTextarea: true },
+                    { label: "Delete Chat", action: "delete_chat" }
                 ]
             });
         }
@@ -918,6 +966,23 @@ exports.handleAction = function(action, id, data) {
         messages.push(newMessage);
         plugin.saveData("messages", messages);
         return { success: true, message: "Reply sent" };
+    }
+
+    if (action === "delete_chat") {
+        // Extract chat_id from id (format: chat_XXXX)
+        var chatId = id.replace("chat_", "");
+        var chats = plugin.getData("chats") || {};
+
+        // Delete the chat
+        delete chats[chatId];
+        plugin.saveData("chats", chats);
+
+        // Also delete all messages for this chat
+        var messages = plugin.getData("messages") || [];
+        messages = messages.filter(function(m) { return m.chat_id !== chatId; });
+        plugin.saveData("messages", messages);
+
+        return { success: true, message: "Chat deleted" };
     }
 
     if (action === "clear_cache") {
