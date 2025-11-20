@@ -330,15 +330,41 @@ exports.handleRequest = function(ctx) {
         var chats = plugin.getData("chats") || {};
 
         var attendeeIds = body.attendees_ids || [body.attendee_id || "unknown"];
+        var attendeeProviderId = attendeeIds[0];
+
+        // Try to get attendee name from profile cache
+        var attendeeName = "";
+        var profilesCache = plugin.getData("profiles_cache") || {};
+        for (var cacheKey in profilesCache) {
+            var profile = profilesCache[cacheKey].data;
+            if (profile && (profile.provider_id === attendeeProviderId || cacheKey === attendeeProviderId)) {
+                attendeeName = (profile.first_name || "") + " " + (profile.last_name || "");
+                attendeeName = attendeeName.trim();
+                break;
+            }
+        }
+
         var newChat = {
             object: "Chat",
             id: chatId,
             account_id: body.account_id || "",
-            provider: "LINKEDIN",
-            type: attendeeIds.length > 1 ? "GROUP" : "ONE_TO_ONE",
-            attendees_ids: attendeeIds,
+            account_type: "LINKEDIN",
+            provider_id: chatId,
+            attendee_provider_id: attendeeProviderId,
+            name: attendeeName,
+            type: attendeeIds.length > 1 ? 1 : 0,
+            timestamp: now(),
             unread_count: 0,
-            timestamp: now()
+            archived: 0,
+            muted_until: -1,
+            read_only: 0,
+            disabledFeatures: [],
+            subject: "",
+            organization_id: "",
+            mailbox_id: "",
+            content_type: "inmail",
+            folder: ["INBOX"],
+            pinned: 0
         };
         chats[chatId] = newChat;
         plugin.saveData("chats", chats);
@@ -392,42 +418,51 @@ exports.handleRequest = function(ctx) {
         var chats = plugin.getData("chats") || {};
         var chat = chats[chatId];
         if (chat) {
-            // Build enriched attendees from profile cache
-            var profilesCache = plugin.getData("profiles_cache") || {};
-            var attendeeIds = chat.attendees_ids || chat.attendees || [];
-            var enrichedAttendees = [];
+            // Clone the chat object
+            var response = JSON.parse(JSON.stringify(chat));
 
-            for (var i = 0; i < attendeeIds.length; i++) {
-                var attendeeId = attendeeIds[i];
-                var attendeeInfo = {
-                    attendee_provider_id: attendeeId,
-                    display_name: "Unknown User"
+            // Get last message for this chat
+            var allMessages = plugin.getData("messages") || [];
+            var chatMessages = allMessages.filter(function(m) { return m.chat_id === chatId; });
+
+            if (chatMessages.length > 0) {
+                var lastMsg = chatMessages[chatMessages.length - 1];
+                response.lastMessage = {
+                    object: "Message",
+                    provider_id: lastMsg.id,
+                    sender_id: lastMsg.sender_id || "self",
+                    text: lastMsg.text || "",
+                    attachments: lastMsg.attachments || [],
+                    id: lastMsg.id,
+                    account_id: chat.account_id,
+                    chat_id: chatId,
+                    chat_provider_id: chat.provider_id,
+                    timestamp: lastMsg.timestamp,
+                    is_sender: lastMsg.is_sender || 1,
+                    quoted: lastMsg.quoted || null,
+                    reactions: lastMsg.reactions || [],
+                    seen: lastMsg.seen || 0,
+                    seen_by: lastMsg.seen_by || {},
+                    hidden: lastMsg.hidden || 0,
+                    deleted: lastMsg.deleted || 0,
+                    edited: lastMsg.edited || 0,
+                    is_event: lastMsg.is_event || 0,
+                    delivered: lastMsg.delivered || 0,
+                    behavior: lastMsg.behavior || 0,
+                    event_type: lastMsg.event_type || 0,
+                    original: lastMsg.original || "",
+                    replies: lastMsg.replies || 0,
+                    reply_by: lastMsg.reply_by || [],
+                    parent: lastMsg.parent || "",
+                    sender_attendee_id: lastMsg.sender_attendee_id || "",
+                    subject: lastMsg.subject || "",
+                    message_type: lastMsg.message_type || "MESSAGE",
+                    attendee_type: lastMsg.attendee_type || "MEMBER",
+                    attendee_distance: lastMsg.attendee_distance || 1,
+                    sender_urn: lastMsg.sender_urn || "",
+                    reply_to: lastMsg.reply_to || null
                 };
-
-                // Look up profile in cache
-                for (var cacheKey in profilesCache) {
-                    var profile = profilesCache[cacheKey].data;
-                    if (profile && (profile.provider_id === attendeeId || cacheKey === attendeeId)) {
-                        attendeeInfo.display_name = (profile.first_name || "") + " " + (profile.last_name || "");
-                        attendeeInfo.headline = profile.headline || "";
-                        attendeeInfo.profile_picture_url = profile.profile_picture_url || "";
-                        break;
-                    }
-                }
-
-                enrichedAttendees.push(attendeeInfo);
             }
-
-            var response = {
-                object: "Chat",
-                id: chat.id,
-                account_id: chat.account_id || "",
-                provider: chat.provider || "LINKEDIN",
-                type: chat.type || "ONE_TO_ONE",
-                attendees: enrichedAttendees,
-                unread_count: chat.unread_count || 0,
-                timestamp: chat.timestamp || chat.last_message_at || chat.created_at
-            };
 
             return {
                 status: 200,
@@ -460,18 +495,58 @@ exports.handleRequest = function(ctx) {
         };
     }
 
-    // Send message
-    if (method === "POST" && apiPath === "/api/v1/messages") {
+    // Send message to chat
+    if (method === "POST" && messagesMatch) {
+        var chatId = messagesMatch[1];
         var messageId = generateLinkedInId();
         var messages = plugin.getData("messages") || [];
+        var chats = plugin.getData("chats") || {};
+        var chat = chats[chatId];
+
+        if (!chat) {
+            return {
+                status: 404,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ error: "Chat not found" })
+            };
+        }
+
         var newMessage = {
-            id: messageId,
-            chat_id: body.chat_id,
-            sender: "self",
+            object: "Message",
+            provider_id: messageId,
+            sender_id: "self",
             text: body.text || "",
+            attachments: [],
+            id: messageId,
+            account_id: chat.account_id,
+            chat_id: chatId,
+            chat_provider_id: chat.provider_id,
             timestamp: now(),
-            status: "sent"
+            is_sender: 1,
+            quoted: null,
+            reactions: [],
+            seen: 0,
+            seen_by: {},
+            hidden: 0,
+            deleted: 0,
+            edited: 0,
+            is_event: 0,
+            delivered: 0,
+            behavior: 0,
+            event_type: 0,
+            original: "",
+            replies: 0,
+            reply_by: [],
+            parent: "",
+            sender_attendee_id: "",
+            subject: "",
+            message_type: "MESSAGE",
+            attendee_type: "MEMBER",
+            attendee_distance: 1,
+            sender_urn: "",
+            reply_to: null
         };
+
         messages.push(newMessage);
         plugin.saveData("messages", messages);
 
@@ -480,21 +555,7 @@ exports.handleRequest = function(ctx) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 object: "MessageSent",
-                message_id: messageId,
-                chat_id: body.chat_id
-            })
-        };
-    }
-
-    // List all messages
-    if (method === "GET" && apiPath === "/api/v1/messages") {
-        var allMessages = plugin.getData("messages") || [];
-        return {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                object: "MessageList",
-                items: allMessages.slice(-100).reverse() // Last 100, most recent first
+                message_id: messageId
             })
         };
     }
