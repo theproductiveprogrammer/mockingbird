@@ -26,6 +26,7 @@ export interface Plugin {
   version: string;
   routes: string[];
   enabled: boolean;
+  has_component: boolean;
 }
 
 export interface PluginUIAction {

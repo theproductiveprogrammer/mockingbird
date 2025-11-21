@@ -92,6 +92,7 @@ func (a *API) setupRoutes() {
 		// Plugins
 		r.Get("/plugins", a.handleGetPlugins)
 		r.Get("/plugins/{plugin}/ui", a.handleGetPluginUI)
+		r.Get("/plugins/{plugin}/component.js", a.handleGetPluginComponent)
 		r.Post("/plugins/{plugin}/action", a.handlePluginAction)
 		r.Post("/plugins/{plugin}/toggle", a.handleTogglePlugin)
 	})
@@ -808,10 +809,11 @@ func (a *API) handleGetPlugins(w http.ResponseWriter, r *http.Request) {
 
 	for _, p := range plugins {
 		pluginList = append(pluginList, map[string]interface{}{
-			"name":    p.Name,
-			"version": p.Version,
-			"routes":  p.Routes,
-			"enabled": p.Enabled,
+			"name":          p.Name,
+			"version":       p.Version,
+			"routes":        p.Routes,
+			"enabled":       p.Enabled,
+			"has_component": p.HasComponent,
 		})
 	}
 
@@ -915,4 +917,38 @@ func (a *API) handlePluginAction(w http.ResponseWriter, r *http.Request) {
 		"success": true,
 		"result":  result,
 	})
+}
+
+// handleGetPluginComponent serves the plugin's React component bundle
+func (a *API) handleGetPluginComponent(w http.ResponseWriter, r *http.Request) {
+	if a.pluginManager == nil {
+		respondError(w, http.StatusNotFound, "Plugin manager not initialized", "NO_PLUGIN_MANAGER")
+		return
+	}
+
+	pluginName := chi.URLParam(r, "plugin")
+	plugin := a.pluginManager.GetPlugin(pluginName)
+	if plugin == nil {
+		respondError(w, http.StatusNotFound, "Plugin not found", "PLUGIN_NOT_FOUND")
+		return
+	}
+
+	componentPath, err := plugin.GetComponentPath()
+	if err != nil {
+		respondError(w, http.StatusNotFound, err.Error(), "COMPONENT_NOT_FOUND")
+		return
+	}
+
+	// Read the component file
+	content, err := os.ReadFile(componentPath)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to read component file", "READ_ERROR")
+		return
+	}
+
+	// Set appropriate headers for JavaScript module
+	w.Header().Set("Content-Type", "application/javascript")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.WriteHeader(http.StatusOK)
+	w.Write(content)
 }

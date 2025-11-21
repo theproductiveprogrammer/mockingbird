@@ -1,13 +1,17 @@
 import { useEffect, useState } from 'react';
 import { api, Plugin, PluginUI, PluginUIItem } from '../../utils/api';
 import toast from 'react-hot-toast';
+import { PluginComponentLoader } from './PluginComponentLoader';
+import { useParams } from 'react-router-dom';
 
 export function PluginsView() {
+  const { workspace } = useParams<{ workspace: string }>();
   const [plugins, setPlugins] = useState<Plugin[]>([]);
   const [selectedPlugin, setSelectedPlugin] = useState<string | null>(null);
   const [pluginUI, setPluginUI] = useState<PluginUI | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionTextareas, setActionTextareas] = useState<Record<string, string>>({});
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     loadPlugins();
@@ -165,69 +169,90 @@ export function PluginsView() {
 
       {/* Plugin UI */}
       <div className="flex-1 overflow-y-auto p-6">
-        {pluginUI && pluginUI.items.length > 0 ? (
-          <div className="space-y-4">
-            {pluginUI.items.map((item: PluginUIItem) => (
-              <div
-                key={item.id}
-                className="bg-white border border-gray-200 rounded-lg p-4"
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-900">
-                      {item.title}
-                    </h3>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      {item.subtitle}
-                    </p>
-                  </div>
-                  <span className="text-xs text-gray-400">{item.id}</span>
-                </div>
+        {selectedPlugin && workspace && (() => {
+          const plugin = plugins.find(p => p.name === selectedPlugin);
 
-                {item.content && (
-                  <pre className="mt-3 text-xs bg-gray-50 p-3 rounded overflow-x-auto whitespace-pre-wrap font-mono">
-                    {item.content}
-                  </pre>
-                )}
+          // Render React component if plugin has one
+          if (plugin?.has_component) {
+            return (
+              <PluginComponentLoader
+                key={`${selectedPlugin}-${refreshKey}`}
+                pluginName={selectedPlugin}
+                workspace={workspace}
+                onRefresh={() => setRefreshKey(prev => prev + 1)}
+              />
+            );
+          }
 
-                {item.actions.length > 0 && (
-                  <div className="mt-3 space-y-2">
-                    {item.actions.map((action) => (
-                      <div key={action.action}>
-                        {action.hasTextarea && (
-                          <textarea
-                            value={actionTextareas[`${item.id}_${action.action}`] || ''}
-                            onChange={(e) =>
-                              setActionTextareas(prev => ({
-                                ...prev,
-                                [`${item.id}_${action.action}`]: e.target.value
-                              }))
-                            }
-                            placeholder="Enter your reply..."
-                            className="w-full px-3 py-2 text-xs border border-gray-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none mb-2"
-                            rows={3}
-                          />
-                        )}
-                        <button
-                          onClick={() =>
-                            selectedPlugin && handleAction(selectedPlugin, action.action, item.id, action.hasTextarea)
-                          }
-                          className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors mr-2"
-                        >
-                          {action.label}
-                        </button>
+          // Fallback to legacy JSON UI
+          if (pluginUI && pluginUI.items.length > 0) {
+            return (
+              <div className="space-y-4">
+                {pluginUI.items.map((item: PluginUIItem) => (
+                  <div
+                    key={item.id}
+                    className="bg-white border border-gray-200 rounded-lg p-4"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="text-sm font-medium text-gray-900">
+                          {item.title}
+                        </h3>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {item.subtitle}
+                        </p>
                       </div>
-                    ))}
+                      <span className="text-xs text-gray-400">{item.id}</span>
+                    </div>
+
+                    {item.content && (
+                      <pre className="mt-3 text-xs bg-gray-50 p-3 rounded overflow-x-auto whitespace-pre-wrap font-mono">
+                        {item.content}
+                      </pre>
+                    )}
+
+                    {item.actions.length > 0 && (
+                      <div className="mt-3 space-y-2">
+                        {item.actions.map((action) => (
+                          <div key={action.action}>
+                            {action.hasTextarea && (
+                              <textarea
+                                value={actionTextareas[`${item.id}_${action.action}`] || ''}
+                                onChange={(e) =>
+                                  setActionTextareas(prev => ({
+                                    ...prev,
+                                    [`${item.id}_${action.action}`]: e.target.value
+                                  }))
+                                }
+                                placeholder="Enter your reply..."
+                                className="w-full px-3 py-2 text-xs border border-gray-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none mb-2"
+                                rows={3}
+                              />
+                            )}
+                            <button
+                              onClick={() =>
+                                handleAction(selectedPlugin, action.action, item.id, action.hasTextarea)
+                              }
+                              className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors mr-2"
+                            >
+                              {action.label}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                )}
+                ))}
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center text-gray-500 text-sm">
-            {pluginUI ? 'No items to display' : 'Select a plugin to view its data'}
-          </div>
-        )}
+            );
+          }
+
+          return (
+            <div className="text-center text-gray-500 text-sm">
+              {pluginUI ? 'No items to display' : 'Select a plugin to view its data'}
+            </div>
+          );
+        })()}
       </div>
     </div>
   );

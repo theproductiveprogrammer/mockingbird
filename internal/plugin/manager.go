@@ -19,14 +19,15 @@ import (
 
 // Plugin represents a loaded JavaScript plugin
 type Plugin struct {
-	Name       string   `json:"name"`
-	Version    string   `json:"version"`
-	Routes     []string `json:"routes"`
-	ConfigEnv  string   `json:"config_env"` // Environment variable prefix
-	Enabled    bool     `json:"enabled"`    // Whether plugin is enabled
-	PluginPath string   `json:"-"`
-	runtime    *goja.Runtime
-	mu         sync.Mutex
+	Name         string   `json:"name"`
+	Version      string   `json:"version"`
+	Routes       []string `json:"routes"`
+	ConfigEnv    string   `json:"config_env"`  // Environment variable prefix
+	Enabled      bool     `json:"enabled"`     // Whether plugin is enabled
+	HasComponent bool     `json:"has_component"` // Whether plugin has a React component
+	PluginPath   string   `json:"-"`
+	runtime      *goja.Runtime
+	mu           sync.Mutex
 }
 
 // PluginResponse represents a response from a plugin
@@ -197,6 +198,12 @@ func (m *Manager) loadPlugin(name, pluginPath, scriptPath string) (*Plugin, erro
 		if enabled, ok := enabledVal.(bool); ok {
 			plugin.Enabled = enabled
 		}
+	}
+
+	// Check if plugin has a React component
+	componentPath := filepath.Join(pluginPath, "ui", "dist", "component.js")
+	if _, err := os.Stat(componentPath); err == nil {
+		plugin.HasComponent = true
 	}
 
 	return plugin, nil
@@ -627,4 +634,13 @@ func (p *Plugin) HandleAction(action string, id string, data map[string]interfac
 	}
 
 	return result.Export(), nil
+}
+
+// GetComponentPath returns the path to the plugin's React component bundle
+func (p *Plugin) GetComponentPath() (string, error) {
+	componentPath := filepath.Join(p.PluginPath, "ui", "dist", "component.js")
+	if _, err := os.Stat(componentPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("plugin does not have a React component")
+	}
+	return componentPath, nil
 }
