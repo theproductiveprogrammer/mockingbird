@@ -75,3 +75,107 @@ echo "Pushing Docker image with tag: $VERSION"
 docker push charleslobo77/mockingbird:$VERSION
 docker push charleslobo77/mockingbird:latest
 '''
+
+[tasks.plugin-build]
+description = "Build a plugin's UI (usage: mise run plugin-build <plugin-name>)"
+run = '''
+#!/bin/bash
+set -euo pipefail
+
+PLUGIN_NAME="${1:-}"
+if [ -z "$PLUGIN_NAME" ]; then
+  echo "Usage: mise run plugin-build <plugin-name>"
+  echo "Available plugins:"
+  ls -1 plugins/
+  exit 1
+fi
+
+PLUGIN_DIR="plugins/${PLUGIN_NAME}"
+if [ ! -d "$PLUGIN_DIR" ]; then
+  echo "❌ Plugin '${PLUGIN_NAME}' not found in plugins/"
+  exit 1
+fi
+
+if [ ! -d "$PLUGIN_DIR/ui" ]; then
+  echo "❌ Plugin '${PLUGIN_NAME}' has no UI directory"
+  exit 1
+fi
+
+echo "📦 Building ${PLUGIN_NAME} plugin UI..."
+cd "$PLUGIN_DIR/ui"
+npm run build
+echo "✅ Built ${PLUGIN_NAME} plugin UI"
+'''
+
+[tasks.plugin-deploy]
+description = "Deploy plugin to ~/.config/mockingbird/plugins (usage: mise run plugin-deploy <plugin-name>)"
+run = '''
+#!/bin/bash
+set -euo pipefail
+
+PLUGIN_NAME="${1:-}"
+if [ -z "$PLUGIN_NAME" ]; then
+  echo "Usage: mise run plugin-deploy <plugin-name>"
+  echo "Available plugins:"
+  ls -1 plugins/
+  exit 1
+fi
+
+PLUGIN_DIR="plugins/${PLUGIN_NAME}"
+CONFIG_DIR="$HOME/.config/mockingbird/plugins/${PLUGIN_NAME}"
+
+if [ ! -d "$PLUGIN_DIR" ]; then
+  echo "❌ Plugin '${PLUGIN_NAME}' not found in plugins/"
+  exit 1
+fi
+
+echo "🚀 Deploying ${PLUGIN_NAME} plugin to ${CONFIG_DIR}..."
+
+# Create config directory if it doesn't exist
+mkdir -p "$CONFIG_DIR"
+
+# Copy plugin.js
+if [ -f "$PLUGIN_DIR/plugin.js" ]; then
+  cp "$PLUGIN_DIR/plugin.js" "$CONFIG_DIR/plugin.js"
+  echo "  ✓ Copied plugin.js"
+else
+  echo "  ⚠️  No plugin.js found"
+fi
+
+# Copy UI dist if it exists
+if [ -d "$PLUGIN_DIR/ui/dist" ]; then
+  mkdir -p "$CONFIG_DIR/ui/dist"
+  cp -r "$PLUGIN_DIR/ui/dist/"* "$CONFIG_DIR/ui/dist/"
+  echo "  ✓ Copied UI ($(du -sh "$PLUGIN_DIR/ui/dist/component.js" | cut -f1))"
+else
+  echo "  ℹ️  No UI build found (skipping)"
+fi
+
+echo "✅ Deployed ${PLUGIN_NAME} plugin"
+'''
+
+[tasks.plugin-update]
+description = "Build and deploy a plugin (usage: mise run plugin-update <plugin-name>)"
+run = '''
+#!/bin/bash
+set -euo pipefail
+
+PLUGIN_NAME="${1:-}"
+if [ -z "$PLUGIN_NAME" ]; then
+  echo "Usage: mise run plugin-update <plugin-name>"
+  echo "Available plugins:"
+  ls -1 plugins/
+  exit 1
+fi
+
+# Build if UI exists
+if [ -d "plugins/${PLUGIN_NAME}/ui" ]; then
+  mise run plugin-build "$PLUGIN_NAME"
+fi
+
+# Deploy
+mise run plugin-deploy "$PLUGIN_NAME"
+
+echo ""
+echo "🎉 Plugin '${PLUGIN_NAME}' updated! Restart Mockingbird to load changes."
+'''
