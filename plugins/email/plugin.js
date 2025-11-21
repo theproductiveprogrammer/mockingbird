@@ -353,5 +353,26 @@ exports.handleAction = function(action, id, data) {
         return sendResult;
     }
 
+
+    if (action === "load_emails") {
+        var emails = fetchEmails();
+        var sentReplies = plugin.getData("sent_replies") || [];
+        var repliedIds = sentReplies.map(function(r) { return r.message_id; });
+
+        return {
+            success: true,
+            emails: emails.slice(0, 50),
+            replied_ids: repliedIds,
+            config: {
+                host: plugin.getConfig("HOST") || "localhost",
+                port: plugin.getConfig("PORT") || "8025",
+                fromEmail: plugin.getConfig("FROM_EMAIL") || "mockingbird@localhost",
+                emailCount: emails.length,
+                repliesCount: sentReplies.length
+            }
+        };
+    }
+
     return { success: false, message: "Unknown action: " + action };
 };
+
