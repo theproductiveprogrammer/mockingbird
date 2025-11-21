@@ -1,0 +1,547 @@
+import { useState, useEffect } from 'react';
+import { PluginComponentProps } from './types';
+
+// LinkedIn color scheme
+const COLORS = {
+  primary: '#0A66C2',
+  primaryDark: '#004182',
+  primaryLight: '#378FE9',
+  background: '#F3F2EF',
+  white: '#FFFFFF',
+  border: '#E0DFDC',
+  textPrimary: '#000000',
+  textSecondary: '#666666',
+  success: '#057642',
+  warning: '#F5C75D',
+};
+
+interface User {
+  id: string;
+  provider_id: string;
+  public_identifier?: string;
+  first_name: string;
+  last_name: string;
+  headline?: string;
+  location?: string;
+  profile_picture_url?: string;
+  follower_count?: number;
+  connections_count?: number;
+  network_distance?: string;
+}
+
+interface Invitation {
+  id: string;
+  recipient_id: string;
+  message: string;
+  status: 'pending' | 'accepted' | 'declined';
+  sent_at: string;
+}
+
+interface Message {
+  id: string;
+  chat_id: string;
+  text: string;
+  sender: string;
+  timestamp: string;
+  is_sender?: number;
+}
+
+interface UserData {
+  users: User[];
+  invitations: Invitation[];
+  messages: Message[];
+  stats: {
+    total_users: number;
+    connections: number;
+    pending_invites: number;
+    total_messages: number;
+  };
+}
+
+export default function LinkedInPluginUI({ api }: PluginComponentProps) {
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [messageText, setMessageText] = useState('');
+  const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const result: any = await api.action('load_user_data', 'all');
+
+      if (!result.success) {
+        throw new Error(result.message || 'Failed to load data');
+      }
+
+      setUserData(result.data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleInviteAction = async (inviteId: string, action: string) => {
+    try {
+      const result: any = await api.action(action, inviteId);
+      if (result.success) {
+        await loadData();
+      } else {
+        alert(result.message || 'Action failed');
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Action failed');
+    }
+  };
+
+  const handleSendMessage = async (userId: string) => {
+    if (!messageText.trim()) return;
+
+    try {
+      setSending(true);
+      const result: any = await api.action('send_message', userId, {
+        text: messageText,
+      });
+
+      if (result.success) {
+        setMessageText('');
+        await loadData();
+      } else {
+        alert(result.message || 'Failed to send message');
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to send message');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const selectedUser = selectedUserId && userData
+    ? userData.users.find(u => u.id === selectedUserId || u.provider_id === selectedUserId)
+    : null;
+
+  const userInvitation = selectedUser && userData
+    ? userData.invitations.find(inv => inv.recipient_id === selectedUser.provider_id || inv.recipient_id === selectedUser.id)
+    : null;
+
+  const userMessages = selectedUser && userData
+    ? userData.messages.filter(msg =>
+        msg.sender === selectedUser.provider_id ||
+        msg.sender === selectedUser.id ||
+        msg.chat_id.includes(selectedUser.provider_id) ||
+        msg.chat_id.includes(selectedUser.id)
+      )
+    : [];
+
+  if (loading) {
+    return (
+      <div style={{ backgroundColor: COLORS.background, minHeight: '400px' }} className="flex items-center justify-center py-12">
+        <div style={{ color: COLORS.textSecondary }} className="text-sm">Loading LinkedIn data...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+        <h3 className="text-sm font-medium text-red-900 mb-2">Error</h3>
+        <p className="text-xs text-red-700 mb-4">{error}</p>
+        <button
+          onClick={loadData}
+          className="px-3 py-1.5 text-xs bg-red-600 text-white rounded-md hover:bg-red-700"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  if (!userData) {
+    return <div>No data</div>;
+  }
+
+  return (
+    <div style={{ backgroundColor: COLORS.background, minHeight: '600px' }}>
+      {/* LinkedIn-style Header */}
+      <div style={{ backgroundColor: COLORS.white, borderBottom: `1px solid ${COLORS.border}` }} className="px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div style={{ backgroundColor: COLORS.primary }} className="w-10 h-10 rounded flex items-center justify-center">
+              <span className="text-white font-bold text-xl">in</span>
+            </div>
+            <div>
+              <h1 style={{ color: COLORS.textPrimary }} className="text-xl font-semibold">
+                LinkedIn Plugin
+              </h1>
+              <p style={{ color: COLORS.textSecondary }} className="text-xs">
+                Workspace: {api.workspace}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={loadData}
+            style={{
+              backgroundColor: COLORS.white,
+              border: `1px solid ${COLORS.primary}`,
+              color: COLORS.primary
+            }}
+            className="px-4 py-2 text-sm font-semibold rounded-full hover:bg-blue-50 transition-colors"
+          >
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      {/* Stats Bar */}
+      <div style={{ backgroundColor: COLORS.white, borderBottom: `1px solid ${COLORS.border}` }} className="px-6 py-4">
+        <div className="grid grid-cols-4 gap-4">
+          <div>
+            <div style={{ color: COLORS.textSecondary }} className="text-xs font-semibold uppercase tracking-wide">
+              Network
+            </div>
+            <div style={{ color: COLORS.primary }} className="text-2xl font-bold mt-1">
+              {userData.stats.total_users}
+            </div>
+          </div>
+          <div>
+            <div style={{ color: COLORS.textSecondary }} className="text-xs font-semibold uppercase tracking-wide">
+              Connections
+            </div>
+            <div style={{ color: COLORS.success }} className="text-2xl font-bold mt-1">
+              {userData.stats.connections}
+            </div>
+          </div>
+          <div>
+            <div style={{ color: COLORS.textSecondary }} className="text-xs font-semibold uppercase tracking-wide">
+              Pending
+            </div>
+            <div style={{ color: COLORS.warning }} className="text-2xl font-bold mt-1">
+              {userData.stats.pending_invites}
+            </div>
+          </div>
+          <div>
+            <div style={{ color: COLORS.textSecondary }} className="text-xs font-semibold uppercase tracking-wide">
+              Messages
+            </div>
+            <div style={{ color: COLORS.primary }} className="text-2xl font-bold mt-1">
+              {userData.stats.total_messages}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex" style={{ minHeight: '500px' }}>
+        {/* User List - Left Panel */}
+        <div
+          style={{
+            backgroundColor: COLORS.white,
+            borderRight: `1px solid ${COLORS.border}`,
+            width: selectedUser ? '320px' : '100%'
+          }}
+          className="overflow-y-auto"
+        >
+          <div className="p-4">
+            <h2 style={{ color: COLORS.textPrimary }} className="text-sm font-semibold mb-3">
+              Your Network ({userData.users.length})
+            </h2>
+
+            {userData.users.length === 0 ? (
+              <div className="text-center py-12">
+                <p style={{ color: COLORS.textSecondary }} className="text-sm">
+                  No users in your network yet
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {userData.users.map((user) => {
+                  const invite = userData.invitations.find(
+                    inv => inv.recipient_id === user.provider_id || inv.recipient_id === user.id
+                  );
+                  const userMsgs = userData.messages.filter(
+                    msg => msg.sender === user.provider_id || msg.chat_id.includes(user.provider_id)
+                  );
+                  const isSelected = selectedUserId === user.id || selectedUserId === user.provider_id;
+
+                  return (
+                    <button
+                      key={user.id}
+                      onClick={() => setSelectedUserId(user.provider_id || user.id)}
+                      style={{
+                        backgroundColor: isSelected ? COLORS.background : COLORS.white,
+                        border: `1px solid ${isSelected ? COLORS.primary : COLORS.border}`,
+                      }}
+                      className="w-full text-left p-3 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-start gap-3">
+                        {/* Avatar */}
+                        <div
+                          style={{
+                            backgroundColor: user.profile_picture_url ? 'transparent' : COLORS.primary,
+                            backgroundImage: user.profile_picture_url ? `url(${user.profile_picture_url})` : 'none',
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center'
+                          }}
+                          className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0"
+                        >
+                          {!user.profile_picture_url && (
+                            <span className="text-white font-semibold text-lg">
+                              {user.first_name[0]}{user.last_name[0]}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* User Info */}
+                        <div className="flex-1 min-w-0">
+                          <div style={{ color: COLORS.textPrimary }} className="font-semibold text-sm truncate">
+                            {user.first_name} {user.last_name}
+                          </div>
+                          {user.headline && (
+                            <div style={{ color: COLORS.textSecondary }} className="text-xs mt-0.5 line-clamp-2">
+                              {user.headline}
+                            </div>
+                          )}
+
+                          {/* Status Indicators */}
+                          <div className="flex items-center gap-2 mt-2">
+                            {user.network_distance === 'FIRST_DEGREE' && (
+                              <span style={{
+                                backgroundColor: COLORS.success,
+                                color: COLORS.white
+                              }} className="px-2 py-0.5 text-xs font-medium rounded-full">
+                                1st
+                              </span>
+                            )}
+                            {invite && (
+                              <span style={{
+                                backgroundColor: invite.status === 'pending' ? COLORS.warning :
+                                                invite.status === 'accepted' ? COLORS.success : '#DC2626',
+                                color: COLORS.white
+                              }} className="px-2 py-0.5 text-xs font-medium rounded-full">
+                                {invite.status}
+                              </span>
+                            )}
+                            {userMsgs.length > 0 && (
+                              <span style={{
+                                backgroundColor: COLORS.background,
+                                color: COLORS.textSecondary
+                              }} className="px-2 py-0.5 text-xs font-medium rounded-full">
+                                {userMsgs.length} msg{userMsgs.length !== 1 ? 's' : ''}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* User Detail - Right Panel */}
+        {selectedUser && (
+          <div className="flex-1 overflow-y-auto" style={{ backgroundColor: COLORS.background }}>
+            <div className="p-6">
+              {/* Close button */}
+              <button
+                onClick={() => setSelectedUserId(null)}
+                style={{ color: COLORS.textSecondary }}
+                className="mb-4 text-sm hover:underline"
+              >
+                ← Back to list
+              </button>
+
+              {/* Profile Card */}
+              <div style={{ backgroundColor: COLORS.white, border: `1px solid ${COLORS.border}` }} className="rounded-lg p-6 mb-4">
+                <div className="flex items-start gap-4">
+                  {/* Large Avatar */}
+                  <div
+                    style={{
+                      backgroundColor: selectedUser.profile_picture_url ? 'transparent' : COLORS.primary,
+                      backgroundImage: selectedUser.profile_picture_url ? `url(${selectedUser.profile_picture_url})` : 'none',
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center'
+                    }}
+                    className="w-24 h-24 rounded-full flex items-center justify-center flex-shrink-0"
+                  >
+                    {!selectedUser.profile_picture_url && (
+                      <span className="text-white font-bold text-3xl">
+                        {selectedUser.first_name[0]}{selectedUser.last_name[0]}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Profile Info */}
+                  <div className="flex-1">
+                    <h2 style={{ color: COLORS.textPrimary }} className="text-2xl font-bold">
+                      {selectedUser.first_name} {selectedUser.last_name}
+                    </h2>
+                    {selectedUser.headline && (
+                      <p style={{ color: COLORS.textSecondary }} className="text-base mt-1">
+                        {selectedUser.headline}
+                      </p>
+                    )}
+                    {selectedUser.location && (
+                      <p style={{ color: COLORS.textSecondary }} className="text-sm mt-2">
+                        📍 {selectedUser.location}
+                      </p>
+                    )}
+
+                    {/* Stats */}
+                    <div className="flex gap-4 mt-4">
+                      {selectedUser.connections_count !== undefined && (
+                        <div>
+                          <div style={{ color: COLORS.primary }} className="font-bold">
+                            {selectedUser.connections_count}
+                          </div>
+                          <div style={{ color: COLORS.textSecondary }} className="text-xs">
+                            connections
+                          </div>
+                        </div>
+                      )}
+                      {selectedUser.follower_count !== undefined && (
+                        <div>
+                          <div style={{ color: COLORS.primary }} className="font-bold">
+                            {selectedUser.follower_count}
+                          </div>
+                          <div style={{ color: COLORS.textSecondary }} className="text-xs">
+                            followers
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Invitation Status */}
+              {userInvitation && (
+                <div style={{ backgroundColor: COLORS.white, border: `1px solid ${COLORS.border}` }} className="rounded-lg p-4 mb-4">
+                  <h3 style={{ color: COLORS.textPrimary }} className="text-sm font-semibold mb-3">
+                    Connection Request
+                  </h3>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span style={{
+                          backgroundColor: userInvitation.status === 'pending' ? COLORS.warning :
+                                          userInvitation.status === 'accepted' ? COLORS.success : '#DC2626',
+                          color: COLORS.white
+                        }} className="px-3 py-1 text-xs font-medium rounded-full">
+                          {userInvitation.status.toUpperCase()}
+                        </span>
+                        <span style={{ color: COLORS.textSecondary }} className="text-xs">
+                          Sent {new Date(userInvitation.sent_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                      {userInvitation.message && (
+                        <p style={{ color: COLORS.textSecondary }} className="text-sm italic">
+                          "{userInvitation.message}"
+                        </p>
+                      )}
+                    </div>
+
+                    {userInvitation.status === 'pending' && (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleInviteAction(userInvitation.id, 'accept_invite')}
+                          style={{ backgroundColor: COLORS.success }}
+                          className="px-4 py-2 text-xs text-white font-semibold rounded-full hover:opacity-90"
+                        >
+                          Accept
+                        </button>
+                        <button
+                          onClick={() => handleInviteAction(userInvitation.id, 'decline_invite')}
+                          style={{
+                            backgroundColor: COLORS.white,
+                            border: `1px solid ${COLORS.border}`,
+                            color: COLORS.textSecondary
+                          }}
+                          className="px-4 py-2 text-xs font-semibold rounded-full hover:bg-gray-50"
+                        >
+                          Decline
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Messages */}
+              <div style={{ backgroundColor: COLORS.white, border: `1px solid ${COLORS.border}` }} className="rounded-lg p-4">
+                <h3 style={{ color: COLORS.textPrimary }} className="text-sm font-semibold mb-3">
+                  Messages ({userMessages.length})
+                </h3>
+
+                {userMessages.length === 0 ? (
+                  <p style={{ color: COLORS.textSecondary }} className="text-sm text-center py-8">
+                    No messages yet. Start a conversation!
+                  </p>
+                ) : (
+                  <div className="space-y-3 mb-4 max-h-64 overflow-y-auto">
+                    {userMessages.map((msg) => (
+                      <div
+                        key={msg.id}
+                        className={`flex ${msg.is_sender ? 'justify-end' : 'justify-start'}`}
+                      >
+                        <div
+                          style={{
+                            backgroundColor: msg.is_sender ? COLORS.primary : COLORS.background,
+                            color: msg.is_sender ? COLORS.white : COLORS.textPrimary
+                          }}
+                          className="px-4 py-2 rounded-2xl max-w-xs"
+                        >
+                          <p className="text-sm">{msg.text}</p>
+                          <p
+                            style={{
+                              color: msg.is_sender ? 'rgba(255,255,255,0.7)' : COLORS.textSecondary
+                            }}
+                            className="text-xs mt-1"
+                          >
+                            {new Date(msg.timestamp).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Message Input */}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={messageText}
+                    onChange={(e) => setMessageText(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && !sending && handleSendMessage(selectedUser.provider_id || selectedUser.id)}
+                    placeholder="Write a message..."
+                    style={{ border: `1px solid ${COLORS.border}` }}
+                    className="flex-1 px-4 py-2 text-sm rounded-full focus:outline-none focus:ring-2"
+                    disabled={sending}
+                  />
+                  <button
+                    onClick={() => handleSendMessage(selectedUser.provider_id || selectedUser.id)}
+                    disabled={!messageText.trim() || sending}
+                    style={{ backgroundColor: COLORS.primary }}
+                    className="px-6 py-2 text-sm text-white font-semibold rounded-full hover:opacity-90 disabled:opacity-50"
+                  >
+                    {sending ? 'Sending...' : 'Send'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

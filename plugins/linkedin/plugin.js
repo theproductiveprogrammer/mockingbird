@@ -751,6 +751,7 @@ exports.handleRequest = function(ctx) {
 
     // Default: return null to pass through to rules
     return null;
+    return { success: false, message: "Unknown action: " + action };
 };
 
 // Get UI for the plugin dashboard
@@ -949,6 +950,7 @@ exports.getUI = function() {
         type: "list",
         items: items
     };
+    return { success: false, message: "Unknown action: " + action };
 };
 
 // Handle actions from the UI
@@ -1052,5 +1054,186 @@ exports.handleAction = function(action, id, data) {
         return { success: true, message: "Cache cleared successfully" };
     }
 
+    
+    if (action === "load_invitations") {
+        var invitesSent = plugin.getData("invitations_sent") || [];
+        var profilesCache = plugin.getData("profiles_cache") || {};
+
+        // Enrich invitations with profile data
+        var enrichedInvitations = invitesSent.map(function(inv) {
+            var recipientName = "";
+            var recipientHeadline = "";
+
+            // Try to find cached profile info
+            for (var cacheKey in profilesCache) {
+                var profile = profilesCache[cacheKey].data;
+                if (profile && (profile.provider_id === inv.recipient_id || cacheKey === inv.recipient_id)) {
+                    recipientName = (profile.first_name || "") + " " + (profile.last_name || "");
+                    recipientHeadline = profile.headline || "";
+                    break;
+                }
+            }
+
+            return {
+                id: inv.id,
+                recipient_id: inv.recipient_id,
+                message: inv.message || "",
+                status: inv.status,
+                sent_at: inv.sent_at,
+                recipient_name: recipientName.trim() || null,
+                recipient_headline: recipientHeadline || null
+            };
+        });
+
+        // Calculate stats
+        var pending = enrichedInvitations.filter(function(i) { return i.status === "pending"; }).length;
+        var accepted = enrichedInvitations.filter(function(i) { return i.status === "accepted"; }).length;
+        var declined = enrichedInvitations.filter(function(i) { return i.status === "declined"; }).length;
+
+        return {
+            success: true,
+            invitations: enrichedInvitations,
+            stats: {
+                total: enrichedInvitations.length,
+                pending: pending,
+                accepted: accepted,
+                declined: declined
+            }
+        };
+    }
+
+
+    if (action === "load_user_data") {
+        // Aggregate all user data from profiles cache, invitations, and messages
+        var profilesCache = plugin.getData("profiles_cache") || {};
+        var invitesSent = plugin.getData("invitations_sent") || [];
+        var messages = plugin.getData("messages") || [];
+        var chats = plugin.getData("chats") || {};
+
+        // Extract users from profiles cache
+        var users = [];
+        for (var cacheKey in profilesCache) {
+            var profile = profilesCache[cacheKey].data;
+            if (profile) {
+                // Determine network distance based on invite status
+                var inviteStatus = null;
+                for (var i = 0; i < invitesSent.length; i++) {
+                    if (invitesSent[i].recipient_id === profile.provider_id) {
+                        inviteStatus = invitesSent[i].status;
+                        break;
+                    }
+                }
+
+                profile.network_distance = inviteStatus === "accepted" ? "FIRST_DEGREE" :
+                                          inviteStatus === "pending" ? "SECOND_DEGREE" : "THIRD_DEGREE";
+                profile.id = profile.provider_id || cacheKey;
+                users.push(profile);
+            }
+        }
+
+        // Convert chats object to array
+        var chatsArray = [];
+        for (var chatId in chats) {
+            chatsArray.push(chats[chatId]);
+        }
+
+        // Calculate stats
+        var connections = users.filter(function(u) { return u.network_distance === "FIRST_DEGREE"; }).length;
+        var pendingInvites = invitesSent.filter(function(i) { return i.status === "pending"; }).length;
+
+        return {
+            success: true,
+            data: {
+                users: users,
+                invitations: invitesSent,
+                messages: messages,
+                chats: chatsArray,
+                stats: {
+                    total_users: users.length,
+                    connections: connections,
+                    pending_invites: pendingInvites,
+                    total_messages: messages.length
+                }
+            }
+        };
+    }
+
+    if (action === "send_message") {
+        // id is the user's provider_id or user id
+        var userId = id;
+        var messageText = data.text || "";
+        
+        if (!messageText) {
+            return { success: false, message: "Message text is required" };
+        }
+        
+        // Get or create chat for this user
+        var chats = plugin.getData("chats") || {};
+        var chatId = null;
+        
+        // Find existing chat with this user
+        for (var cid in chats) {
+            var chat = chats[cid];
+            if (chat.attendee_provider_id === userId) {
+                chatId = cid;
+                break;
+            }
+        }
+        
+        // Create new chat if none exists
+        if (!chatId) {
+            chatId = generateLinkedInId();
+            
+            // Try to get user name from profiles cache
+            var userName = "";
+            var profilesCache = plugin.getData("profiles_cache") || {};
+            for (var cacheKey in profilesCache) {
+                var profile = profilesCache[cacheKey].data;
+                if (profile && (profile.provider_id === userId || cacheKey === userId)) {
+                    userName = (profile.first_name || "") + " " + (profile.last_name || "");
+                    userName = userName.trim();
+                    break;
+                }
+            }
+            
+            chats[chatId] = {
+                object: "Chat",
+                id: chatId,
+                account_id: "",
+                provider_id: chatId,
+                attendee_provider_id: userId,
+                name: userName,
+                type: 0,
+                timestamp: now(),
+                unread_count: 0
+            };
+            plugin.saveData("chats", chats);
+        }
+        
+        // Add message
+        var messages = plugin.getData("messages") || [];
+        var messageId = generateLinkedInId();
+        
+        messages.push({
+            id: messageId,
+            chat_id: chatId,
+            sender: "self",
+            sender_id: "self",
+            text: messageText,
+            timestamp: now(),
+            is_sender: 1
+        });
+        
+        plugin.saveData("messages", messages);
+        
+        return {
+            success: true,
+            message: "Message sent",
+            message_id: messageId,
+            chat_id: chatId
+        };
+    }
+
     return { success: false, message: "Unknown action: " + action };
 };
+
