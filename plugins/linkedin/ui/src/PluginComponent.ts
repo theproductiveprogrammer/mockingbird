@@ -82,6 +82,8 @@ export class LinkedInPlugin extends LitElement {
     messageText: { type: String, state: true },
     sending: { type: Boolean, state: true },
     showAllUsers: { type: Boolean, state: true },
+    deleteFullCache: { type: Boolean, state: true },
+    deleting: { type: Boolean, state: true },
   };
 
   api!: PluginAPI;
@@ -92,6 +94,8 @@ export class LinkedInPlugin extends LitElement {
   error: string | null = null;
   messageText = '';
   sending = false;
+  deleteFullCache = false; // Checkbox state for full delete
+  deleting = false;
 
   static styles = css`
     :host {
@@ -236,6 +240,44 @@ export class LinkedInPlugin extends LitElement {
       alert(err instanceof Error ? err.message : 'Failed to send message');
     } finally {
       this.sending = false;
+    }
+  }
+
+  async handleDeleteUser(userId: string, userName: string) {
+    const deleteType = this.deleteFullCache ? 'full delete (including cache)' : 'delete data (keep cache)';
+    const confirmMessage = `Are you sure you want to ${deleteType} for ${userName}?\n\nThis will remove:\n- Invitations\n- Messages\n- Chats${this.deleteFullCache ? '\n- Cached profile' : ''}`;
+
+    if (!confirm(confirmMessage)) {
+      return;
+    }
+
+    try {
+      this.deleting = true;
+      const result: any = await this.api.action('delete_user_data', userId, {
+        fullDelete: this.deleteFullCache,
+      });
+
+      if (result.success) {
+        const deleted = result.result?.deleted || {};
+        const summary = `Deleted:\n` +
+          `- ${deleted.invitations || 0} invitation(s)\n` +
+          `- ${deleted.chats || 0} chat(s)\n` +
+          `- ${deleted.messages || 0} message(s)` +
+          (this.deleteFullCache ? `\n- ${deleted.profile || 0} cached profile(s)` : '');
+
+        alert(summary);
+
+        // Clear selection and reload data
+        this.selectedUserId = null;
+        this.deleteFullCache = false;
+        await this.loadData();
+      } else {
+        alert(result.message || 'Failed to delete user data');
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to delete user data');
+    } finally {
+      this.deleting = false;
     }
   }
 
@@ -463,6 +505,42 @@ export class LinkedInPlugin extends LitElement {
                   </p>
                 </div>
               `}
+
+              <!-- Delete Section (subtle, at bottom) -->
+              <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #F3F2EF;">
+                <details>
+                  <summary style="font-size: 0.75rem; color: #999999; cursor: pointer; list-style: none; display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="font-size: 0.625rem;">▶</span> Delete user data
+                  </summary>
+                  <div style="margin-top: 0.75rem; padding-left: 1rem;">
+                    <p style="font-size: 0.75rem; color: #999999; margin: 0 0 0.5rem 0;">
+                      Remove invitations, messages, and chats for testing.
+                    </p>
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                      <label style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.75rem; color: #999999; cursor: pointer;">
+                        <input
+                          type="checkbox"
+                          .checked=${this.deleteFullCache}
+                          @change=${(e: Event) => {
+                            this.deleteFullCache = (e.target as HTMLInputElement).checked;
+                            this.requestUpdate();
+                          }}
+                          style="cursor: pointer;"
+                        />
+                        Also delete cached profile
+                      </label>
+                      <button
+                        class="secondary"
+                        ?disabled=${this.deleting}
+                        @click=${() => this.handleDeleteUser(selectedUser.id, `${selectedUser.first_name} ${selectedUser.last_name}`)}
+                        style="font-size: 0.75rem; padding: 0.35rem 0.75rem;"
+                      >
+                        ${this.deleting ? 'Deleting...' : 'Delete'}
+                      </button>
+                    </div>
+                  </div>
+                </details>
+              </div>
             ` : html`
               <div class="empty">
                 <h3>Select a user to view their profile</h3>

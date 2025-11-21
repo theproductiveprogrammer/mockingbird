@@ -1234,6 +1234,78 @@ exports.handleAction = function(action, id, data) {
         };
     }
 
+    if (action === "delete_user_data") {
+        // id is the user's provider_id
+        var providerId = id;
+        var fullDelete = data.fullDelete || false;
+
+        var deletedCounts = {
+            invitations: 0,
+            chats: 0,
+            messages: 0,
+            profile: 0
+        };
+
+        // 1. Delete invitations
+        var invites = plugin.getData("invitations_sent") || [];
+        var beforeInvites = invites.length;
+        invites = invites.filter(function(inv) {
+            return inv.recipient_id !== providerId;
+        });
+        deletedCounts.invitations = beforeInvites - invites.length;
+        plugin.saveData("invitations_sent", invites);
+
+        // 2. Delete chats and collect chat IDs
+        var chats = plugin.getData("chats") || {};
+        var chatIdsToDelete = [];
+
+        for (var chatId in chats) {
+            if (chats[chatId].attendee_provider_id === providerId) {
+                chatIdsToDelete.push(chatId);
+                delete chats[chatId];
+                deletedCounts.chats++;
+            }
+        }
+        plugin.saveData("chats", chats);
+
+        // 3. Delete messages for those chats
+        var messages = plugin.getData("messages") || [];
+        var beforeMessages = messages.length;
+        messages = messages.filter(function(msg) {
+            return chatIdsToDelete.indexOf(msg.chat_id) === -1;
+        });
+        deletedCounts.messages = beforeMessages - messages.length;
+        plugin.saveData("messages", messages);
+
+        // 4. Delete cached profile (only if fullDelete is true)
+        if (fullDelete) {
+            var cache = plugin.getData("profiles_cache") || {};
+
+            // Delete by direct key match
+            if (cache[providerId]) {
+                delete cache[providerId];
+                deletedCounts.profile++;
+            }
+
+            // Delete by searching provider_id inside cached data
+            for (var cacheKey in cache) {
+                if (cache[cacheKey].data &&
+                    cache[cacheKey].data.provider_id === providerId) {
+                    delete cache[cacheKey];
+                    deletedCounts.profile++;
+                }
+            }
+
+            plugin.saveData("profiles_cache", cache);
+        }
+
+        return {
+            success: true,
+            message: fullDelete ? "User fully deleted" : "User data deleted (profile cached)",
+            deleted: deletedCounts
+        };
+    }
+
     return { success: false, message: "Unknown action: " + action };
 };
 
