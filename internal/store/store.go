@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -23,24 +24,28 @@ const (
 
 // Store manages rules and traffic history
 type Store struct {
-	configDir   string
-	config      *config.Config
-	rules       map[string][]models.Rule // service name -> rules
-	traffic     []models.TrafficEntry
-	subscribers map[chan models.TrafficEntry]struct{} // Multiple SSE subscribers
-	mu          sync.RWMutex
-	watcher     *Watcher
-	closed      bool
+	configDir        string
+	config           *config.Config
+	rules            map[string][]models.Rule // service name -> rules
+	traffic          []models.TrafficEntry
+	subscribers      map[chan models.TrafficEntry]struct{} // Multiple SSE subscribers
+	mu               sync.RWMutex
+	watcher          *Watcher
+	closed           bool
+	appendCounter    int64 // Atomic counter for truncation trigger
+	truncateInterval int   // Truncate file every N appends
 }
 
 // New creates a new store
 func New(configDir string, cfg *config.Config) (*Store, error) {
 	s := &Store{
-		configDir:   configDir,
-		config:      cfg,
-		rules:       make(map[string][]models.Rule),
-		traffic:     make([]models.TrafficEntry, 0, cfg.MaxTrafficEntries),
-		subscribers: make(map[chan models.TrafficEntry]struct{}),
+		configDir:        configDir,
+		config:           cfg,
+		rules:            make(map[string][]models.Rule),
+		traffic:          make([]models.TrafficEntry, 0, cfg.MaxTrafficEntries),
+		subscribers:      make(map[chan models.TrafficEntry]struct{}),
+		appendCounter:    0,
+		truncateInterval: 5000, // Truncate file every 5000 appends
 	}
 
 	// Ensure config directory exists
@@ -330,6 +335,15 @@ func (s *Store) AddTraffic(entry models.TrafficEntry) {
 		fmt.Printf("Warning: Failed to append traffic entry to disk: %v\n", err)
 	}
 
+	// Check if we need to truncate the file (every N appends)
+	count := atomic.AddInt64(&s.appendCounter, 1)
+	if count%int64(s.truncateInterval) == 0 {
+		// Truncate synchronously (mutex already held, safe to do inline)
+		if err := s.truncateTrafficFile(); err != nil {
+			fmt.Printf("Warning: Failed to truncate traffic file: %v\n", err)
+		}
+	}
+
 	// Broadcast to all SSE subscribers (non-blocking)
 	if !s.closed {
 		for ch := range s.subscribers {
@@ -559,9 +573,24 @@ func (s *Store) loadTrafficFromFile() error {
 		return fmt.Errorf("failed to read traffic.ndjson: %w", err)
 	}
 
+	// Auto-truncate if file has more entries than configured limit
+	needsTruncation := false
+	if len(traffic) > s.config.MaxTrafficEntries {
+		fmt.Printf("Traffic file has %d entries, truncating to %d\n", len(traffic), s.config.MaxTrafficEntries)
+		traffic = traffic[len(traffic)-s.config.MaxTrafficEntries:]
+		needsTruncation = true
+	}
+
 	s.mu.Lock()
 	s.traffic = traffic
 	s.mu.Unlock()
+
+	// If we truncated in-memory, rewrite the file
+	if needsTruncation {
+		if err := s.truncateTrafficFile(); err != nil {
+			fmt.Printf("Warning: Failed to truncate traffic file on startup: %v\n", err)
+		}
+	}
 
 	fmt.Printf("Loaded %d traffic entries from history\n", len(traffic))
 	return nil
@@ -591,6 +620,60 @@ func (s *Store) appendTrafficEntry(entry models.TrafficEntry) error {
 		return fmt.Errorf("failed to write newline: %w", err)
 	}
 
+	return nil
+}
+
+// truncateTrafficFile truncates the traffic.ndjson file to keep only the last MaxTrafficEntries
+// Note: This method assumes the mutex is already held by the caller (from AddTraffic)
+func (s *Store) truncateTrafficFile() error {
+	trafficPath := filepath.Join(s.configDir, "traffic.ndjson")
+	tempPath := trafficPath + ".tmp"
+
+	// Get entries to keep from in-memory slice (mutex already held)
+	entriesToKeep := s.traffic
+	if len(entriesToKeep) > s.config.MaxTrafficEntries {
+		entriesToKeep = entriesToKeep[len(entriesToKeep)-s.config.MaxTrafficEntries:]
+	}
+
+	// Create temp file
+	file, err := os.Create(tempPath)
+	if err != nil {
+		return fmt.Errorf("failed to create temp file: %w", err)
+	}
+
+	// Write all entries
+	for _, entry := range entriesToKeep {
+		data, err := json.Marshal(entry)
+		if err != nil {
+			file.Close()
+			os.Remove(tempPath)
+			return fmt.Errorf("failed to marshal entry: %w", err)
+		}
+
+		if _, err := file.Write(data); err != nil {
+			file.Close()
+			os.Remove(tempPath)
+			return fmt.Errorf("failed to write entry: %w", err)
+		}
+		if _, err := file.WriteString("\n"); err != nil {
+			file.Close()
+			os.Remove(tempPath)
+			return fmt.Errorf("failed to write newline: %w", err)
+		}
+	}
+
+	if err := file.Close(); err != nil {
+		os.Remove(tempPath)
+		return fmt.Errorf("failed to close temp file: %w", err)
+	}
+
+	// Atomic rename
+	if err := os.Rename(tempPath, trafficPath); err != nil {
+		os.Remove(tempPath)
+		return fmt.Errorf("failed to rename temp file: %w", err)
+	}
+
+	fmt.Printf("Truncated traffic file to %d entries\n", len(entriesToKeep))
 	return nil
 }
 

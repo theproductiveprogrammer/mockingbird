@@ -33,7 +33,7 @@ func Load() (*Config, error) {
 		ProxyPort:         6625, // MOCK on phone keypad
 		AdminPort:         6626, // MOCK + 1
 		ConfigDir:         configDir,
-		MaxTrafficEntries: 1000, // Reduced default for memory efficiency (configurable via config.json)
+		MaxTrafficEntries: 5000, // Default traffic history limit (configurable via config.json)
 		Values:            make(map[string]string),
 	}
 
