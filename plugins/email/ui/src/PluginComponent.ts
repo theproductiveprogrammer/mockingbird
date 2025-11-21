@@ -10,12 +10,12 @@ interface Email {
 }
 
 interface EmailDetails {
-  Subject: string;
-  From: { Name?: string; Address: string };
-  To: Array<{ Name?: string; Address: string }>;
-  Date: string;
-  Text?: string;
-  HTML?: string;
+  subject: string;
+  from: { Name?: string; Address: string };
+  to: Array<{ Name?: string; Address: string }>;
+  date: string;
+  text?: string;
+  html?: string;
 }
 
 interface Config {
@@ -146,9 +146,10 @@ export class EmailPlugin extends LitElement {
         throw new Error(result.message || 'Failed to load emails');
       }
 
-      this.emails = result.emails || [];
-      this.config = result.config;
-      this.repliedEmails = new Set(result.replied_ids || []);
+      // The data is in result.result (API wraps responses)
+      this.emails = result.result?.emails || result.emails || [];
+      this.config = result.result?.config || result.config;
+      this.repliedEmails = new Set(result.result?.replied_ids || result.replied_ids || []);
       console.log('[Email Plugin] Loaded', this.emails.length, 'emails');
     } catch (err) {
       console.error('[Email Plugin] Error:', err);
@@ -163,12 +164,15 @@ export class EmailPlugin extends LitElement {
   async viewEmail(emailId: string) {
     this.selectedEmail = emailId;
     this.emailDetails = null;
+    this.requestUpdate(); // Force re-render to show loading state
 
     try {
       const result: any = await this.api.action('view_email', `email_${emailId}`);
 
-      if (result.success && result.data) {
-        this.emailDetails = result.data;
+      // The data is in result.result.data (API wraps responses)
+      if (result.success && (result.result?.data || result.data)) {
+        this.emailDetails = result.result?.data || result.data;
+        this.requestUpdate(); // Force re-render with email details
       }
     } catch (err) {
       console.error('Failed to load email details:', err);
@@ -184,14 +188,16 @@ export class EmailPlugin extends LitElement {
         text: this.replyText,
       });
 
-      if (result.success) {
+      // Check nested result (API wraps responses)
+      const actualResult = result.result || result;
+      if (actualResult.success) {
         this.repliedEmails.add(emailId);
         this.replyText = '';
         this.selectedEmail = null;
         this.emailDetails = null;
         await this.loadEmails();
       } else {
-        alert(result.message || 'Failed to send reply');
+        alert(actualResult.message || 'Failed to send reply');
       }
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to send reply');
@@ -282,13 +288,13 @@ export class EmailPlugin extends LitElement {
                       ${this.emailDetails ? html`
                         <div class="detail-box">
                           <div class="detail-grid">
-                            <div><span style="color: #6b7280">From:</span> ${this.emailDetails.From.Name || this.emailDetails.From.Address}</div>
-                            <div><span style="color: #6b7280">Date:</span> ${this.emailDetails.Date}</div>
+                            <div><span style="color: #6b7280">From:</span> ${this.emailDetails.from.Name || this.emailDetails.from.Address}</div>
+                            <div><span style="color: #6b7280">Date:</span> ${this.emailDetails.date}</div>
                           </div>
                         </div>
 
                         <div class="detail-content">
-                          <pre>${this.emailDetails.Text || this.emailDetails.HTML || 'No content'}</pre>
+                          <pre>${this.emailDetails.text || this.emailDetails.html || 'No content'}</pre>
                         </div>
 
                         ${!hasReplied ? html`
@@ -297,7 +303,10 @@ export class EmailPlugin extends LitElement {
                               rows="4"
                               placeholder="Type your reply..."
                               .value=${this.replyText}
-                              @input=${(e: Event) => this.replyText = (e.target as HTMLTextAreaElement).value}
+                              @input=${(e: Event) => {
+                                this.replyText = (e.target as HTMLTextAreaElement).value;
+                                this.requestUpdate();
+                              }}
                             ></textarea>
                             <div class="reply-buttons">
                               <button

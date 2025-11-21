@@ -1,4 +1,4 @@
-const T = globalThis, N = T.ShadowRoot && (T.ShadyCSS === void 0 || T.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype, D = Symbol(), B = /* @__PURE__ */ new WeakMap();
+const T = globalThis, H = T.ShadowRoot && (T.ShadyCSS === void 0 || T.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype, D = Symbol(), B = /* @__PURE__ */ new WeakMap();
 let X = class {
   constructor(e, t, i) {
     if (this._$cssResult$ = !0, i !== D) throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");
@@ -7,7 +7,7 @@ let X = class {
   get styleSheet() {
     let e = this.o;
     const t = this.t;
-    if (N && e === void 0) {
+    if (H && e === void 0) {
       const i = t !== void 0 && t.length === 1;
       i && (e = B.get(t)), e === void 0 && ((this.o = e = new CSSStyleSheet()).replaceSync(this.cssText), i && B.set(t, e));
     }
@@ -25,17 +25,17 @@ const re = (r) => new X(typeof r == "string" ? r : r + "", void 0, D), oe = (r, 
   })(s) + r[o + 1]), r[0]);
   return new X(t, r, D);
 }, ne = (r, e) => {
-  if (N) r.adoptedStyleSheets = e.map(((t) => t instanceof CSSStyleSheet ? t : t.styleSheet));
+  if (H) r.adoptedStyleSheets = e.map(((t) => t instanceof CSSStyleSheet ? t : t.styleSheet));
   else for (const t of e) {
     const i = document.createElement("style"), s = T.litNonce;
     s !== void 0 && i.setAttribute("nonce", s), i.textContent = t.cssText, r.appendChild(i);
   }
-}, F = N ? (r) => r : (r) => r instanceof CSSStyleSheet ? ((e) => {
+}, F = H ? (r) => r : (r) => r instanceof CSSStyleSheet ? ((e) => {
   let t = "";
   for (const i of e.cssRules) t += i.cssText;
   return re(t);
 })(r) : r;
-const { is: ae, defineProperty: le, getOwnPropertyDescriptor: de, getOwnPropertyNames: he, getOwnPropertySymbols: ce, getPrototypeOf: pe } = Object, M = globalThis, W = M.trustedTypes, ue = W ? W.emptyScript : "", me = M.reactiveElementPolyfillSupport, S = (r, e) => r, H = { toAttribute(r, e) {
+const { is: ae, defineProperty: le, getOwnPropertyDescriptor: de, getOwnPropertyNames: he, getOwnPropertySymbols: ce, getPrototypeOf: pe } = Object, R = globalThis, q = R.trustedTypes, ue = q ? q.emptyScript : "", me = R.reactiveElementPolyfillSupport, S = (r, e) => r, N = { toAttribute(r, e) {
   switch (e) {
     case Boolean:
       r = r ? ue : null;
@@ -63,8 +63,8 @@ const { is: ae, defineProperty: le, getOwnPropertyDescriptor: de, getOwnProperty
       }
   }
   return t;
-} }, Y = (r, e) => !ae(r, e), V = { attribute: !0, type: String, converter: H, reflect: !1, useDefault: !1, hasChanged: Y };
-Symbol.metadata ??= Symbol("metadata"), M.litPropertyMetadata ??= /* @__PURE__ */ new WeakMap();
+} }, Y = (r, e) => !ae(r, e), W = { attribute: !0, type: String, converter: N, reflect: !1, useDefault: !1, hasChanged: Y };
+Symbol.metadata ??= Symbol("metadata"), R.litPropertyMetadata ??= /* @__PURE__ */ new WeakMap();
 let _ = class extends HTMLElement {
   static addInitializer(e) {
     this._$Ei(), (this.l ??= []).push(e);
@@ -72,7 +72,7 @@ let _ = class extends HTMLElement {
   static get observedAttributes() {
     return this.finalize(), this._$Eh && [...this._$Eh.keys()];
   }
-  static createProperty(e, t = V) {
+  static createProperty(e, t = W) {
     if (t.state && (t.attribute = !1), this._$Ei(), this.prototype.hasOwnProperty(e) && ((t = Object.create(t)).wrapped = !0), this.elementProperties.set(e, t), !t.noAccessor) {
       const i = Symbol(), s = this.getPropertyDescriptor(e, i, t);
       s !== void 0 && le(this.prototype, e, s);
@@ -90,7 +90,7 @@ let _ = class extends HTMLElement {
     }, configurable: !0, enumerable: !0 };
   }
   static getPropertyOptions(e) {
-    return this.elementProperties.get(e) ?? V;
+    return this.elementProperties.get(e) ?? W;
   }
   static _$Ei() {
     if (this.hasOwnProperty(S("elementProperties"))) return;
@@ -162,14 +162,14 @@ let _ = class extends HTMLElement {
   _$ET(e, t) {
     const i = this.constructor.elementProperties.get(e), s = this.constructor._$Eu(e, i);
     if (s !== void 0 && i.reflect === !0) {
-      const o = (i.converter?.toAttribute !== void 0 ? i.converter : H).toAttribute(t, i.type);
+      const o = (i.converter?.toAttribute !== void 0 ? i.converter : N).toAttribute(t, i.type);
       this._$Em = e, o == null ? this.removeAttribute(s) : this.setAttribute(s, o), this._$Em = null;
     }
   }
   _$AK(e, t) {
     const i = this.constructor, s = i._$Eh.get(e);
     if (s !== void 0 && this._$Em !== s) {
-      const o = i.getPropertyOptions(s), n = typeof o.converter == "function" ? { fromAttribute: o.converter } : o.converter?.fromAttribute !== void 0 ? o.converter : H;
+      const o = i.getPropertyOptions(s), n = typeof o.converter == "function" ? { fromAttribute: o.converter } : o.converter?.fromAttribute !== void 0 ? o.converter : N;
       this._$Em = s;
       const d = n.fromAttribute(t, o.type);
       this[s] = d ?? this._$Ej?.get(s) ?? d, this._$Em = null;
@@ -246,13 +246,13 @@ let _ = class extends HTMLElement {
   firstUpdated(e) {
   }
 };
-_.elementStyles = [], _.shadowRootOptions = { mode: "open" }, _[S("elementProperties")] = /* @__PURE__ */ new Map(), _[S("finalized")] = /* @__PURE__ */ new Map(), me?.({ ReactiveElement: _ }), (M.reactiveElementVersions ??= []).push("2.1.1");
-const j = globalThis, O = j.trustedTypes, q = O ? O.createPolicy("lit-html", { createHTML: (r) => r }) : void 0, ee = "$lit$", $ = `lit$${Math.random().toFixed(9).slice(2)}$`, te = "?" + $, fe = `<${te}>`, b = document, x = () => b.createComment(""), P = (r) => r === null || typeof r != "object" && typeof r != "function", L = Array.isArray, $e = (r) => L(r) || typeof r?.[Symbol.iterator] == "function", z = `[ 	
+_.elementStyles = [], _.shadowRootOptions = { mode: "open" }, _[S("elementProperties")] = /* @__PURE__ */ new Map(), _[S("finalized")] = /* @__PURE__ */ new Map(), me?.({ ReactiveElement: _ }), (R.reactiveElementVersions ??= []).push("2.1.1");
+const j = globalThis, O = j.trustedTypes, V = O ? O.createPolicy("lit-html", { createHTML: (r) => r }) : void 0, ee = "$lit$", $ = `lit$${Math.random().toFixed(9).slice(2)}$`, te = "?" + $, fe = `<${te}>`, b = document, x = () => b.createComment(""), P = (r) => r === null || typeof r != "object" && typeof r != "function", L = Array.isArray, $e = (r) => L(r) || typeof r?.[Symbol.iterator] == "function", z = `[ 	
 \f\r]`, E = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, J = /-->/g, K = />/g, g = RegExp(`>|${z}(?:([^\\s"'>=/]+)(${z}*=${z}*(?:[^ 	
 \f\r"'\`<>=]|("|')|))|$)`, "g"), Z = /'/g, G = /"/g, ie = /^(?:script|style|textarea|title)$/i, ge = (r) => (e, ...t) => ({ _$litType$: r, strings: e, values: t }), u = ge(1), v = Symbol.for("lit-noChange"), c = Symbol.for("lit-nothing"), Q = /* @__PURE__ */ new WeakMap(), y = b.createTreeWalker(b, 129);
 function se(r, e) {
   if (!L(r) || !r.hasOwnProperty("raw")) throw Error("invalid template strings array");
-  return q !== void 0 ? q.createHTML(e) : e;
+  return V !== void 0 ? V.createHTML(e) : e;
 }
 const ye = (r, e) => {
   const t = r.length - 1, i = [];
@@ -279,8 +279,8 @@ class C {
     for (; (s = y.nextNode()) !== null && a.length < d; ) {
       if (s.nodeType === 1) {
         if (s.hasAttributes()) for (const l of s.getAttributeNames()) if (l.endsWith(ee)) {
-          const m = p[n++], f = s.getAttribute(l).split($), U = /([.?@])?(.*)/.exec(m);
-          a.push({ type: 1, index: o, name: U[2], strings: f, ctor: U[1] === "." ? _e : U[1] === "?" ? ve : U[1] === "@" ? Ae : R }), s.removeAttribute(l);
+          const m = p[n++], f = s.getAttribute(l).split($), k = /([.?@])?(.*)/.exec(m);
+          a.push({ type: 1, index: o, name: k[2], strings: f, ctor: k[1] === "." ? _e : k[1] === "?" ? ve : k[1] === "@" ? Ae : M }), s.removeAttribute(l);
         } else l.startsWith($) && (a.push({ type: 6, index: o }), s.removeAttribute(l));
         if (ie.test(s.tagName)) {
           const l = s.textContent.split($), m = l.length - 1;
@@ -326,7 +326,7 @@ class be {
     for (; a !== void 0; ) {
       if (n === a.index) {
         let h;
-        a.type === 2 ? h = new k(o, o.nextSibling, this, e) : a.type === 1 ? h = new a.ctor(o, a.name, a.strings, this, e) : a.type === 6 && (h = new Ee(o, this, e)), this._$AV.push(h), a = i[++d];
+        a.type === 2 ? h = new U(o, o.nextSibling, this, e) : a.type === 1 ? h = new a.ctor(o, a.name, a.strings, this, e) : a.type === 6 && (h = new Ee(o, this, e)), this._$AV.push(h), a = i[++d];
       }
       n !== a?.index && (o = y.nextNode(), n++);
     }
@@ -337,7 +337,7 @@ class be {
     for (const i of this._$AV) i !== void 0 && (i.strings !== void 0 ? (i._$AI(e, i, t), t += i.strings.length - 2) : i._$AI(e[t])), t++;
   }
 }
-class k {
+class U {
   get _$AU() {
     return this._$AM?._$AU ?? this._$Cv;
   }
@@ -383,7 +383,7 @@ class k {
     L(this._$AH) || (this._$AH = [], this._$AR());
     const t = this._$AH;
     let i, s = 0;
-    for (const o of e) s === t.length ? t.push(i = new k(this.O(x()), this.O(x()), this, this.options)) : i = t[s], i._$AI(o), s++;
+    for (const o of e) s === t.length ? t.push(i = new U(this.O(x()), this.O(x()), this, this.options)) : i = t[s], i._$AI(o), s++;
     s < t.length && (this._$AR(i && i._$AB.nextSibling, s), t.length = s);
   }
   _$AR(e = this._$AA.nextSibling, t) {
@@ -396,7 +396,7 @@ class k {
     this._$AM === void 0 && (this._$Cv = e, this._$AP?.(e));
   }
 }
-class R {
+class M {
   get tagName() {
     return this.element.tagName;
   }
@@ -421,7 +421,7 @@ class R {
     e === c ? this.element.removeAttribute(this.name) : this.element.setAttribute(this.name, e ?? "");
   }
 }
-class _e extends R {
+class _e extends M {
   constructor() {
     super(...arguments), this.type = 3;
   }
@@ -429,7 +429,7 @@ class _e extends R {
     this.element[this.name] = e === c ? void 0 : e;
   }
 }
-class ve extends R {
+class ve extends M {
   constructor() {
     super(...arguments), this.type = 4;
   }
@@ -437,7 +437,7 @@ class ve extends R {
     this.element.toggleAttribute(this.name, !!e && e !== c);
   }
 }
-class Ae extends R {
+class Ae extends M {
   constructor(e, t, i, s, o) {
     super(e, t, i, s, o), this.type = 5;
   }
@@ -462,13 +462,13 @@ class Ee {
   }
 }
 const Se = j.litHtmlPolyfillSupport;
-Se?.(C, k), (j.litHtmlVersions ??= []).push("3.3.1");
+Se?.(C, U), (j.litHtmlVersions ??= []).push("3.3.1");
 const we = (r, e, t) => {
   const i = t?.renderBefore ?? e;
   let s = i._$litPart$;
   if (s === void 0) {
     const o = t?.renderBefore ?? null;
-    i._$litPart$ = s = new k(e.insertBefore(x(), o), o, void 0, t ?? {});
+    i._$litPart$ = s = new U(e.insertBefore(x(), o), o, void 0, t ?? {});
   }
   return s._$AI(r), s;
 };
@@ -597,7 +597,7 @@ class Pe extends w {
       const e = await this.api.action("load_emails", "all");
       if (console.log("[Email Plugin] Got result:", e), !e.success)
         throw new Error(e.message || "Failed to load emails");
-      this.emails = e.emails || [], this.config = e.config, this.repliedEmails = new Set(e.replied_ids || []), console.log("[Email Plugin] Loaded", this.emails.length, "emails");
+      this.emails = e.result?.emails || e.emails || [], this.config = e.result?.config || e.config, this.repliedEmails = new Set(e.result?.replied_ids || e.replied_ids || []), console.log("[Email Plugin] Loaded", this.emails.length, "emails");
     } catch (e) {
       console.error("[Email Plugin] Error:", e), this.error = e instanceof Error ? e.message : "Failed to load emails";
     } finally {
@@ -605,10 +605,10 @@ class Pe extends w {
     }
   }
   async viewEmail(e) {
-    this.selectedEmail = e, this.emailDetails = null;
+    this.selectedEmail = e, this.emailDetails = null, this.requestUpdate();
     try {
       const t = await this.api.action("view_email", `email_${e}`);
-      t.success && t.data && (this.emailDetails = t.data);
+      t.success && (t.result?.data || t.data) && (this.emailDetails = t.result?.data || t.data, this.requestUpdate());
     } catch (t) {
       console.error("Failed to load email details:", t);
     }
@@ -619,8 +619,8 @@ class Pe extends w {
         this.sending = !0;
         const t = await this.api.action("reply_email", `email_${e}`, {
           text: this.replyText
-        });
-        t.success ? (this.repliedEmails.add(e), this.replyText = "", this.selectedEmail = null, this.emailDetails = null, await this.loadEmails()) : alert(t.message || "Failed to send reply");
+        }), i = t.result || t;
+        i.success ? (this.repliedEmails.add(e), this.replyText = "", this.selectedEmail = null, this.emailDetails = null, await this.loadEmails()) : alert(i.message || "Failed to send reply");
       } catch (t) {
         alert(t instanceof Error ? t.message : "Failed to send reply");
       } finally {
@@ -697,13 +697,13 @@ class Pe extends w {
                       ${this.emailDetails ? u`
                         <div class="detail-box">
                           <div class="detail-grid">
-                            <div><span style="color: #6b7280">From:</span> ${this.emailDetails.From.Name || this.emailDetails.From.Address}</div>
-                            <div><span style="color: #6b7280">Date:</span> ${this.emailDetails.Date}</div>
+                            <div><span style="color: #6b7280">From:</span> ${this.emailDetails.from.Name || this.emailDetails.from.Address}</div>
+                            <div><span style="color: #6b7280">Date:</span> ${this.emailDetails.date}</div>
                           </div>
                         </div>
 
                         <div class="detail-content">
-                          <pre>${this.emailDetails.Text || this.emailDetails.HTML || "No content"}</pre>
+                          <pre>${this.emailDetails.text || this.emailDetails.html || "No content"}</pre>
                         </div>
 
                         ${s ? "" : u`
@@ -712,7 +712,9 @@ class Pe extends w {
                               rows="4"
                               placeholder="Type your reply..."
                               .value=${this.replyText}
-                              @input=${(n) => this.replyText = n.target.value}
+                              @input=${(n) => {
+        this.replyText = n.target.value, this.requestUpdate();
+      }}
                             ></textarea>
                             <div class="reply-buttons">
                               <button
