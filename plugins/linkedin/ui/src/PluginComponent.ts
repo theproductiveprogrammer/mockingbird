@@ -144,6 +144,7 @@ export class LinkedInPlugin extends LitElement {
     .messages-container { background: #F3F2EF; border-radius: 8px; padding: 1rem; max-height: 300px; overflow-y: auto; margin-bottom: 1rem; }
     .message { background: #FFFFFF; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem; border-left: 3px solid #E0DFDC; }
     .message.sent { border-left-color: #0A66C2; background: #E7F3FF; }
+    .message.received { border-left-color: #057642; background: #F0FFF4; }
     .message-meta { font-size: 0.75rem; color: #666666; margin-bottom: 0.25rem; }
     .message-text { font-size: 0.875rem; color: #000000; }
 
@@ -341,8 +342,19 @@ export class LinkedInPlugin extends LitElement {
       <div class="container">
         <!-- Header -->
         <div class="header">
-          <h1>LinkedIn Plugin</h1>
-          <p>Manage connections, invitations, and messages</p>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <h1>LinkedIn Plugin</h1>
+              <p>Manage connections, invitations, and messages</p>
+            </div>
+            <button
+              class="secondary"
+              @click=${() => this.loadData()}
+              ?disabled=${this.loading}
+            >
+              ${this.loading ? 'Refreshing...' : '🔄 Refresh'}
+            </button>
+          </div>
         </div>
 
         <!-- Stats -->
@@ -464,15 +476,19 @@ export class LinkedInPlugin extends LitElement {
 
                   ${userMessages.length > 0 ? html`
                     <div class="messages-container">
-                      ${userMessages.map(msg => html`
-                        <div class="message sent">
-                          <div class="message-meta">
-                            To: ${selectedUser.first_name} ${selectedUser.last_name} •
-                            ${new Date(msg.timestamp).toLocaleString()}
+                      ${userMessages.map(msg => {
+                        // Per Unipile API: is_sender=1 means we sent it, is_sender=0 means contact sent it
+                        const isSent = msg.is_sender === 1;
+                        return html`
+                          <div class="message ${isSent ? 'sent' : 'received'}">
+                            <div class="message-meta">
+                              ${isSent ? `To: ${selectedUser.first_name} ${selectedUser.last_name}` : `From: ${selectedUser.first_name} ${selectedUser.last_name}`} •
+                              ${new Date(msg.timestamp).toLocaleString()}
+                            </div>
+                            <div class="message-text">${msg.text}</div>
                           </div>
-                          <div class="message-text">${msg.text}</div>
-                        </div>
-                      `)}
+                        `;
+                      })}
                     </div>
                   ` : html`
                     <p style="color: #666666; font-size: 0.875rem; margin-bottom: 1rem;">

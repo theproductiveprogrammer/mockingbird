@@ -373,12 +373,39 @@ exports.handleRequest = function(ctx) {
         if (body.text) {
             var messages = plugin.getData("messages") || [];
             messages.push({
-                id: messageId,
-                chat_id: chatId,
-                sender: "self",
+                object: "Message",
+                provider_id: messageId,
+                sender_id: "self",
                 text: body.text,
+                attachments: [],
+                id: messageId,
+                account_id: body.account_id || "",
+                chat_id: chatId,
+                chat_provider_id: chatId,
                 timestamp: now(),
-                status: "sent"
+                is_sender: 1,
+                quoted: null,
+                reactions: [],
+                seen: 0,
+                seen_by: {},
+                hidden: 0,
+                deleted: 0,
+                edited: 0,
+                is_event: 0,
+                delivered: 0,
+                behavior: 0,
+                event_type: 0,
+                original: "",
+                replies: 0,
+                reply_by: [],
+                parent: "",
+                sender_attendee_id: "",
+                subject: "",
+                message_type: "MESSAGE",
+                attendee_type: "MEMBER",
+                attendee_distance: 1,
+                sender_urn: "",
+                reply_to: null
             });
             plugin.saveData("messages", messages);
         }
@@ -1213,17 +1240,43 @@ exports.handleAction = function(action, id, data) {
         // Add message
         var messages = plugin.getData("messages") || [];
         var messageId = generateLinkedInId();
-        
+
         messages.push({
-            id: messageId,
-            chat_id: chatId,
-            sender: "self",
-            sender_id: "self",
+            object: "Message",
+            provider_id: messageId,
+            sender_id: userId,
             text: messageText,
+            attachments: [],
+            id: messageId,
+            account_id: "",
+            chat_id: chatId,
+            chat_provider_id: chatId,
             timestamp: now(),
-            is_sender: 1
+            is_sender: 0,
+            quoted: null,
+            reactions: [],
+            seen: 0,
+            seen_by: {},
+            hidden: 0,
+            deleted: 0,
+            edited: 0,
+            is_event: 0,
+            delivered: 0,
+            behavior: 0,
+            event_type: 0,
+            original: "",
+            replies: 0,
+            reply_by: [],
+            parent: "",
+            sender_attendee_id: "",
+            subject: "",
+            message_type: "MESSAGE",
+            attendee_type: "MEMBER",
+            attendee_distance: 1,
+            sender_urn: "",
+            reply_to: null
         });
-        
+
         plugin.saveData("messages", messages);
         
         return {

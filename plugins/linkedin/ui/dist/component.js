@@ -1,4 +1,4 @@
-const D = globalThis, H = D.ShadowRoot && (D.ShadyCSS === void 0 || D.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype, O = Symbol(), B = /* @__PURE__ */ new WeakMap();
+const D = globalThis, H = D.ShadowRoot && (D.ShadyCSS === void 0 || D.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype, O = Symbol(), j = /* @__PURE__ */ new WeakMap();
 let X = class {
   constructor(e, t, s) {
     if (this._$cssResult$ = !0, s !== O) throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");
@@ -9,7 +9,7 @@ let X = class {
     const t = this.t;
     if (H && e === void 0) {
       const s = t !== void 0 && t.length === 1;
-      s && (e = B.get(t)), e === void 0 && ((this.o = e = new CSSStyleSheet()).replaceSync(this.cssText), s && B.set(t, e));
+      s && (e = j.get(t)), e === void 0 && ((this.o = e = new CSSStyleSheet()).replaceSync(this.cssText), s && j.set(t, e));
     }
     return e;
   }
@@ -30,7 +30,7 @@ const re = (r) => new X(typeof r == "string" ? r : r + "", void 0, O), ne = (r, 
     const s = document.createElement("style"), i = D.litNonce;
     i !== void 0 && s.setAttribute("nonce", i), s.textContent = t.cssText, r.appendChild(s);
   }
-}, j = H ? (r) => r : (r) => r instanceof CSSStyleSheet ? ((e) => {
+}, B = H ? (r) => r : (r) => r instanceof CSSStyleSheet ? ((e) => {
   let t = "";
   for (const s of e.cssRules) t += s.cssText;
   return re(t);
@@ -119,8 +119,8 @@ let y = class extends HTMLElement {
     const t = [];
     if (Array.isArray(e)) {
       const s = new Set(e.flat(1 / 0).reverse());
-      for (const i of s) t.unshift(j(i));
-    } else e !== void 0 && t.push(j(e));
+      for (const i of s) t.unshift(B(i));
+    } else e !== void 0 && t.push(B(e));
     return t;
   }
   static _$Eu(e, t) {
@@ -571,6 +571,7 @@ class Se extends w {
     .messages-container { background: #F3F2EF; border-radius: 8px; padding: 1rem; max-height: 300px; overflow-y: auto; margin-bottom: 1rem; }
     .message { background: #FFFFFF; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem; border-left: 3px solid #E0DFDC; }
     .message.sent { border-left-color: #0A66C2; background: #E7F3FF; }
+    .message.received { border-left-color: #057642; background: #F0FFF4; }
     .message-meta { font-size: 0.75rem; color: #666666; margin-bottom: 0.25rem; }
     .message-text { font-size: 0.875rem; color: #000000; }
 
@@ -693,8 +694,19 @@ This will remove:
       <div class="container">
         <!-- Header -->
         <div class="header">
-          <h1>LinkedIn Plugin</h1>
-          <p>Manage connections, invitations, and messages</p>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <h1>LinkedIn Plugin</h1>
+              <p>Manage connections, invitations, and messages</p>
+            </div>
+            <button
+              class="secondary"
+              @click=${() => this.loadData()}
+              ?disabled=${this.loading}
+            >
+              ${this.loading ? "Refreshing..." : "🔄 Refresh"}
+            </button>
+          </div>
         </div>
 
         <!-- Stats -->
@@ -814,15 +826,18 @@ This will remove:
 
                   ${i.length > 0 ? c`
                     <div class="messages-container">
-                      ${i.map((o) => c`
-                        <div class="message sent">
-                          <div class="message-meta">
-                            To: ${e.first_name} ${e.last_name} •
-                            ${new Date(o.timestamp).toLocaleString()}
+                      ${i.map((o) => {
+      const l = o.is_sender === 1;
+      return c`
+                          <div class="message ${l ? "sent" : "received"}">
+                            <div class="message-meta">
+                              ${l ? `To: ${e.first_name} ${e.last_name}` : `From: ${e.first_name} ${e.last_name}`} •
+                              ${new Date(o.timestamp).toLocaleString()}
+                            </div>
+                            <div class="message-text">${o.text}</div>
                           </div>
-                          <div class="message-text">${o.text}</div>
-                        </div>
-                      `)}
+                        `;
+    })}
                     </div>
                   ` : c`
                     <p style="color: #666666; font-size: 0.875rem; margin-bottom: 1rem;">
