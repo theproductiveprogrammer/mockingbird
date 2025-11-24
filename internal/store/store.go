@@ -522,6 +522,10 @@ func truncateBody(data interface{}, contentType string) interface{} {
 	}
 
 	if len(bodyStr) <= maxSize {
+		// For JSON data, always return string to maintain type consistency
+		if isJSON {
+			return bodyStr
+		}
 		return data // No truncation needed
 	}
 
