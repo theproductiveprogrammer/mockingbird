@@ -522,7 +522,7 @@ export default function LinkedInPluginUI({ api }: PluginComponentProps) {
                     type="text"
                     value={messageText}
                     onChange={(e) => setMessageText(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && !sending && handleSendMessage(selectedUser.provider_id || selectedUser.id)}
+                    onKeyPress={(e) => e.key === 'Enter' && !sending && messageText.trim() && handleSendMessage(selectedUser.provider_id || selectedUser.id)}
                     placeholder="Write a message..."
                     style={{ border: `1px solid ${COLORS.border}` }}
                     className="flex-1 px-4 py-2 text-sm rounded-full focus:outline-none focus:ring-2"
@@ -531,8 +531,11 @@ export default function LinkedInPluginUI({ api }: PluginComponentProps) {
                   <button
                     onClick={() => handleSendMessage(selectedUser.provider_id || selectedUser.id)}
                     disabled={!messageText.trim() || sending}
-                    style={{ backgroundColor: COLORS.primary }}
-                    className="px-6 py-2 text-sm text-white font-semibold rounded-full hover:opacity-90 disabled:opacity-50"
+                    style={{
+                      backgroundColor: (!messageText.trim() || sending) ? '#CCCCCC' : COLORS.primary,
+                      cursor: (!messageText.trim() || sending) ? 'not-allowed' : 'pointer'
+                    }}
+                    className="px-6 py-2 text-sm text-white font-semibold rounded-full hover:opacity-90 transition-all"
                   >
                     {sending ? 'Sending...' : 'Send'}
                   </button>

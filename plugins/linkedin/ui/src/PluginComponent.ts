@@ -486,7 +486,10 @@ export class LinkedInPlugin extends LitElement {
                       rows="3"
                       placeholder="${selectedUser.first_name} replies"
                       .value=${this.messageText}
-                      @input=${(e: Event) => this.messageText = (e.target as HTMLTextAreaElement).value}
+                      @input=${(e: Event) => {
+                        this.messageText = (e.target as HTMLTextAreaElement).value;
+                        this.requestUpdate();
+                      }}
                     ></textarea>
                     <button
                       class="primary"

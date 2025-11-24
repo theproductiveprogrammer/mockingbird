@@ -836,7 +836,9 @@ This will remove:
                       rows="3"
                       placeholder="${e.first_name} replies"
                       .value=${this.messageText}
-                      @input=${(o) => this.messageText = o.target.value}
+                      @input=${(o) => {
+      this.messageText = o.target.value, this.requestUpdate();
+    }}
                     ></textarea>
                     <button
                       class="primary"
