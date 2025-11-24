@@ -2,4 +2,5 @@
 !.gitignore
 mockingbird
 node_modules/
+CLAUDE.md
 _tmp/
