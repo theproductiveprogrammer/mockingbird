@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -372,6 +373,12 @@ func (m *Manager) GetPlugins() []*Plugin {
 	for _, p := range m.plugins {
 		plugins = append(plugins, p)
 	}
+
+	// Sort plugins alphabetically by name for consistent ordering
+	sort.Slice(plugins, func(i, j int) bool {
+		return plugins[i].Name < plugins[j].Name
+	})
+
 	return plugins
 }
 
