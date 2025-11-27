@@ -87,6 +87,70 @@ function forwardToUnipile(path, queryParams) {
     return result.body;
 }
 
+// Proxy any request to Unipile API (for unhandled endpoints)
+function proxyToUnipile(method, path, queryParams, body) {
+    var baseUrl = getUnipileUrl();
+    var apiKey = getUnipileApiKey();
+
+    if (!baseUrl || !apiKey) {
+        console.log("LinkedIn plugin: Unipile not configured, cannot proxy unhandled request: " + path);
+        return {
+            status: 501,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                error: "Not Implemented",
+                message: "Endpoint not mocked and Unipile not configured",
+                path: path
+            })
+        };
+    }
+
+    var url = baseUrl + path;
+    var queryString = buildQueryString(queryParams);
+    if (queryString) {
+        url += "?" + queryString;
+    }
+    console.log("LinkedIn plugin: Proxying to Unipile: " + method + " " + url);
+
+    var headers = {
+        "X-API-KEY": apiKey,
+        "Accept": "application/json"
+    };
+
+    // Add Content-Type for requests with body
+    if (body && (method === "POST" || method === "PUT" || method === "PATCH")) {
+        headers["Content-Type"] = "application/json";
+    }
+
+    var requestBody = null;
+    if (body && typeof body === "object") {
+        requestBody = JSON.stringify(body);
+    } else if (body) {
+        requestBody = body;
+    }
+
+    var result = plugin.httpRequest(method, url, headers, requestBody);
+
+    if (result.error) {
+        console.log("LinkedIn plugin: Unipile proxy request failed: " + result.error);
+        return {
+            status: 502,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                error: "Bad Gateway",
+                message: "Failed to proxy request to Unipile: " + result.error
+            })
+        };
+    }
+
+    // Return Unipile's response as-is
+    return {
+        status: result.status,
+        headers: result.headers || { "Content-Type": "application/json" },
+        body: result.body
+    };
+}
+
 // Get invite status for a user by provider_id
 function getInviteStatus(providerId) {
     var invites = plugin.getData("invitations_sent") || [];
@@ -776,9 +840,8 @@ exports.handleRequest = function(ctx) {
         };
     }
 
-    // Default: return null to pass through to rules
-    return null;
-    return { success: false, message: "Unknown action: " + action };
+    // Default: proxy unhandled requests to Unipile
+    return proxyToUnipile(method, apiPath, queryParams, body);
 };
 
 // Get UI for the plugin dashboard
