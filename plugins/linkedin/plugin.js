@@ -144,10 +144,16 @@ function proxyToUnipile(method, path, queryParams, body) {
     }
 
     // Return Unipile's response as-is
+    // Note: result.body may be a parsed JSON object, so stringify if needed
+    var responseBody = result.body;
+    if (typeof responseBody === "object" && responseBody !== null) {
+        responseBody = JSON.stringify(responseBody);
+    }
+
     return {
         status: result.status,
         headers: result.headers || { "Content-Type": "application/json" },
-        body: result.body
+        body: responseBody || ""
     };
 }
 
@@ -838,6 +844,32 @@ exports.handleRequest = function(ctx) {
                 }]
             })
         };
+    }
+
+    // ===== HOSTED ACCOUNTS =====
+
+    // Handle hosted account link - rewrite api_url to point to Unipile
+    if (method === "POST" && apiPath === "/api/v1/hosted/accounts/link") {
+        var baseUrl = getUnipileUrl();
+        if (!baseUrl) {
+            return {
+                status: 501,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    error: "Not Implemented",
+                    message: "Unipile not configured (missing DNS)"
+                })
+            };
+        }
+
+        // Rewrite api_url to point to actual Unipile API
+        var modifiedBody = JSON.parse(JSON.stringify(body));
+        if (modifiedBody.api_url) {
+            console.log("LinkedIn plugin: Rewriting api_url from " + modifiedBody.api_url + " to " + baseUrl);
+            modifiedBody.api_url = baseUrl;
+        }
+
+        return proxyToUnipile(method, apiPath, queryParams, modifiedBody);
     }
 
     // Default: proxy unhandled requests to Unipile
