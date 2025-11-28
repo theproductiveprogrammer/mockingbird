@@ -297,6 +297,20 @@ ${responseBodyStr}`;
     };
   };
 
+  const handleCopyRequestBody = () => {
+    if (!entry) return;
+    const bodyStr = formatBody(entry.body);
+    navigator.clipboard.writeText(bodyStr);
+    toast.success('Copied request body to clipboard!');
+  };
+
+  const handleCopyResponseBody = () => {
+    if (!entry?.response) return;
+    const bodyStr = formatBody(entry.response.body);
+    navigator.clipboard.writeText(bodyStr);
+    toast.success('Copied response body to clipboard!');
+  };
+
   const handleCopyAsCurl = () => {
     if (!entry) return;
 
@@ -398,7 +412,16 @@ ${responseBodyStr}`;
 
           {/* Body */}
           <div className="mb-3">
-            <p className="text-xs font-normal text-gray-600 mb-1">body:</p>
+            <div className="flex items-center gap-2 mb-1">
+              <p className="text-xs font-normal text-gray-600">body:</p>
+              <button
+                onClick={handleCopyRequestBody}
+                className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer transition-colors"
+                title="Copy request body"
+              >
+                [copy]
+              </button>
+            </div>
             <div className="ml-4">
               {isSSEBody(entry.body) ? (
                 (() => {
@@ -509,7 +532,16 @@ ${responseBodyStr}`;
 
               {/* Body */}
               <div className="mb-3">
-                <p className="text-xs font-normal text-gray-600 mb-1">body:</p>
+                <div className="flex items-center gap-2 mb-1">
+                  <p className="text-xs font-normal text-gray-600">body:</p>
+                  <button
+                    onClick={handleCopyResponseBody}
+                    className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer transition-colors"
+                    title="Copy response body"
+                  >
+                    [copy]
+                  </button>
+                </div>
                 <div className="ml-4">
                   {entry.response.headers?.['Content-Encoding'] === 'gzip' ? (
                     <div className="bg-yellow-50 border border-yellow-200 p-3 rounded text-xs text-gray-700">
