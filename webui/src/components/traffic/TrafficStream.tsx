@@ -9,6 +9,7 @@ export function TrafficStream() {
     totalAvailable,
     newEntryIds,
     unseenCount,
+    clearedBeforeTimestamp,
     setTraffic,
     loadMoreTraffic,
     clearUnseenCount,
@@ -21,7 +22,7 @@ export function TrafficStream() {
   const [isNearTop, setIsNearTop] = useState(true);
   const previousTrafficLength = useRef(traffic.length);
 
-  // Load initial traffic on mount (only if not already loaded)
+  // Load initial traffic on mount
   useEffect(() => {
     if (traffic.length === 0) {
       console.log("[TrafficStream] Loading initial traffic");
@@ -29,7 +30,7 @@ export function TrafficStream() {
         setTraffic(result.entries, result.total);
       });
     }
-  }, [setTraffic, traffic.length]);
+  }, []);
 
   // Track scroll position
   useEffect(() => {
@@ -64,14 +65,22 @@ export function TrafficStream() {
     clearUnseenCount();
   };
 
-  // Filter traffic: first by selected services, then by text filters
+  // Convert clear timestamp to Date for proper comparison (handles timezone differences)
+  const clearDate = clearedBeforeTimestamp ? new Date(clearedBeforeTimestamp).getTime() : null;
+
+  // Filter traffic: by clear timestamp, selected services, then by text filters
   const filteredTraffic = traffic.filter((entry) => {
-    // First check: is the service selected?
+    // First check: is it after the clear timestamp?
+    if (clearDate && new Date(entry.timestamp).getTime() <= clearDate) {
+      return false; // Entry is at or before the clear marker, hide it
+    }
+
+    // Second check: is the service selected?
     if (selectedServices.size > 0 && !selectedServices.has(entry.service)) {
       return false; // Service is deselected, hide this entry
     }
 
-    // Second check: apply text filters
+    // Third check: apply text filters
     if (filters.length === 0) return true;
 
     // Entry must match ALL filters (AND logic)
@@ -231,7 +240,14 @@ export function TrafficStream() {
         {filteredTraffic.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-600">
             <div className="text-center">
-              {traffic.length > 0 || filters.length > 0 || selectedServices.size > 0 ? (
+              {clearedBeforeTimestamp ? (
+                <>
+                  <p className="text-sm font-normal">No traffic shown</p>
+                  <p className="text-xs mt-1 text-gray-500">
+                    Make a request to see it here
+                  </p>
+                </>
+              ) : traffic.length > 0 || filters.length > 0 || selectedServices.size > 0 ? (
                 <>
                   <p className="text-sm font-normal">No matches found</p>
                   <p className="text-xs mt-1 text-gray-500">
@@ -248,8 +264,8 @@ export function TrafficStream() {
               )}
             </div>
 
-            {/* Load More button when filtering shows no results but more traffic exists */}
-            {hasMore && (
+            {/* Load More button when filtering shows no results but more traffic exists (not when cleared) */}
+            {hasMore && !clearedBeforeTimestamp && (
               <div className="flex items-center justify-center gap-2 mt-6">
                 {workspaceBirdIcon && (
                   <img

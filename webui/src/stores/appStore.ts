@@ -20,6 +20,7 @@ interface AppState {
   totalAvailable: number;
   newEntryIds: Set<string>; // Track IDs of new entries for flash effect
   unseenCount: number; // Count of new messages when scrolled down
+  clearedBeforeTimestamp: string | null; // Hide traffic entries at or before this timestamp
   addTraffic: (entry: TrafficEntry) => void;
   setTraffic: (traffic: TrafficEntry[], total?: number) => void;
   loadMoreTraffic: () => Promise<void>;
@@ -71,6 +72,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   totalAvailable: 0,
   newEntryIds: new Set<string>(),
   unseenCount: 0,
+  clearedBeforeTimestamp: null,
   addTraffic: (entry) =>
     set((state) => {
       // Check if entry already exists by ID to prevent duplicates
@@ -126,8 +128,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     console.log('[loadMoreTraffic] Updated traffic:', result.entries.length, '| Total:', result.total);
   },
   clearTraffic: () => {
-    console.log('[clearTraffic] Clearing all traffic');
-    return set({ traffic: [], totalAvailable: 0, newEntryIds: new Set(), unseenCount: 0 });
+    return set({ clearedBeforeTimestamp: new Date().toISOString(), newEntryIds: new Set(), unseenCount: 0 });
   },
   markEntryAsSeen: (id) =>
     set((state) => {
