@@ -45,16 +45,6 @@ Stop hardcoding API keys, stop hitting live APIs during development, and get ful
 - **Header matching** - Match on request headers
 - **Body matching** - Regex patterns against request body
 
-### Mock Response DSL
-```
-+500ms                              # Optional delay
-[200]                               # Status code
-headers:
-  Content-Type: application/json
-body:
-{"message": "Hello from mock!"}
-```
-
 ### Template Variables
 - **Config injection** - `{{config "API_KEY"}}` for centralized secrets
 - **Request data** - `{{.method}}`, `{{.path}}`, `{{.headers}}`, `{{.body}}`
@@ -148,29 +138,6 @@ Default: `~/.config/mockingbird`
 
 Override with: `MOCKINGBIRD_CONFIG_DIR`
 
-### Directory Structure
-
-```
-~/.config/mockingbird/
-  config.json                    # API keys and settings
-  workspaces/
-    default/
-      _rules/
-        stripe.yaml              # Rules for "stripe" service
-        github.yaml              # Rules for "github" service
-      traffic.ndjson             # Traffic history
-      metadata.json              # Workspace metadata
-    staging/
-      _rules/
-      traffic.ndjson
-      metadata.json
-  plugins/
-    linkedin/
-      plugin.js                  # Plugin code
-      data.json                  # Plugin state
-      ui/dist/                   # Plugin UI bundle
-```
-
 ---
 
 ## Rule Matching
@@ -184,91 +151,6 @@ Override with: `MOCKINGBIRD_CONFIG_DIR`
 | `/users/**` | `/users`, `/users/123`, `/users/123/posts` | |
 | `/users/{id}` | `/users/123` (extracts id=123) | `/users/123/posts` |
 | `/users/{id}/posts` | `/users/123/posts` | `/users/123` |
-
-### Rule File Format
-
-```yaml
-# _rules/stripe.yaml
-rules:
-  - description: "Proxy to Stripe API"
-    match:
-      method: ["GET", "POST"]
-      path: "/v1/customers.*"
-    proxyTo: "https://api.stripe.com"
-    headers:
-      Authorization: "Bearer {{config \"STRIPE_API_KEY\"}}"
-
-  - description: "Mock customer creation"
-    match:
-      method: ["POST"]
-      path: "/v1/customers"
-    response: |
-      +100ms
-      [200]
-      headers:
-        Content-Type: application/json
-      body:
-      {"id": "cus_{{uuid}}", "created": "{{now}}"}
-
-  - description: "Disabled rule (skipped)"
-    enabled: false
-    match:
-      path: "/v1/old-endpoint"
-    response: |
-      [410]
-```
-
-### Match Options
-
-```yaml
-match:
-  method: ["GET", "POST"]           # HTTP methods (optional, default: all)
-  path: "/users/{id}"               # Path pattern (required)
-  query:                            # Query params (optional)
-    status: "active"
-    type: "premium|standard"        # Regex supported
-  headers:                          # Request headers (optional)
-    Authorization: "Bearer.*"       # Regex supported
-  body: ".*\"urgent\":true.*"       # Body regex (optional)
-```
-
----
-
-## Mock Response DSL
-
-### Full Format
-
-```
-+500ms                    # Delay (optional): ms, s, m, h
-[201]                     # Status code (optional, default: 200)
-headers:                  # Headers section (optional)
-  Content-Type: application/json
-  X-Request-Id: {{uuid}}
-body:                     # Body section
-{
-  "id": "{{uuid}}",
-  "path": "{{.path}}",
-  "timestamp": "{{now}}"
-}
-```
-
-### Minimal Examples
-
-```
-# Just a status code
-[204]
-
-# Status with body
-[200]
-body:
-{"ok": true}
-
-# With delay
-+2s
-[200]
-body:
-{"message": "Slow response"}
-```
 
 ---
 
@@ -297,19 +179,6 @@ body:
 | `{{reqQueryParam "key"}}` | Query param value | `{{reqQueryParam "filter"}}` |
 | `{{reqBody "path"}}` | Navigate JSON body | `{{reqBody "user.email"}}` |
 
-### Body Navigation
-
-```yaml
-# Given request body: {"user": {"name": "John", "tags": ["admin", "active"]}}
-response: |
-  [200]
-  body:
-  {
-    "greeting": "Hello {{reqBody \"user.name\"}}",
-    "firstTag": "{{reqBody \"user.tags[0]\"}}"
-  }
-```
-
 ---
 
 ## Traffic Filtering
@@ -327,113 +196,11 @@ Filters are AND-combined. Services can be toggled on/off independently.
 
 ---
 
-## Plugin System
-
-### Plugin Structure
-
-```
-plugins/
-  my-plugin/
-    plugin.js       # Required: plugin code
-    data.json       # Auto-created: persistent storage
-    ui/
-      dist/
-        component.js  # Optional: React UI
-```
-
-### Plugin API
-
-```javascript
-// plugin.js
-exports.name = "my-plugin";
-exports.version = "1.0";
-exports.routes = ["/my-service/**"];
-exports.config_env = "MY_PLUGIN";  // Config prefix
-
-exports.handleRequest = function(ctx) {
-  // ctx: {method, path, headers, body, query, pathParams}
-
-  // Return null to pass to rule matcher
-  if (ctx.path === "/passthrough") {
-    return null;
-  }
-
-  // Return response to handle request
-  return {
-    status: 200,
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({handled: true})
-  };
-};
-
-// Optional: Plugin UI
-exports.getUI = function() {
-  return {
-    type: "list",
-    items: plugin.getAllData().items || []
-  };
-};
-
-exports.handleAction = function(action, id, data) {
-  if (action === "delete") {
-    // Handle delete action
-  }
-};
-```
-
-### Plugin Helpers
-
-```javascript
-// Persistent storage
-plugin.saveData("key", value);
-plugin.getData("key");
-plugin.getAllData();
-
-// Configuration (filtered by config_env prefix)
-plugin.getConfig("API_KEY");  // Gets MY_PLUGIN_API_KEY
-plugin.getAllConfig();
-
-// HTTP requests
-var response = plugin.httpRequest("GET", "https://api.example.com", {
-  "Authorization": "Bearer xxx"
-}, null);
-// response: {status, headers, body, error}
-```
-
----
-
-## Admin API
-
-### Traffic
-- `GET /api/w/{workspace}/traffic` - List traffic
-- `GET /api/w/{workspace}/traffic/{id}` - Get entry
-- `GET /api/w/{workspace}/traffic/stream` - SSE stream
-
-### Rules
-- `GET /api/w/{workspace}/rules` - All rules
-- `POST /api/w/{workspace}/rules/{service}` - Create rule
-- `PUT /api/w/{workspace}/rules/{service}/{index}` - Update rule
-- `DELETE /api/w/{workspace}/rules/{service}/{index}` - Delete rule
-- `POST /api/w/{workspace}/rules/{service}/{index}/move` - Reorder
-
-### Config
-- `GET /api/w/{workspace}/config` - Get config (masked)
-- `PUT /api/w/{workspace}/config/{key}` - Set value
-- `DELETE /api/w/{workspace}/config/{key}` - Delete value
-
-### Workspaces
-- `GET /api/workspaces` - List workspaces
-- `POST /api/workspaces` - Create workspace
-- `POST /api/workspaces/{name}/duplicate` - Duplicate
-- `DELETE /api/workspaces/{name}` - Disable
-
----
-
 ## Tips
 
 1. **First-match-wins**: Rules are evaluated top-to-bottom. Put specific rules before general ones.
 
-2. **Hot-reload**: Edit YAML files directly — changes apply immediately.
+2. **Hot-reload**: You can edit YAML files directly — changes apply immediately.
 
 3. **Debug with SSE**: Watch live traffic from terminal:
    ```bash
