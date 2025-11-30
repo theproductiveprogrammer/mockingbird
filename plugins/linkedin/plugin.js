@@ -311,6 +311,8 @@ function initializeData() {
         plugin.saveData("chats", {});
         plugin.saveData("messages", []);
         plugin.saveData("posts", []);
+        plugin.saveData("post_reactions", []);
+        plugin.saveData("post_comments", []);
         plugin.saveData("initialized", true);
     }
 }
@@ -806,6 +808,151 @@ exports.handleRequest = function(ctx) {
         };
     }
 
+    // ===== POST REACTIONS =====
+
+    // Add reaction to post
+    var reactionMatch = apiPath.match(/\/api\/v1\/posts\/([^\/]+)\/reaction$/);
+    if (method === "POST" && reactionMatch) {
+        var postId = reactionMatch[1];
+        var reactions = plugin.getData("post_reactions") || [];
+        var newReaction = {
+            id: generateId("reaction"),
+            post_id: postId,
+            account_id: body.account_id || "",
+            reaction_type: body.reaction_type || body.type || "LIKE",
+            created_at: now()
+        };
+        reactions.push(newReaction);
+        plugin.saveData("post_reactions", reactions);
+
+        // Update reaction counter in post if it exists locally
+        var posts = plugin.getData("posts") || [];
+        for (var i = 0; i < posts.length; i++) {
+            if (posts[i].id === postId || posts[i].social_id === postId) {
+                posts[i].reaction_counter = (posts[i].reaction_counter || 0) + 1;
+                plugin.saveData("posts", posts);
+                break;
+            }
+        }
+
+        // Also check posts_cache
+        var postsCache = plugin.getData("posts_cache") || {};
+        for (var cacheKey in postsCache) {
+            var cachedPosts = postsCache[cacheKey].data;
+            if (cachedPosts && cachedPosts.items) {
+                for (var j = 0; j < cachedPosts.items.length; j++) {
+                    var cachedPost = cachedPosts.items[j];
+                    if (cachedPost.id === postId || cachedPost.social_id === postId) {
+                        cachedPost.reaction_counter = (cachedPost.reaction_counter || 0) + 1;
+                        plugin.saveData("posts_cache", postsCache);
+                        break;
+                    }
+                }
+            }
+        }
+
+        console.log("LinkedIn plugin: Recorded reaction on post " + postId);
+
+        return {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                object: "ReactionAdded",
+                reaction_id: newReaction.id
+            })
+        };
+    }
+
+    // Get reactions for a post
+    var getReactionsMatch = apiPath.match(/\/api\/v1\/posts\/([^\/]+)\/reactions$/);
+    if (method === "GET" && getReactionsMatch) {
+        var postId = getReactionsMatch[1];
+        var allReactions = plugin.getData("post_reactions") || [];
+        var postReactions = allReactions.filter(function(r) {
+            return r.post_id === postId;
+        });
+        return {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                object: "ReactionList",
+                items: postReactions
+            })
+        };
+    }
+
+    // ===== POST COMMENTS =====
+
+    // Add comment to post
+    var commentMatch = apiPath.match(/\/api\/v1\/posts\/([^\/]+)\/comments$/);
+    if (method === "POST" && commentMatch) {
+        var postId = commentMatch[1];
+        var comments = plugin.getData("post_comments") || [];
+        var newComment = {
+            id: generateId("comment"),
+            post_id: postId,
+            account_id: body.account_id || "",
+            text: body.text || "",
+            created_at: now()
+        };
+        comments.push(newComment);
+        plugin.saveData("post_comments", comments);
+
+        // Update comment counter in post if it exists locally
+        var posts = plugin.getData("posts") || [];
+        for (var i = 0; i < posts.length; i++) {
+            if (posts[i].id === postId || posts[i].social_id === postId) {
+                posts[i].comment_counter = (posts[i].comment_counter || 0) + 1;
+                plugin.saveData("posts", posts);
+                break;
+            }
+        }
+
+        // Also check posts_cache
+        var postsCache = plugin.getData("posts_cache") || {};
+        for (var cacheKey in postsCache) {
+            var cachedPosts = postsCache[cacheKey].data;
+            if (cachedPosts && cachedPosts.items) {
+                for (var j = 0; j < cachedPosts.items.length; j++) {
+                    var cachedPost = cachedPosts.items[j];
+                    if (cachedPost.id === postId || cachedPost.social_id === postId) {
+                        cachedPost.comment_counter = (cachedPost.comment_counter || 0) + 1;
+                        plugin.saveData("posts_cache", postsCache);
+                        break;
+                    }
+                }
+            }
+        }
+
+        console.log("LinkedIn plugin: Recorded comment on post " + postId);
+
+        return {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                object: "CommentSent"
+            })
+        };
+    }
+
+    // Get comments for a post
+    var getCommentsMatch = apiPath.match(/\/api\/v1\/posts\/([^\/]+)\/comments$/);
+    if (method === "GET" && getCommentsMatch) {
+        var postId = getCommentsMatch[1];
+        var allComments = plugin.getData("post_comments") || [];
+        var postComments = allComments.filter(function(c) {
+            return c.post_id === postId;
+        });
+        return {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                object: "CommentList",
+                items: postComments
+            })
+        };
+    }
+
     // Get post
     var postMatch = apiPath.match(/\/api\/v1\/posts\/([^\/]+)$/);
     if (method === "GET" && postMatch) {
@@ -1226,11 +1373,23 @@ exports.handleAction = function(action, id, data) {
 
 
     if (action === "load_user_data") {
-        // Aggregate all user data from profiles cache, invitations, and messages
+        // Aggregate all user data from profiles cache, invitations, messages, and posts
         var profilesCache = plugin.getData("profiles_cache") || {};
+        var postsCache = plugin.getData("posts_cache") || {};
         var invitesSent = plugin.getData("invitations_sent") || [];
         var messages = plugin.getData("messages") || [];
         var chats = plugin.getData("chats") || {};
+        var reactions = plugin.getData("post_reactions") || [];
+        var comments = plugin.getData("post_comments") || [];
+
+        // Build a map of user posts from posts_cache (keyed by user identifier)
+        var userPostsMap = {};
+        for (var cacheKey in postsCache) {
+            var cachedData = postsCache[cacheKey].data;
+            if (cachedData && cachedData.items) {
+                userPostsMap[cacheKey] = cachedData.items;
+            }
+        }
 
         // Extract users from profiles cache
         var users = [];
@@ -1249,6 +1408,34 @@ exports.handleAction = function(action, id, data) {
                 profile.network_distance = inviteStatus === "accepted" ? "FIRST_DEGREE" :
                                           inviteStatus === "pending" ? "SECOND_DEGREE" : "THIRD_DEGREE";
                 profile.id = profile.provider_id || cacheKey;
+
+                // Attach posts for this user (check by provider_id or cache key)
+                var userPosts = userPostsMap[profile.provider_id] || userPostsMap[cacheKey] || [];
+
+                // Enrich posts with intercepted reactions and comments
+                var enrichedPosts = userPosts.map(function(post) {
+                    var postId = post.id || post.social_id;
+                    var postReactions = reactions.filter(function(r) {
+                        return r.post_id === postId || r.post_id === post.social_id;
+                    });
+                    var postComments = comments.filter(function(c) {
+                        return c.post_id === postId || c.post_id === post.social_id;
+                    });
+                    return {
+                        id: post.id,
+                        social_id: post.social_id,
+                        text: post.text,
+                        created_at: post.created_at,
+                        reaction_counter: post.reaction_counter || 0,
+                        comment_counter: post.comment_counter || 0,
+                        intercepted_reactions: postReactions,
+                        intercepted_comments: postComments,
+                        intercepted_reaction_count: postReactions.length,
+                        intercepted_comment_count: postComments.length
+                    };
+                });
+
+                profile.posts = enrichedPosts;
                 users.push(profile);
             }
         }
@@ -1270,11 +1457,15 @@ exports.handleAction = function(action, id, data) {
                 invitations: invitesSent,
                 messages: messages,
                 chats: chatsArray,
+                reactions: reactions,
+                comments: comments,
                 stats: {
                     total_users: users.length,
                     connections: connections,
                     pending_invites: pendingInvites,
-                    total_messages: messages.length
+                    total_messages: messages.length,
+                    total_reactions: reactions.length,
+                    total_comments: comments.length
                 }
             }
         };
@@ -1452,6 +1643,129 @@ exports.handleAction = function(action, id, data) {
             message: fullDelete ? "User fully deleted" : "User data deleted (profile cached)",
             deleted: deletedCounts
         };
+    }
+
+    if (action === "load_posts_data") {
+        // Aggregate all posts from cache and local storage
+        var postsCache = plugin.getData("posts_cache") || {};
+        var localPosts = plugin.getData("posts") || [];
+        var reactions = plugin.getData("post_reactions") || [];
+        var comments = plugin.getData("post_comments") || [];
+        var profilesCache = plugin.getData("profiles_cache") || {};
+
+        // Collect all posts from cache
+        var allPosts = [];
+        for (var cacheKey in postsCache) {
+            var cachedData = postsCache[cacheKey].data;
+            if (cachedData && cachedData.items) {
+                for (var i = 0; i < cachedData.items.length; i++) {
+                    var post = cachedData.items[i];
+                    // Avoid duplicates by checking id
+                    var exists = allPosts.some(function(p) {
+                        return p.id === post.id || p.social_id === post.social_id;
+                    });
+                    if (!exists) {
+                        // Get author info from profiles cache
+                        var authorName = "";
+                        var authorHeadline = "";
+                        if (post.author_id) {
+                            for (var profileKey in profilesCache) {
+                                var profile = profilesCache[profileKey].data;
+                                if (profile && (profile.provider_id === post.author_id || profileKey === post.author_id)) {
+                                    authorName = (profile.first_name || "") + " " + (profile.last_name || "");
+                                    authorHeadline = profile.headline || "";
+                                    break;
+                                }
+                            }
+                        }
+                        post.author_name = authorName.trim() || null;
+                        post.author_headline = authorHeadline || null;
+                        allPosts.push(post);
+                    }
+                }
+            }
+        }
+
+        // Add local posts that aren't already included
+        for (var j = 0; j < localPosts.length; j++) {
+            var localPost = localPosts[j];
+            var alreadyIncluded = allPosts.some(function(p) {
+                return p.id === localPost.id || p.social_id === localPost.social_id;
+            });
+            if (!alreadyIncluded) {
+                allPosts.push(localPost);
+            }
+        }
+
+        // Enrich posts with reaction and comment counts from intercepted data
+        for (var k = 0; k < allPosts.length; k++) {
+            var post = allPosts[k];
+            var postId = post.id || post.social_id;
+
+            // Count intercepted reactions
+            var interceptedReactions = reactions.filter(function(r) {
+                return r.post_id === postId || r.post_id === post.social_id;
+            });
+
+            // Count intercepted comments
+            var interceptedComments = comments.filter(function(c) {
+                return c.post_id === postId || c.post_id === post.social_id;
+            });
+
+            post.intercepted_reactions = interceptedReactions;
+            post.intercepted_comments = interceptedComments;
+            post.intercepted_reaction_count = interceptedReactions.length;
+            post.intercepted_comment_count = interceptedComments.length;
+        }
+
+        // Sort by created_at descending
+        allPosts.sort(function(a, b) {
+            return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+        });
+
+        // Calculate stats
+        var totalReactions = reactions.length;
+        var totalComments = comments.length;
+        var postsWithActivity = allPosts.filter(function(p) {
+            return p.intercepted_reaction_count > 0 || p.intercepted_comment_count > 0;
+        }).length;
+
+        return {
+            success: true,
+            data: {
+                posts: allPosts,
+                reactions: reactions,
+                comments: comments,
+                stats: {
+                    total_posts: allPosts.length,
+                    total_reactions: totalReactions,
+                    total_comments: totalComments,
+                    posts_with_activity: postsWithActivity
+                }
+            }
+        };
+    }
+
+    if (action === "delete_reaction") {
+        var reactions = plugin.getData("post_reactions") || [];
+        reactions = reactions.filter(function(r) { return r.id !== id; });
+        plugin.saveData("post_reactions", reactions);
+        return { success: true, message: "Reaction deleted" };
+    }
+
+    if (action === "delete_comment") {
+        var comments = plugin.getData("post_comments") || [];
+        comments = comments.filter(function(c) { return c.id !== id; });
+        plugin.saveData("post_comments", comments);
+        return { success: true, message: "Comment deleted" };
+    }
+
+    if (action === "clear_posts_cache") {
+        plugin.saveData("posts_cache", {});
+        plugin.saveData("posts", []);
+        plugin.saveData("post_reactions", []);
+        plugin.saveData("post_comments", []);
+        return { success: true, message: "Posts cache and activity cleared" };
     }
 
     return { success: false, message: "Unknown action: " + action };

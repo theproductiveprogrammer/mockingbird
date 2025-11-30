@@ -26,6 +26,7 @@ interface User {
   follower_count?: number;
   connections_count?: number;
   network_distance?: string;
+  posts?: Post[];
 }
 
 interface Invitation {
@@ -52,16 +53,65 @@ interface Chat {
   timestamp: string;
 }
 
+interface Reaction {
+  id: string;
+  post_id: string;
+  account_id: string;
+  reaction_type: string;
+  created_at: string;
+}
+
+interface Comment {
+  id: string;
+  post_id: string;
+  account_id: string;
+  text: string;
+  created_at: string;
+}
+
+interface Post {
+  id: string;
+  social_id?: string;
+  text: string;
+  author_id?: string;
+  author_name?: string;
+  author_headline?: string;
+  created_at: string;
+  reaction_counter?: number;
+  comment_counter?: number;
+  repost_counter?: number;
+  intercepted_reactions?: Reaction[];
+  intercepted_comments?: Comment[];
+  intercepted_reaction_count?: number;
+  intercepted_comment_count?: number;
+}
+
+interface PostsData {
+  posts: Post[];
+  reactions: Reaction[];
+  comments: Comment[];
+  stats: {
+    total_posts: number;
+    total_reactions: number;
+    total_comments: number;
+    posts_with_activity: number;
+  };
+}
+
 interface UserData {
   users: User[];
   invitations: Invitation[];
   messages: Message[];
   chats: Chat[];
+  reactions: Reaction[];
+  comments: Comment[];
   stats: {
     total_users: number;
     connections: number;
     pending_invites: number;
     total_messages: number;
+    total_reactions: number;
+    total_comments: number;
   };
 }
 
@@ -77,6 +127,7 @@ export class LinkedInPlugin extends LitElement {
     api: { type: Object },
     userData: { type: Object, state: true },
     selectedUserId: { type: String, state: true },
+    expandedPostId: { type: String, state: true },
     loading: { type: Boolean, state: true },
     error: { type: String, state: true },
     messageText: { type: String, state: true },
@@ -89,6 +140,7 @@ export class LinkedInPlugin extends LitElement {
   api!: PluginAPI;
   userData: UserData | null = null;
   selectedUserId: string | null = null;
+  expandedPostId: string | null = null; // Track which post is expanded
   showAllUsers = false; // By default, show only users with invites or messages
   loading = true;
   error: string | null = null;
@@ -168,6 +220,30 @@ export class LinkedInPlugin extends LitElement {
     .error h3 { font-size: 1rem; font-weight: 600; color: #991B1B; margin: 0 0 0.5rem 0; }
     .error p { font-size: 0.875rem; color: #B91C1C; margin: 0 0 1rem 0; }
     .empty h3 { font-size: 1rem; color: #666666; margin: 0; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 0; margin-bottom: 1.5rem; background: #FFFFFF; border-radius: 8px; border: 1px solid #E0DFDC; overflow: hidden; }
+    .tab { flex: 1; padding: 1rem; text-align: center; cursor: pointer; font-weight: 600; font-size: 0.875rem; color: #666666; border: none; background: transparent; transition: all 0.2s; }
+    .tab:hover { background: #F3F2EF; }
+    .tab.active { background: #0A66C2; color: white; }
+
+    /* Posts */
+    .post-item { padding: 1rem; border-bottom: 1px solid #E0DFDC; cursor: pointer; transition: background 0.2s; }
+    .post-item:hover { background: #F3F2EF; }
+    .post-item.selected { background: #E7F3FF; border-left: 3px solid #0A66C2; }
+    .post-text { font-size: 0.875rem; color: #000000; margin-bottom: 0.5rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .post-meta { font-size: 0.75rem; color: #666666; display: flex; gap: 1rem; align-items: center; }
+    .post-stats { display: flex; gap: 0.75rem; }
+    .post-stat { display: flex; align-items: center; gap: 0.25rem; font-size: 0.75rem; }
+    .post-stat.reactions { color: #0A66C2; }
+    .post-stat.comments { color: #057642; }
+
+    .activity-card { background: #F3F2EF; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem; }
+    .activity-card.reaction { border-left: 3px solid #0A66C2; }
+    .activity-card.comment { border-left: 3px solid #057642; }
+    .activity-type { font-size: 0.75rem; font-weight: 600; color: #666666; margin-bottom: 0.25rem; text-transform: uppercase; }
+    .activity-text { font-size: 0.875rem; color: #000000; }
+    .activity-meta { font-size: 0.75rem; color: #999999; margin-top: 0.25rem; }
   `;
 
   firstUpdated() {
@@ -194,7 +270,7 @@ export class LinkedInPlugin extends LitElement {
       console.log('[LinkedIn Plugin] Got result:', result);
 
       if (!result.success) {
-        throw new Error(result.message || 'Failed to load data');
+        throw new Error(result.message || 'Failed to load user data');
       }
 
       // The data is in result.result.data
@@ -282,6 +358,50 @@ export class LinkedInPlugin extends LitElement {
     }
   }
 
+  async handleDeleteReaction(reactionId: string) {
+    try {
+      const result: any = await this.api.action('delete_reaction', reactionId);
+      if (result.success) {
+        await this.loadData();
+      } else {
+        alert(result.message || 'Failed to delete reaction');
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to delete reaction');
+    }
+  }
+
+  async handleDeleteComment(commentId: string) {
+    try {
+      const result: any = await this.api.action('delete_comment', commentId);
+      if (result.success) {
+        await this.loadData();
+      } else {
+        alert(result.message || 'Failed to delete comment');
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to delete comment');
+    }
+  }
+
+  async handleClearPostsCache() {
+    if (!confirm('Are you sure you want to clear all posts data?\n\nThis will remove:\n- All cached posts\n- All intercepted reactions\n- All intercepted comments')) {
+      return;
+    }
+
+    try {
+      const result: any = await this.api.action('clear_posts_cache', 'all');
+      if (result.success) {
+        this.selectedPostId = null;
+        await this.loadData();
+      } else {
+        alert(result.message || 'Failed to clear posts cache');
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to clear posts cache');
+    }
+  }
+
   render() {
     if (this.loading) {
       return html`<div class="loading">Loading LinkedIn data...</div>`;
@@ -322,7 +442,10 @@ export class LinkedInPlugin extends LitElement {
       ? (this.userData?.messages || []).filter(msg => msg.chat_id === userChat.id)
       : [];
 
-    // Filter users to only those with invites or messages (unless showAllUsers is true)
+    // Get user's posts
+    const userPosts = selectedUser?.posts || [];
+
+    // Filter users to only those with activity (unless showAllUsers is true)
     const allUsers = this.userData?.users || [];
     const filteredUsers = this.showAllUsers ? allUsers : allUsers.filter(user => {
       // Check if user has an invitation
@@ -335,7 +458,12 @@ export class LinkedInPlugin extends LitElement {
         chat.attendee_provider_id === user.provider_id || chat.attendee_provider_id === user.id
       );
 
-      return hasInvite || hasChat;
+      // Check if user has posts with intercepted activity
+      const hasPostActivity = user.posts?.some(post =>
+        (post.intercepted_reaction_count || 0) > 0 || (post.intercepted_comment_count || 0) > 0
+      );
+
+      return hasInvite || hasChat || hasPostActivity;
     });
 
     return html`
@@ -345,22 +473,22 @@ export class LinkedInPlugin extends LitElement {
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <div>
               <h1>LinkedIn Plugin</h1>
-              <p>Manage connections, invitations, and messages</p>
+              <p>Manage connections, invitations, messages, and post activity</p>
             </div>
             <button
               class="secondary"
               @click=${() => this.loadData()}
               ?disabled=${this.loading}
             >
-              ${this.loading ? 'Refreshing...' : '🔄 Refresh'}
+              ${this.loading ? 'Refreshing...' : 'Refresh'}
             </button>
           </div>
         </div>
 
         <!-- Stats -->
-        <div class="stats">
+        <div class="stats" style="grid-template-columns: repeat(6, 1fr);">
           <div class="stat-card">
-            <div class="stat-label">Total Users</div>
+            <div class="stat-label">Users</div>
             <div class="stat-value">${this.userData?.stats?.total_users || 0}</div>
           </div>
           <div class="stat-card">
@@ -368,12 +496,20 @@ export class LinkedInPlugin extends LitElement {
             <div class="stat-value">${this.userData?.stats?.connections || 0}</div>
           </div>
           <div class="stat-card">
-            <div class="stat-label">Pending Invites</div>
+            <div class="stat-label">Invites</div>
             <div class="stat-value">${this.userData?.stats?.pending_invites || 0}</div>
           </div>
           <div class="stat-card">
             <div class="stat-label">Messages</div>
             <div class="stat-value">${this.userData?.stats?.total_messages || 0}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Reactions</div>
+            <div class="stat-value">${this.userData?.stats?.total_reactions || 0}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Comments</div>
+            <div class="stat-value">${this.userData?.stats?.total_comments || 0}</div>
           </div>
         </div>
 
@@ -398,11 +534,14 @@ export class LinkedInPlugin extends LitElement {
             </div>
             ${filteredUsers.map(user => {
               const isSelected = this.selectedUserId === user.id || this.selectedUserId === user.provider_id;
+              const postActivity = (user.posts || []).reduce((sum, p) =>
+                sum + (p.intercepted_reaction_count || 0) + (p.intercepted_comment_count || 0), 0);
               return html`
                 <div
                   class="user-item ${isSelected ? 'selected' : ''}"
                   @click=${() => {
                     this.selectedUserId = user.id;
+                    this.expandedPostId = null;
                     this.requestUpdate();
                   }}
                 >
@@ -418,7 +557,15 @@ export class LinkedInPlugin extends LitElement {
                     <div style="flex: 1; min-width: 0;">
                       <div class="user-name">${user.first_name} ${user.last_name}</div>
                       ${user.headline ? html`<div class="user-headline">${user.headline}</div>` : ''}
-                      ${user.location ? html`<div class="user-location">📍 ${user.location}</div>` : ''}
+                      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.25rem;">
+                        ${user.location ? html`<span class="user-location">📍 ${user.location}</span>` : ''}
+                        ${(user.posts?.length || 0) > 0 ? html`
+                          <span style="font-size: 0.7rem; color: #666;">📝 ${user.posts?.length} posts</span>
+                        ` : ''}
+                        ${postActivity > 0 ? html`
+                          <span style="font-size: 0.7rem; color: #0A66C2;">⚡ ${postActivity} activity</span>
+                        ` : ''}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -427,7 +574,7 @@ export class LinkedInPlugin extends LitElement {
           </div>
 
           <!-- User Detail -->
-          <div class="user-detail">
+          <div class="user-detail" style="overflow-y: auto; max-height: 600px;">
             ${selectedUser ? html`
               <!-- Profile Header -->
               <div class="profile-header">
@@ -516,14 +663,107 @@ export class LinkedInPlugin extends LitElement {
                     </button>
                   </div>
                 </div>
-              ` : html`
+              ` : ''}
+
+              <!-- Posts Section -->
+              ${userPosts.length > 0 ? html`
                 <div class="section">
-                  <h3 class="section-title">Messages</h3>
-                  <p style="color: #666666; font-size: 0.875rem;">
-                    Message thread with ${selectedUser.first_name} will show here
-                  </p>
+                  <h3 class="section-title">Posts (${userPosts.length})</h3>
+                  ${userPosts.map(post => {
+                    const isExpanded = this.expandedPostId === (post.id || post.social_id);
+                    const hasActivity = (post.intercepted_reaction_count || 0) > 0 || (post.intercepted_comment_count || 0) > 0;
+                    return html`
+                      <div
+                        class="post-item"
+                        style="cursor: pointer; border: 1px solid #E0DFDC; border-radius: 8px; margin-bottom: 0.75rem; ${isExpanded ? 'border-color: #0A66C2;' : ''}"
+                        @click=${() => {
+                          this.expandedPostId = isExpanded ? null : (post.id || post.social_id || null);
+                          this.requestUpdate();
+                        }}
+                      >
+                        <div class="post-text" style="${isExpanded ? '-webkit-line-clamp: unset;' : ''}">${post.text || '(No text)'}</div>
+                        <div class="post-meta">
+                          ${post.created_at ? html`<span>${new Date(post.created_at).toLocaleDateString()}</span>` : ''}
+                          <span style="opacity: 0.6;">Original: ${post.reaction_counter || 0} reactions, ${post.comment_counter || 0} comments</span>
+                        </div>
+                        ${hasActivity ? html`
+                          <div class="post-stats" style="margin-top: 0.5rem;">
+                            ${(post.intercepted_reaction_count || 0) > 0 ? html`
+                              <span class="post-stat reactions">👍 ${post.intercepted_reaction_count} intercepted</span>
+                            ` : ''}
+                            ${(post.intercepted_comment_count || 0) > 0 ? html`
+                              <span class="post-stat comments">💬 ${post.intercepted_comment_count} intercepted</span>
+                            ` : ''}
+                          </div>
+                        ` : ''}
+
+                        <!-- Expanded View: Reactions and Comments -->
+                        ${isExpanded && hasActivity ? html`
+                          <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #E0DFDC;">
+                            <!-- Intercepted Reactions -->
+                            ${(post.intercepted_reactions?.length || 0) > 0 ? html`
+                              <div style="margin-bottom: 1rem;">
+                                <h4 style="font-size: 0.75rem; color: #666; margin: 0 0 0.5rem 0; text-transform: uppercase;">Reactions</h4>
+                                ${post.intercepted_reactions?.map(reaction => html`
+                                  <div class="activity-card reaction">
+                                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                      <div>
+                                        <div class="activity-type">${reaction.reaction_type || 'LIKE'}</div>
+                                        <div class="activity-meta">
+                                          ${new Date(reaction.created_at).toLocaleString()}
+                                        </div>
+                                      </div>
+                                      <button
+                                        class="secondary"
+                                        style="font-size: 0.625rem; padding: 0.25rem 0.5rem;"
+                                        @click=${(e: Event) => {
+                                          e.stopPropagation();
+                                          this.handleDeleteReaction(reaction.id);
+                                        }}
+                                      >
+                                        ✕
+                                      </button>
+                                    </div>
+                                  </div>
+                                `)}
+                              </div>
+                            ` : ''}
+
+                            <!-- Intercepted Comments -->
+                            ${(post.intercepted_comments?.length || 0) > 0 ? html`
+                              <div>
+                                <h4 style="font-size: 0.75rem; color: #666; margin: 0 0 0.5rem 0; text-transform: uppercase;">Comments</h4>
+                                ${post.intercepted_comments?.map(comment => html`
+                                  <div class="activity-card comment">
+                                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                      <div style="flex: 1;">
+                                        <div class="activity-text">${comment.text}</div>
+                                        <div class="activity-meta">
+                                          ${new Date(comment.created_at).toLocaleString()}
+                                        </div>
+                                      </div>
+                                      <button
+                                        class="secondary"
+                                        style="font-size: 0.625rem; padding: 0.25rem 0.5rem;"
+                                        @click=${(e: Event) => {
+                                          e.stopPropagation();
+                                          this.handleDeleteComment(comment.id);
+                                        }}
+                                      >
+                                        ✕
+                                      </button>
+                                    </div>
+                                  </div>
+                                `)}
+                              </div>
+                            ` : ''}
+                          </div>
+                        ` : ''}
+                      </div>
+                    `;
+                  })}
                 </div>
-              `}
+              ` : ''}
 
               <!-- Delete Section (subtle, at bottom) -->
               <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #F3F2EF;">
@@ -563,6 +803,9 @@ export class LinkedInPlugin extends LitElement {
             ` : html`
               <div class="empty">
                 <h3>Select a user to view their profile</h3>
+                <p style="color: #666666; font-size: 0.875rem; margin-top: 0.5rem;">
+                  Users with invites, messages, or post activity will be shown.
+                </p>
               </div>
             `}
           </div>
