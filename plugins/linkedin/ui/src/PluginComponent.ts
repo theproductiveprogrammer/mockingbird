@@ -534,8 +534,8 @@ export class LinkedInPlugin extends LitElement {
             </div>
             ${filteredUsers.map(user => {
               const isSelected = this.selectedUserId === user.id || this.selectedUserId === user.provider_id;
-              const postActivity = (user.posts || []).reduce((sum, p) =>
-                sum + (p.intercepted_reaction_count || 0) + (p.intercepted_comment_count || 0), 0);
+              const totalLikes = (user.posts || []).reduce((sum, p) => sum + (p.intercepted_reaction_count || 0), 0);
+              const totalComments = (user.posts || []).reduce((sum, p) => sum + (p.intercepted_comment_count || 0), 0);
               return html`
                 <div
                   class="user-item ${isSelected ? 'selected' : ''}"
@@ -560,10 +560,13 @@ export class LinkedInPlugin extends LitElement {
                       <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.25rem;">
                         ${user.location ? html`<span class="user-location">📍 ${user.location}</span>` : ''}
                         ${(user.posts?.length || 0) > 0 ? html`
-                          <span style="font-size: 0.7rem; color: #666;">📝 ${user.posts?.length} posts</span>
+                          <span style="font-size: 0.7rem; color: #666;">📝 ${user.posts?.length} ${user.posts?.length === 1 ? 'post' : 'posts'}</span>
                         ` : ''}
-                        ${postActivity > 0 ? html`
-                          <span style="font-size: 0.7rem; color: #0A66C2;">⚡ ${postActivity} activity</span>
+                        ${totalLikes > 0 ? html`
+                          <span style="font-size: 0.7rem; color: #0A66C2;">👍 ${totalLikes}</span>
+                        ` : ''}
+                        ${totalComments > 0 ? html`
+                          <span style="font-size: 0.7rem; color: #057642;">💬 ${totalComments}</span>
                         ` : ''}
                       </div>
                     </div>
@@ -687,76 +690,61 @@ export class LinkedInPlugin extends LitElement {
                           <span style="opacity: 0.6;">Original: ${post.reaction_counter || 0} reactions, ${post.comment_counter || 0} comments</span>
                         </div>
                         ${hasActivity ? html`
-                          <div class="post-stats" style="margin-top: 0.5rem;">
-                            ${(post.intercepted_reaction_count || 0) > 0 ? html`
-                              <span class="post-stat reactions">👍 ${post.intercepted_reaction_count} intercepted</span>
-                            ` : ''}
-                            ${(post.intercepted_comment_count || 0) > 0 ? html`
-                              <span class="post-stat comments">💬 ${post.intercepted_comment_count} intercepted</span>
-                            ` : ''}
-                          </div>
+                          <!-- Likes count -->
+                          ${(post.intercepted_reaction_count || 0) > 0 ? html`
+                            <div class="post-stats" style="margin-top: 0.5rem;">
+                              <span class="post-stat reactions">👍 ${post.intercepted_reaction_count} ${post.intercepted_reaction_count === 1 ? 'like' : 'likes'}</span>
+                            </div>
+                          ` : ''}
+                          <!-- Comments shown directly -->
+                          ${(post.intercepted_comments?.length || 0) > 0 ? html`
+                            <div style="margin-top: 0.5rem;">
+                              ${post.intercepted_comments?.map(comment => html`
+                                <div style="display: flex; align-items: flex-start; gap: 0.5rem; padding: 0.5rem; background: #F3F2EF; border-radius: 6px; margin-bottom: 0.25rem;">
+                                  <span style="color: #057642;">💬</span>
+                                  <div style="flex: 1; font-size: 0.8rem; color: #333;">${comment.text}</div>
+                                  <button
+                                    class="secondary"
+                                    style="font-size: 0.6rem; padding: 0.15rem 0.4rem; flex-shrink: 0;"
+                                    @click=${(e: Event) => {
+                                      e.stopPropagation();
+                                      this.handleDeleteComment(comment.id);
+                                    }}
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              `)}
+                            </div>
+                          ` : ''}
                         ` : ''}
 
-                        <!-- Expanded View: Reactions and Comments -->
-                        ${isExpanded && hasActivity ? html`
+                        <!-- Expanded View: Reactions detail -->
+                        ${isExpanded && (post.intercepted_reactions?.length || 0) > 0 ? html`
                           <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #E0DFDC;">
-                            <!-- Intercepted Reactions -->
-                            ${(post.intercepted_reactions?.length || 0) > 0 ? html`
-                              <div style="margin-bottom: 1rem;">
-                                <h4 style="font-size: 0.75rem; color: #666; margin: 0 0 0.5rem 0; text-transform: uppercase;">Reactions</h4>
-                                ${post.intercepted_reactions?.map(reaction => html`
-                                  <div class="activity-card reaction">
-                                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                                      <div>
-                                        <div class="activity-type">${reaction.reaction_type || 'LIKE'}</div>
-                                        <div class="activity-meta">
-                                          ${new Date(reaction.created_at).toLocaleString()}
-                                        </div>
-                                      </div>
-                                      <button
-                                        class="secondary"
-                                        style="font-size: 0.625rem; padding: 0.25rem 0.5rem;"
-                                        @click=${(e: Event) => {
-                                          e.stopPropagation();
-                                          this.handleDeleteReaction(reaction.id);
-                                        }}
-                                      >
-                                        ✕
-                                      </button>
+                            <h4 style="font-size: 0.75rem; color: #666; margin: 0 0 0.5rem 0;">Likes</h4>
+                            ${post.intercepted_reactions?.map(reaction => html`
+                              <div class="activity-card reaction">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                  <div>
+                                    <div class="activity-type">${reaction.reaction_type || 'LIKE'}</div>
+                                    <div class="activity-meta">
+                                      ${new Date(reaction.created_at).toLocaleString()}
                                     </div>
                                   </div>
-                                `)}
+                                  <button
+                                    class="secondary"
+                                    style="font-size: 0.625rem; padding: 0.25rem 0.5rem;"
+                                    @click=${(e: Event) => {
+                                      e.stopPropagation();
+                                      this.handleDeleteReaction(reaction.id);
+                                    }}
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
                               </div>
-                            ` : ''}
-
-                            <!-- Intercepted Comments -->
-                            ${(post.intercepted_comments?.length || 0) > 0 ? html`
-                              <div>
-                                <h4 style="font-size: 0.75rem; color: #666; margin: 0 0 0.5rem 0; text-transform: uppercase;">Comments</h4>
-                                ${post.intercepted_comments?.map(comment => html`
-                                  <div class="activity-card comment">
-                                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                                      <div style="flex: 1;">
-                                        <div class="activity-text">${comment.text}</div>
-                                        <div class="activity-meta">
-                                          ${new Date(comment.created_at).toLocaleString()}
-                                        </div>
-                                      </div>
-                                      <button
-                                        class="secondary"
-                                        style="font-size: 0.625rem; padding: 0.25rem 0.5rem;"
-                                        @click=${(e: Event) => {
-                                          e.stopPropagation();
-                                          this.handleDeleteComment(comment.id);
-                                        }}
-                                      >
-                                        ✕
-                                      </button>
-                                    </div>
-                                  </div>
-                                `)}
-                              </div>
-                            ` : ''}
+                            `)}
                           </div>
                         ` : ''}
                       </div>
