@@ -131,6 +131,15 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Match request against rules
 	rule, ruleIndex := matcher.Match(rules, ctx)
 
+	// If no match in this workspace, fall back to default workspace
+	if rule == nil && workspace != "default" {
+		defaultStore, err := h.workspaceManager.GetStore("default")
+		if err == nil {
+			defaultRules := defaultStore.GetRules(service)
+			rule, ruleIndex = matcher.Match(defaultRules, ctx)
+		}
+	}
+
 	var response *models.Response
 	var ruleType string
 
