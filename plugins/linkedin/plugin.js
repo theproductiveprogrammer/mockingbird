@@ -1412,14 +1412,35 @@ exports.handleAction = function(action, id, data) {
                 // Attach posts for this user (check by provider_id or cache key)
                 var userPosts = userPostsMap[profile.provider_id] || userPostsMap[cacheKey] || [];
 
+                // Helper to check if a reaction/comment post_id matches this post
+                function matchesPost(activityPostId, post) {
+                    if (!activityPostId) return false;
+                    var postId = post.id || "";
+                    var socialId = post.social_id || "";
+
+                    // Direct match
+                    if (activityPostId === postId || activityPostId === socialId) {
+                        return true;
+                    }
+
+                    // Extract numeric ID from URN format (e.g., "urn:li:ugcPost:123" -> "123")
+                    var activityNumericId = activityPostId.replace(/^urn:li:(ugcPost|activity):/, "");
+                    var postNumericId = postId.replace(/^urn:li:(ugcPost|activity):/, "");
+                    var socialNumericId = socialId.replace(/^urn:li:(ugcPost|activity):/, "");
+
+                    return activityNumericId === postNumericId ||
+                           activityNumericId === socialNumericId ||
+                           activityNumericId === postId ||
+                           activityPostId === postNumericId;
+                }
+
                 // Enrich posts with intercepted reactions and comments
                 var enrichedPosts = userPosts.map(function(post) {
-                    var postId = post.id || post.social_id;
                     var postReactions = reactions.filter(function(r) {
-                        return r.post_id === postId || r.post_id === post.social_id;
+                        return matchesPost(r.post_id, post);
                     });
                     var postComments = comments.filter(function(c) {
-                        return c.post_id === postId || c.post_id === post.social_id;
+                        return matchesPost(c.post_id, post);
                     });
                     return {
                         id: post.id,
@@ -1582,7 +1603,10 @@ exports.handleAction = function(action, id, data) {
             invitations: 0,
             chats: 0,
             messages: 0,
-            profile: 0
+            profile: 0,
+            posts: 0,
+            reactions: 0,
+            comments: 0
         };
 
         // 1. Delete invitations
@@ -1616,7 +1640,53 @@ exports.handleAction = function(action, id, data) {
         deletedCounts.messages = beforeMessages - messages.length;
         plugin.saveData("messages", messages);
 
-        // 4. Delete cached profile (only if fullDelete is true)
+        // 4. Delete posts cache and collect post IDs for this user
+        var postsCache = plugin.getData("posts_cache") || {};
+        var postIdsToDelete = [];
+
+        if (postsCache[providerId]) {
+            var userPosts = postsCache[providerId].data?.items || [];
+            userPosts.forEach(function(post) {
+                if (post.id) postIdsToDelete.push(post.id);
+                if (post.social_id) postIdsToDelete.push(post.social_id);
+            });
+            deletedCounts.posts = userPosts.length;
+            delete postsCache[providerId];
+            plugin.saveData("posts_cache", postsCache);
+        }
+
+        // 5. Delete reactions on those posts
+        if (postIdsToDelete.length > 0) {
+            var reactions = plugin.getData("post_reactions") || [];
+            var beforeReactions = reactions.length;
+            reactions = reactions.filter(function(r) {
+                // Check if reaction's post_id matches any of the deleted posts
+                var postId = r.post_id || "";
+                var numericId = postId.replace(/^urn:li:(ugcPost|activity):/, "");
+                return !postIdsToDelete.some(function(pid) {
+                    var pidNumeric = pid.replace(/^urn:li:(ugcPost|activity):/, "");
+                    return postId === pid || numericId === pid || postId === pidNumeric || numericId === pidNumeric;
+                });
+            });
+            deletedCounts.reactions = beforeReactions - reactions.length;
+            plugin.saveData("post_reactions", reactions);
+
+            // 6. Delete comments on those posts
+            var comments = plugin.getData("post_comments") || [];
+            var beforeComments = comments.length;
+            comments = comments.filter(function(c) {
+                var postId = c.post_id || "";
+                var numericId = postId.replace(/^urn:li:(ugcPost|activity):/, "");
+                return !postIdsToDelete.some(function(pid) {
+                    var pidNumeric = pid.replace(/^urn:li:(ugcPost|activity):/, "");
+                    return postId === pid || numericId === pid || postId === pidNumeric || numericId === pidNumeric;
+                });
+            });
+            deletedCounts.comments = beforeComments - comments.length;
+            plugin.saveData("post_comments", comments);
+        }
+
+        // 7. Delete cached profile (only if fullDelete is true)
         if (fullDelete) {
             var cache = plugin.getData("profiles_cache") || {};
 
