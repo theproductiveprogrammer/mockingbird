@@ -15,9 +15,11 @@ type TrafficEntry struct {
 	Headers            map[string][]string `json:"headers"`
 	Body               interface{}         `json:"body"` // JSON object or string
 	Response           *Response           `json:"response,omitempty"`
-	MatchedRule        *int                `json:"matched_rule,omitempty"`         // Historical matched rule (may be stale after rule changes)
-	CurrentMatchedRule *int                `json:"current_matched_rule,omitempty"` // Current match with active rules (computed on-demand by API)
-	RuleType           string              `json:"rule_type,omitempty"`            // "proxy", "mock", or "timeout"
+	MatchedRule             *int                `json:"matched_rule,omitempty"`               // Historical matched rule (may be stale after rule changes)
+	MatchedWorkspace        string              `json:"matched_workspace,omitempty"`          // Workspace where rule matched (may differ from request workspace due to fallback)
+	CurrentMatchedRule      *int                `json:"current_matched_rule,omitempty"`       // Current match with active rules (computed on-demand by API)
+	CurrentMatchedWorkspace string              `json:"current_matched_workspace,omitempty"`  // Current match workspace (computed on-demand by API)
+	RuleType                string              `json:"rule_type,omitempty"`                  // "proxy", "mock", or "timeout"
 }
 
 // Response represents an HTTP response

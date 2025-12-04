@@ -10,7 +10,9 @@ export interface TrafficEntry {
   body: any;
   response?: MockResponse;
   matched_rule?: number; // Historical matched rule (may be stale)
+  matched_workspace?: string; // Workspace where rule matched (may differ from request workspace)
   current_matched_rule?: number; // Current match with active rules
+  current_matched_workspace?: string; // Current match workspace
   rule_type: "mock" | "proxy" | "timeout";
 }
 

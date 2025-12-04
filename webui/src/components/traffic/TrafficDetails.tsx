@@ -347,14 +347,17 @@ ${responseBodyStr}`;
   const handleGoToRule = () => {
     if (!entry || entry.current_matched_rule === undefined) return;
 
+    // Use the workspace where the rule actually matched
+    const ruleWorkspace = entry.current_matched_workspace || workspace;
+
     // Set the highlighted rule
     setHighlightedRule({
       service: entry.service,
       index: entry.current_matched_rule,
     });
 
-    // Navigate to rules view (workspace-aware)
-    const rulesPath = workspace ? `/w/${workspace}/rules` : '/rules';
+    // Navigate to rules view in the correct workspace
+    const rulesPath = ruleWorkspace ? `/w/${ruleWorkspace}/rules` : '/rules';
     navigate(rulesPath);
   };
 
@@ -374,6 +377,9 @@ ${responseBodyStr}`;
                 title="Go to rule"
               >
                 Currently matches: Rule #{entry.current_matched_rule + 1}
+                {entry.current_matched_workspace && entry.current_matched_workspace !== workspace && (
+                  <span className="text-gray-500"> (from {entry.current_matched_workspace})</span>
+                )}
               </button>
             )}
           </div>

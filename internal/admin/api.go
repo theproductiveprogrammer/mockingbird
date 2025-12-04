@@ -188,12 +188,16 @@ func (a *API) handleGetTraffic(w http.ResponseWriter, r *http.Request) {
 
 // handleTrafficStream streams traffic via SSE
 func (a *API) handleTrafficStream(w http.ResponseWriter, r *http.Request) {
+	workspace := chi.URLParam(r, "workspace")
+	if workspace == "" {
+		workspace = "default"
+	}
 	st, err := a.getWorkspaceStore(r)
 	if err != nil {
 		respondError(w, http.StatusNotFound, "Workspace not found", "WORKSPACE_NOT_FOUND")
 		return
 	}
-	streamTraffic(w, r, st)
+	streamTraffic(w, r, st, workspace, a.workspaceManager)
 }
 
 // handleGetTrafficByID returns a specific traffic entry
@@ -213,6 +217,10 @@ func (a *API) handleGetTrafficByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Compute current matched rule
+	workspace := chi.URLParam(r, "workspace")
+	if workspace == "" {
+		workspace = "default"
+	}
 	rules := st.GetRules(entry.Service)
 	ctx := &models.RequestContext{
 		Method:      entry.Method,
@@ -222,8 +230,22 @@ func (a *API) handleGetTrafficByID(w http.ResponseWriter, r *http.Request) {
 		Body:        entry.Body,
 	}
 	_, ruleIndex := matcher.Match(rules, ctx)
+	matchedWorkspace := workspace
+
+	// Fallback to default workspace if no match and not already in default
+	if ruleIndex < 0 && workspace != "default" {
+		if defaultStore, err := a.workspaceManager.GetStore("default"); err == nil {
+			defaultRules := defaultStore.GetRules(entry.Service)
+			_, ruleIndex = matcher.Match(defaultRules, ctx)
+			if ruleIndex >= 0 {
+				matchedWorkspace = "default"
+			}
+		}
+	}
+
 	if ruleIndex >= 0 {
 		entry.CurrentMatchedRule = &ruleIndex
+		entry.CurrentMatchedWorkspace = matchedWorkspace
 	}
 
 	respondJSON(w, http.StatusOK, entry)

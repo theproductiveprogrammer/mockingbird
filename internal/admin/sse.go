@@ -11,7 +11,7 @@ import (
 )
 
 // streamTraffic handles Server-Sent Events for live traffic
-func streamTraffic(w http.ResponseWriter, r *http.Request, st *store.Store) {
+func streamTraffic(w http.ResponseWriter, r *http.Request, st *store.Store, workspace string, wm *store.WorkspaceManager) {
 	// Set SSE headers
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
@@ -47,8 +47,22 @@ func streamTraffic(w http.ResponseWriter, r *http.Request, st *store.Store) {
 				Body:        entry.Body,
 			}
 			_, ruleIndex := matcher.Match(rules, ctx)
+			matchedWorkspace := workspace
+
+			// Fallback to default workspace if no match
+			if ruleIndex < 0 && workspace != "default" {
+				if defaultStore, err := wm.GetStore("default"); err == nil {
+					defaultRules := defaultStore.GetRules(entry.Service)
+					_, ruleIndex = matcher.Match(defaultRules, ctx)
+					if ruleIndex >= 0 {
+						matchedWorkspace = "default"
+					}
+				}
+			}
+
 			if ruleIndex >= 0 {
 				entry.CurrentMatchedRule = &ruleIndex
+				entry.CurrentMatchedWorkspace = matchedWorkspace
 			}
 
 			// Marshal entry to JSON

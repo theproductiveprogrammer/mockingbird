@@ -130,6 +130,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Match request against rules
 	rule, ruleIndex := matcher.Match(rules, ctx)
+	matchedWorkspace := workspace
 
 	// If no match in this workspace, fall back to default workspace
 	if rule == nil && workspace != "default" {
@@ -137,6 +138,9 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if err == nil {
 			defaultRules := defaultStore.GetRules(service)
 			rule, ruleIndex = matcher.Match(defaultRules, ctx)
+			if rule != nil {
+				matchedWorkspace = "default"
+			}
 		}
 	}
 
@@ -176,6 +180,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if ruleIndex >= 0 {
 		entry.MatchedRule = &ruleIndex
+		entry.MatchedWorkspace = matchedWorkspace
 	}
 
 	// Mask backend keys before storing (replace config values with key names)
