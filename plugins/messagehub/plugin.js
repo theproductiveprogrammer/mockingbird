@@ -1,8 +1,8 @@
-// LinkedIn Plugin - Full Implementation with Unipile Integration
-exports.name = "linkedin";
-exports.version = "3.0";
-exports.routes = ["/linkedin/**"];
-exports.config_env = "LINKEDIN_PLUGIN_";
+// MessageHub Plugin - Multi-Platform Messaging (LinkedIn + WhatsApp)
+exports.name = "messagehub";
+exports.version = "4.0";
+exports.routes = ["/messagehub/**"];
+exports.config_env = "MESSAGEHUB_PLUGIN_";
 
 // Helper to generate unique IDs
 function generateId(prefix) {
@@ -58,7 +58,7 @@ function forwardToUnipile(path, queryParams) {
     var apiKey = getUnipileApiKey();
 
     if (!baseUrl || !apiKey) {
-        console.log("LinkedIn plugin: Unipile not configured (missing DNS or API_KEY)");
+        console.log("MessageHub plugin: Unipile not configured (missing DNS or API_KEY)");
         return null;
     }
 
@@ -67,7 +67,7 @@ function forwardToUnipile(path, queryParams) {
     if (queryString) {
         url += "?" + queryString;
     }
-    console.log("LinkedIn plugin: Forwarding to Unipile: " + url);
+    console.log("MessageHub plugin: Forwarding to Unipile: " + url);
 
     var result = plugin.httpRequest("GET", url, {
         "X-API-KEY": apiKey,
@@ -75,12 +75,12 @@ function forwardToUnipile(path, queryParams) {
     }, null);
 
     if (result.error) {
-        console.log("LinkedIn plugin: Unipile request failed: " + result.error);
+        console.log("MessageHub plugin: Unipile request failed: " + result.error);
         return null;
     }
 
     if (result.status !== 200) {
-        console.log("LinkedIn plugin: Unipile returned status: " + result.status);
+        console.log("MessageHub plugin: Unipile returned status: " + result.status);
         return null;
     }
 
@@ -93,7 +93,7 @@ function proxyToUnipile(method, path, queryParams, body) {
     var apiKey = getUnipileApiKey();
 
     if (!baseUrl || !apiKey) {
-        console.log("LinkedIn plugin: Unipile not configured, cannot proxy unhandled request: " + path);
+        console.log("MessageHub plugin: Unipile not configured, cannot proxy unhandled request: " + path);
         return {
             status: 501,
             headers: { "Content-Type": "application/json" },
@@ -110,7 +110,7 @@ function proxyToUnipile(method, path, queryParams, body) {
     if (queryString) {
         url += "?" + queryString;
     }
-    console.log("LinkedIn plugin: Proxying to Unipile: " + method + " " + url);
+    console.log("MessageHub plugin: Proxying to Unipile: " + method + " " + url);
 
     var headers = {
         "X-API-KEY": apiKey,
@@ -132,7 +132,7 @@ function proxyToUnipile(method, path, queryParams, body) {
     var result = plugin.httpRequest(method, url, headers, requestBody);
 
     if (result.error) {
-        console.log("LinkedIn plugin: Unipile proxy request failed: " + result.error);
+        console.log("MessageHub plugin: Unipile proxy request failed: " + result.error);
         return {
             status: 502,
             headers: { "Content-Type": "application/json" },
@@ -184,14 +184,14 @@ function getProfileWithCache(identifier, queryParams) {
 
     // Check cache first (cache key is just identifier, ignoring query params)
     if (cache[identifier]) {
-        console.log("LinkedIn plugin: Returning cached profile for " + identifier);
+        console.log("MessageHub plugin: Returning cached profile for " + identifier);
         var cachedProfile = cache[identifier].data;
 
         // Create a copy and override network_distance based on invite status
         var result = JSON.parse(JSON.stringify(cachedProfile));
         var inviteStatus = getInviteStatus(result.provider_id);
         result.network_distance = getNetworkDistanceByInviteStatus(inviteStatus);
-        console.log("LinkedIn plugin: Set network_distance to " + result.network_distance + " (invite status: " + (inviteStatus || "none") + ")");
+        console.log("MessageHub plugin: Set network_distance to " + result.network_distance + " (invite status: " + (inviteStatus || "none") + ")");
 
         return result;
     }
@@ -205,13 +205,13 @@ function getProfileWithCache(identifier, queryParams) {
             cached_at: now()
         };
         plugin.saveData("profiles_cache", cache);
-        console.log("LinkedIn plugin: Cached profile for " + identifier);
+        console.log("MessageHub plugin: Cached profile for " + identifier);
 
         // Create a copy and override network_distance based on invite status
         var result = JSON.parse(JSON.stringify(profile));
         var inviteStatus = getInviteStatus(result.provider_id);
         result.network_distance = getNetworkDistanceByInviteStatus(inviteStatus);
-        console.log("LinkedIn plugin: Set network_distance to " + result.network_distance + " (invite status: " + (inviteStatus || "none") + ")");
+        console.log("MessageHub plugin: Set network_distance to " + result.network_distance + " (invite status: " + (inviteStatus || "none") + ")");
 
         return result;
     }
@@ -225,7 +225,7 @@ function getPostsWithCache(identifier, queryParams) {
 
     // Check cache first (cache key is just identifier, ignoring query params)
     if (cache[identifier]) {
-        console.log("LinkedIn plugin: Returning cached posts for " + identifier);
+        console.log("MessageHub plugin: Returning cached posts for " + identifier);
         return cache[identifier].data;
     }
 
@@ -238,7 +238,7 @@ function getPostsWithCache(identifier, queryParams) {
             cached_at: now()
         };
         plugin.saveData("posts_cache", cache);
-        console.log("LinkedIn plugin: Cached posts for " + identifier);
+        console.log("MessageHub plugin: Cached posts for " + identifier);
         return posts;
     }
 
@@ -254,7 +254,7 @@ function updateCacheToFirstDegree(identifier) {
         cache[identifier].data.network_distance = "FIRST_DEGREE";
         cache[identifier].updated_at = now();
         plugin.saveData("profiles_cache", cache);
-        console.log("LinkedIn plugin: Updated " + identifier + " to FIRST_DEGREE connection");
+        console.log("MessageHub plugin: Updated " + identifier + " to FIRST_DEGREE connection");
         return true;
     }
 
@@ -265,7 +265,7 @@ function updateCacheToFirstDegree(identifier) {
             cache[cacheKey].data.network_distance = "FIRST_DEGREE";
             cache[cacheKey].updated_at = now();
             plugin.saveData("profiles_cache", cache);
-            console.log("LinkedIn plugin: Updated " + cacheKey + " (provider_id: " + identifier + ") to FIRST_DEGREE connection");
+            console.log("MessageHub plugin: Updated " + cacheKey + " (provider_id: " + identifier + ") to FIRST_DEGREE connection");
             return true;
         }
     }
@@ -313,8 +313,56 @@ function initializeData() {
         plugin.saveData("posts", []);
         plugin.saveData("post_reactions", []);
         plugin.saveData("post_comments", []);
+
+        // WhatsApp data structures (full mock - no Unipile forwarding)
+        plugin.saveData("whatsapp_contacts", {});  // phone -> {name, phone, created_at}
+        plugin.saveData("whatsapp_chats", {});     // chat_id -> {id, contact_phone, contact_name, last_message, timestamp}
+        plugin.saveData("whatsapp_messages", []);  // [{id, chat_id, text, is_sender, timestamp}]
+
         plugin.saveData("initialized", true);
     }
+}
+
+// ===== WHATSAPP HELPERS =====
+
+// Check if an attendee ID is a WhatsApp ID
+function isWhatsAppId(attendeeId) {
+    if (!attendeeId) return false;
+    return attendeeId.indexOf("@s.whatsapp.net") !== -1 ||
+           attendeeId.indexOf("@g.us") !== -1;
+}
+
+// Check if request is WhatsApp based on account_type or attendee IDs
+function isWhatsAppRequest(body) {
+    if (body.account_type === "WHATSAPP") return true;
+    if (body.attendees_ids) {
+        for (var i = 0; i < body.attendees_ids.length; i++) {
+            if (isWhatsAppId(body.attendees_ids[i])) return true;
+        }
+    }
+    if (body.attendee_id && isWhatsAppId(body.attendee_id)) return true;
+    if (body.to && isWhatsAppId(body.to)) return true;
+    return false;
+}
+
+// Extract phone number from WhatsApp ID (e.g., "61478032807@s.whatsapp.net" -> "+61478032807")
+function extractPhoneFromWhatsAppId(waId) {
+    if (!waId) return null;
+    var phone = waId.replace(/@s\.whatsapp\.net$/, "").replace(/@g\.us$/, "");
+    if (phone && !phone.startsWith("+")) {
+        phone = "+" + phone;
+    }
+    return phone;
+}
+
+// Generate WhatsApp-style chat ID
+function generateWhatsAppChatId() {
+    return "wa_chat_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
+}
+
+// Generate WhatsApp-style message ID
+function generateWhatsAppMessageId() {
+    return "wa_msg_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
 }
 
 // Handle incoming requests
@@ -326,10 +374,10 @@ exports.handleRequest = function(ctx) {
     var body = ctx.body || {};
     var queryParams = ctx.query || {};
 
-    console.log("LinkedIn plugin: " + method + " " + path);
+    console.log("MessageHub plugin: " + method + " " + path);
 
-    // Remove /linkedin prefix if present
-    var apiPath = path.replace(/^\/linkedin/, "");
+    // Remove /messagehub prefix if present
+    var apiPath = path.replace(/^\/messagehub/, "");
 
     // ===== INVITATIONS =====
 
@@ -397,6 +445,65 @@ exports.handleRequest = function(ctx) {
 
     // Start new chat
     if (method === "POST" && apiPath === "/api/v1/chats") {
+        // Check if this is a WhatsApp chat request
+        if (isWhatsAppRequest(body)) {
+            console.log("MessageHub plugin: Creating WhatsApp chat (full mock)");
+            var waChatId = generateWhatsAppChatId();
+            var waMessageId = generateWhatsAppMessageId();
+
+            var attendeeIds = body.attendees_ids || [body.attendee_id || "unknown"];
+            var attendeeId = attendeeIds[0];
+            var contactPhone = extractPhoneFromWhatsAppId(attendeeId) || attendeeId;
+
+            // Get or create contact
+            var waContacts = plugin.getData("whatsapp_contacts") || {};
+            var contactName = waContacts[contactPhone]?.name || contactPhone;
+
+            // Create the chat
+            var waChats = plugin.getData("whatsapp_chats") || {};
+            waChats[waChatId] = {
+                object: "Chat",
+                id: waChatId,
+                account_id: body.account_id || "",
+                account_type: "WHATSAPP",
+                provider_id: waChatId,
+                attendee_provider_id: attendeeId,
+                contact_phone: contactPhone,
+                name: contactName,
+                type: 0,
+                timestamp: now(),
+                unread_count: 0
+            };
+            plugin.saveData("whatsapp_chats", waChats);
+
+            // If there's an initial message, save it
+            if (body.text) {
+                var waMessages = plugin.getData("whatsapp_messages") || [];
+                waMessages.push({
+                    object: "Message",
+                    id: waMessageId,
+                    provider_id: waMessageId,
+                    chat_id: waChatId,
+                    text: body.text,
+                    is_sender: 1,
+                    timestamp: now(),
+                    sender_id: "self"
+                });
+                plugin.saveData("whatsapp_messages", waMessages);
+            }
+
+            return {
+                status: 201,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    object: "ChatStarted",
+                    chat_id: waChatId,
+                    message_id: waMessageId
+                })
+            };
+        }
+
+        // LinkedIn chat creation (with Unipile proxy/cache)
         var chatId = generateLinkedInId();
         var messageId = generateLinkedInId();
         var chats = plugin.getData("chats") || {};
@@ -493,13 +600,22 @@ exports.handleRequest = function(ctx) {
         };
     }
 
-    // List all chats
+    // List all chats (includes both LinkedIn and WhatsApp)
     if (method === "GET" && apiPath === "/api/v1/chats") {
         var allChats = plugin.getData("chats") || {};
+        var waChats = plugin.getData("whatsapp_chats") || {};
         var chatList = [];
+
+        // Add LinkedIn chats
         for (var cid in allChats) {
             chatList.push(allChats[cid]);
         }
+
+        // Add WhatsApp chats
+        for (var waCid in waChats) {
+            chatList.push(waChats[waCid]);
+        }
+
         return {
             status: 200,
             headers: { "Content-Type": "application/json" },
@@ -514,6 +630,37 @@ exports.handleRequest = function(ctx) {
     var chatMatch = apiPath.match(/\/api\/v1\/chats\/([^\/]+)$/);
     if (method === "GET" && chatMatch) {
         var chatId = chatMatch[1];
+
+        // Check WhatsApp chats first
+        var waChats = plugin.getData("whatsapp_chats") || {};
+        if (waChats[chatId]) {
+            var waChat = waChats[chatId];
+            var response = JSON.parse(JSON.stringify(waChat));
+
+            // Get last message for this chat
+            var waMessages = plugin.getData("whatsapp_messages") || [];
+            var chatMessages = waMessages.filter(function(m) { return m.chat_id === chatId; });
+
+            if (chatMessages.length > 0) {
+                var lastMsg = chatMessages[chatMessages.length - 1];
+                response.lastMessage = {
+                    object: "Message",
+                    id: lastMsg.id,
+                    provider_id: lastMsg.id,
+                    text: lastMsg.text || "",
+                    timestamp: lastMsg.timestamp,
+                    is_sender: lastMsg.is_sender
+                };
+            }
+
+            return {
+                status: 200,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(response)
+            };
+        }
+
+        // Check LinkedIn chats
         var chats = plugin.getData("chats") || {};
         var chat = chats[chatId];
         if (chat) {
@@ -580,6 +727,25 @@ exports.handleRequest = function(ctx) {
     var messagesMatch = apiPath.match(/\/api\/v1\/chats\/([^\/]+)\/messages$/);
     if (method === "GET" && messagesMatch) {
         var chatId = messagesMatch[1];
+
+        // Check if this is a WhatsApp chat
+        var waChats = plugin.getData("whatsapp_chats") || {};
+        if (waChats[chatId]) {
+            var waMessages = plugin.getData("whatsapp_messages") || [];
+            var chatMessages = waMessages.filter(function(m) {
+                return m.chat_id === chatId;
+            });
+            return {
+                status: 200,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    object: "MessageList",
+                    items: chatMessages.reverse() // Most recent first
+                })
+            };
+        }
+
+        // LinkedIn chat messages
         var allMessages = plugin.getData("messages") || [];
         var chatMessages = allMessages.filter(function(m) {
             return m.chat_id === chatId;
@@ -597,6 +763,38 @@ exports.handleRequest = function(ctx) {
     // Send message to chat
     if (method === "POST" && messagesMatch) {
         var chatId = messagesMatch[1];
+
+        // Check if this is a WhatsApp chat
+        var waChats = plugin.getData("whatsapp_chats") || {};
+        if (waChats[chatId]) {
+            var waMessageId = generateWhatsAppMessageId();
+            var waMessages = plugin.getData("whatsapp_messages") || [];
+
+            waMessages.push({
+                object: "Message",
+                id: waMessageId,
+                provider_id: waMessageId,
+                chat_id: chatId,
+                text: body.text || "",
+                is_sender: 1,
+                timestamp: now(),
+                sender_id: "self"
+            });
+            plugin.saveData("whatsapp_messages", waMessages);
+
+            console.log("MessageHub plugin: Sent WhatsApp message to chat " + chatId);
+
+            return {
+                status: 201,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    object: "MessageSent",
+                    message_id: waMessageId
+                })
+            };
+        }
+
+        // LinkedIn message
         var messageId = generateLinkedInId();
         var messages = plugin.getData("messages") || [];
         var chats = plugin.getData("chats") || {};
@@ -851,7 +1049,7 @@ exports.handleRequest = function(ctx) {
             }
         }
 
-        console.log("LinkedIn plugin: Recorded reaction on post " + postId);
+        console.log("MessageHub plugin: Recorded reaction on post " + postId);
 
         return {
             status: 200,
@@ -924,7 +1122,7 @@ exports.handleRequest = function(ctx) {
             }
         }
 
-        console.log("LinkedIn plugin: Recorded comment on post " + postId);
+        console.log("MessageHub plugin: Recorded comment on post " + postId);
 
         return {
             status: 200,
@@ -1012,7 +1210,7 @@ exports.handleRequest = function(ctx) {
         // Rewrite api_url to point to actual Unipile API
         var modifiedBody = JSON.parse(JSON.stringify(body));
         if (modifiedBody.api_url) {
-            console.log("LinkedIn plugin: Rewriting api_url from " + modifiedBody.api_url + " to " + baseUrl);
+            console.log("MessageHub plugin: Rewriting api_url from " + modifiedBody.api_url + " to " + baseUrl);
             modifiedBody.api_url = baseUrl;
         }
 
@@ -1836,6 +2034,245 @@ exports.handleAction = function(action, id, data) {
         plugin.saveData("post_reactions", []);
         plugin.saveData("post_comments", []);
         return { success: true, message: "Posts cache and activity cleared" };
+    }
+
+    // ===== WHATSAPP ACTIONS =====
+
+    if (action === "load_whatsapp_data") {
+        var waContacts = plugin.getData("whatsapp_contacts") || {};
+        var waChats = plugin.getData("whatsapp_chats") || {};
+        var waMessages = plugin.getData("whatsapp_messages") || [];
+
+        // Convert contacts to array
+        var contactsArray = [];
+        for (var phone in waContacts) {
+            contactsArray.push(waContacts[phone]);
+        }
+
+        // Convert chats to array and enrich with message counts
+        var chatsArray = [];
+        for (var chatId in waChats) {
+            var chat = waChats[chatId];
+            var chatMsgs = waMessages.filter(function(m) { return m.chat_id === chatId; });
+            chat.message_count = chatMsgs.length;
+            chat.last_message = chatMsgs.length > 0 ? chatMsgs[chatMsgs.length - 1] : null;
+            chatsArray.push(chat);
+        }
+
+        // Sort chats by most recent message
+        chatsArray.sort(function(a, b) {
+            var aTime = a.last_message ? new Date(a.last_message.timestamp) : new Date(a.timestamp);
+            var bTime = b.last_message ? new Date(b.last_message.timestamp) : new Date(b.timestamp);
+            return bTime - aTime;
+        });
+
+        return {
+            success: true,
+            data: {
+                contacts: contactsArray,
+                chats: chatsArray,
+                messages: waMessages,
+                stats: {
+                    total_contacts: contactsArray.length,
+                    total_chats: chatsArray.length,
+                    total_messages: waMessages.length
+                }
+            }
+        };
+    }
+
+    if (action === "create_whatsapp_contact") {
+        var phone = data.phone || "";
+        var name = data.name || "";
+
+        if (!phone) {
+            return { success: false, message: "Phone number is required" };
+        }
+
+        // Normalize phone number
+        if (!phone.startsWith("+")) {
+            phone = "+" + phone;
+        }
+
+        var waContacts = plugin.getData("whatsapp_contacts") || {};
+        waContacts[phone] = {
+            phone: phone,
+            name: name || phone,
+            created_at: now()
+        };
+        plugin.saveData("whatsapp_contacts", waContacts);
+
+        return {
+            success: true,
+            message: "Contact created",
+            contact: waContacts[phone]
+        };
+    }
+
+    if (action === "send_whatsapp_message") {
+        // id is the chat_id, data.text is the message
+        var chatId = id;
+        var messageText = data.text || "";
+
+        if (!messageText) {
+            return { success: false, message: "Message text is required" };
+        }
+
+        var waChats = plugin.getData("whatsapp_chats") || {};
+        if (!waChats[chatId]) {
+            return { success: false, message: "Chat not found" };
+        }
+
+        var waMessages = plugin.getData("whatsapp_messages") || [];
+        var msgId = generateWhatsAppMessageId();
+
+        waMessages.push({
+            object: "Message",
+            id: msgId,
+            provider_id: msgId,
+            chat_id: chatId,
+            text: messageText,
+            is_sender: 1,
+            timestamp: now(),
+            sender_id: "self"
+        });
+        plugin.saveData("whatsapp_messages", waMessages);
+
+        return {
+            success: true,
+            message: "Message sent",
+            message_id: msgId
+        };
+    }
+
+    if (action === "simulate_incoming_message") {
+        // Simulate a message FROM the contact (for testing)
+        // id is the chat_id, data.text is the message
+        var chatId = id;
+        var messageText = data.text || "";
+
+        if (!messageText) {
+            return { success: false, message: "Message text is required" };
+        }
+
+        var waChats = plugin.getData("whatsapp_chats") || {};
+        if (!waChats[chatId]) {
+            return { success: false, message: "Chat not found" };
+        }
+
+        var chat = waChats[chatId];
+        var waMessages = plugin.getData("whatsapp_messages") || [];
+        var msgId = generateWhatsAppMessageId();
+
+        waMessages.push({
+            object: "Message",
+            id: msgId,
+            provider_id: msgId,
+            chat_id: chatId,
+            text: messageText,
+            is_sender: 0,  // Received message
+            timestamp: now(),
+            sender_id: chat.contact_phone || chat.attendee_provider_id
+        });
+        plugin.saveData("whatsapp_messages", waMessages);
+
+        return {
+            success: true,
+            message: "Incoming message simulated",
+            message_id: msgId
+        };
+    }
+
+    if (action === "start_whatsapp_chat") {
+        // Start a new chat with a contact
+        // data.phone is the contact phone, data.name is optional
+        var phone = data.phone || "";
+
+        if (!phone) {
+            return { success: false, message: "Phone number is required" };
+        }
+
+        // Normalize phone
+        if (!phone.startsWith("+")) {
+            phone = "+" + phone;
+        }
+
+        // Get or create contact
+        var waContacts = plugin.getData("whatsapp_contacts") || {};
+        if (!waContacts[phone]) {
+            waContacts[phone] = {
+                phone: phone,
+                name: data.name || phone,
+                created_at: now()
+            };
+            plugin.saveData("whatsapp_contacts", waContacts);
+        }
+
+        var contactName = waContacts[phone].name;
+
+        // Check if chat already exists
+        var waChats = plugin.getData("whatsapp_chats") || {};
+        for (var cid in waChats) {
+            if (waChats[cid].contact_phone === phone) {
+                return {
+                    success: true,
+                    message: "Chat already exists",
+                    chat_id: cid,
+                    existing: true
+                };
+            }
+        }
+
+        // Create new chat
+        var newChatId = generateWhatsAppChatId();
+        waChats[newChatId] = {
+            object: "Chat",
+            id: newChatId,
+            account_id: "",
+            account_type: "WHATSAPP",
+            provider_id: newChatId,
+            attendee_provider_id: phone.replace("+", "") + "@s.whatsapp.net",
+            contact_phone: phone,
+            name: contactName,
+            type: 0,
+            timestamp: now(),
+            unread_count: 0
+        };
+        plugin.saveData("whatsapp_chats", waChats);
+
+        return {
+            success: true,
+            message: "Chat created",
+            chat_id: newChatId,
+            existing: false
+        };
+    }
+
+    if (action === "delete_whatsapp_chat") {
+        var chatId = id;
+
+        var waChats = plugin.getData("whatsapp_chats") || {};
+        if (!waChats[chatId]) {
+            return { success: false, message: "Chat not found" };
+        }
+
+        // Delete chat
+        delete waChats[chatId];
+        plugin.saveData("whatsapp_chats", waChats);
+
+        // Delete all messages for this chat
+        var waMessages = plugin.getData("whatsapp_messages") || [];
+        waMessages = waMessages.filter(function(m) { return m.chat_id !== chatId; });
+        plugin.saveData("whatsapp_messages", waMessages);
+
+        return { success: true, message: "Chat deleted" };
+    }
+
+    if (action === "clear_whatsapp_data") {
+        plugin.saveData("whatsapp_contacts", {});
+        plugin.saveData("whatsapp_chats", {});
+        plugin.saveData("whatsapp_messages", []);
+        return { success: true, message: "WhatsApp data cleared" };
     }
 
     return { success: false, message: "Unknown action: " + action };
