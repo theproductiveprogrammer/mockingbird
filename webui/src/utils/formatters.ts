@@ -157,6 +157,8 @@ export function getRuleTypeBadgeClasses(ruleType: string): string {
       return `group-hover:bg-violet-100 group-hover:text-violet-70`;
     case "proxy":
       return `group-hover:bg-green-50 group-hover:text-green-700`;
+    case "plugin":
+      return `group-hover:bg-blue-50 group-hover:text-blue-700`;
     case "timeout":
       return "bg-red-50 text-red-700";
     default:

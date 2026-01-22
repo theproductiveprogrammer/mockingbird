@@ -1378,11 +1378,11 @@ exports.getUI = function() {
     var apiKeyConfigured = getUnipileApiKey() ? "Yes" : "No";
     items.unshift({
         id: "config_status",
-        title: "LinkedIn Plugin Configuration",
+        title: "MessageHub Plugin Configuration",
         subtitle: "Unipile connection and cache settings",
         content: "Unipile DNS: " + (unipileUrl || "Not configured") + "\n" +
                  "API Key configured: " + apiKeyConfigured + "\n" +
-                 "Configure via: LINKEDIN_PLUGIN_DNS, LINKEDIN_PLUGIN_API_KEY\n" +
+                 "Configure via: MESSAGEHUB_PLUGIN_DNS, MESSAGEHUB_PLUGIN_API_KEY\n" +
                  "Cached Profiles: " + cachedProfiles + "\n" +
                  "Cached Posts: " + cachedPosts,
         actions: [
@@ -1393,7 +1393,7 @@ exports.getUI = function() {
     if (totalInvites > 0 || totalMessages > 0 || chatIds.length > 0) {
         items.unshift({
             id: "stats",
-            title: "LinkedIn Plugin Statistics",
+            title: "MessageHub Plugin Statistics",
             subtitle: "Overview of tracked activities",
             content: "Invitations: " + totalInvites + " sent (" + acceptedInvites + " accepted)\n" +
                      "Messages: " + totalMessages + " total (" + approvedMessages + " approved)\n" +
@@ -1406,8 +1406,8 @@ exports.getUI = function() {
         items.push({
             id: "empty",
             title: "No Activity Yet",
-            subtitle: "LinkedIn plugin is ready",
-            content: "The plugin will intercept /linkedin/** requests.\n" +
+            subtitle: "MessageHub plugin is ready",
+            content: "The plugin will intercept /messagehub/** requests.\n" +
                      "Send invitations or messages to see them tracked here.",
             actions: []
         });
@@ -1422,7 +1422,7 @@ exports.getUI = function() {
 
 // Handle actions from the UI
 exports.handleAction = function(action, id, data) {
-    console.log("LinkedIn plugin action: " + action + " on " + id);
+    console.log("MessageHub plugin action: " + action + " on " + id);
 
     if (action === "accept_invite" || action === "decline_invite") {
         var invites = plugin.getData("invitations_sent") || [];
