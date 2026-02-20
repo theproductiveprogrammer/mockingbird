@@ -98,7 +98,9 @@ func (a *API) setupRoutes() {
 	})
 
 	// Static image assets: /img/w/...
-	r.Handle("/img/w/*", http.StripPrefix("/img", http.FileServer(http.Dir("./webui/public"))))
+	// Use webui/dist (not webui/public) since Vite copies public/ into dist/ during build,
+	// and the Docker image only contains webui/dist
+	r.Handle("/img/w/*", http.StripPrefix("/img", http.FileServer(http.Dir("./webui/dist"))))
 
 	// Workspace UI routes: /w/{workspace}/...
 	r.Route("/w/{workspace}", func(r chi.Router) {
